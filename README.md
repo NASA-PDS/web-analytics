@@ -4,4 +4,4 @@ for data analytics.
 
 ## Prerequisites
 Please see `requirements.txt`. Generally, you just need some variation of Jupyter to view
-the notebook.
+the notebooks.
