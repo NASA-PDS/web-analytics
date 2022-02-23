@@ -33,12 +33,16 @@ class CLFParse(object):
         elapsed = np.round((time.time() - tick) / 60, 2)
         print(f"{elapsed}m to process log files.")
 
-    def to_feather(self, filepath: str = 'foo.feather'):
-        """Write dataframe to feather"""
+    def to_file(self, type: str = "feather", filepath: str = 'foo.feather'):
+        """Write dataframe to some file format"""
         if self.df_logs.shape[0] == 0:
             print(f"Warning, this looks like an empty dataframe.")
-        self.df_logs.reset_index().to_feather(filepath)
-        print(f"Completed creating feather formatted dataframe at {filepath}.")
+        if type == "feather":
+            self.df_logs.reset_index().to_feather(filepath)
+            print(f"Completed creating feather file at {filepath}.")
+        elif type == "parquet":
+            self.df_logs.reset_index().to_parquet(filepath)
+            print(f"Completed creating parquet file at {filepath}.")
 
     def _parse_line(self, line):
         """Process line from logfile"""
