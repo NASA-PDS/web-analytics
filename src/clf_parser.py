@@ -3,8 +3,8 @@ import pandas as pd
 import time
 from apachelogs import LogParser
 
-COLUMN_NAMES = ['ip', 'identd', 'userid', 'date', 'time', 'timezone',
-                'request', 'status', 'size', 'referer', 'user_agent']
+COLUMN_NAMES = ['ip', 'identd', 'userid', 'datetime', 'request',
+                'status', 'size', 'referer', 'user_agent']
 PARSER = LogParser("%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"")
 
 
@@ -33,6 +33,13 @@ class CLFParse(object):
         elapsed = np.round((time.time() - tick) / 60, 2)
         print(f"{elapsed}m to process log files.")
 
+    def to_feather(self, filepath: str = 'foo.feather'):
+        """Write dataframe to feather"""
+        if self.df_logs.shape[0] == 0:
+            print(f"Warning, this looks like an empty dataframe.")
+        self.df_logs.reset_index().to_feather(filepath)
+        print(f"Completed creating feather formatted dataframe at {filepath}.")
+
     def _parse_line(self, line):
         """Process line from logfile"""
         parsed = PARSER.parse(line)
@@ -40,9 +47,7 @@ class CLFParse(object):
         parsed_line = [parsed.remote_host,
                        parsed.remote_logname,
                        parsed.remote_user,
-                       datetime.date(),
-                       datetime.time(),
-                       datetime.tzinfo,
+                       datetime,
                        parsed.request_line,
                        parsed.final_status,
                        parsed.bytes_sent,
