@@ -30,6 +30,13 @@
 #
 # Items for Git to ignore
 
+# Other data, metadata, etc
+data/
+datasets/
+*.feather
+*.csv
+
+
 # Python build, virtual environments, and buildouts
 venv
 __pycache__/
