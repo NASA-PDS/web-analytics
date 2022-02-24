@@ -38,11 +38,15 @@ class CLFParse(object):
         if self.df_logs.shape[0] == 0:
             print(f"Warning, this looks like an empty dataframe.")
         if type == "feather":
-            self.df_logs.reset_index().to_feather(filepath)
+            self.df_logs.reset_index(drop=True).to_feather(filepath)
             print(f"Completed creating feather file at {filepath}.")
         elif type == "parquet":
-            self.df_logs.reset_index().to_parquet(filepath)
+            self.df_logs.reset_index(drop=True).to_parquet(filepath)
             print(f"Completed creating parquet file at {filepath}.")
+        elif type == "csv":
+            self.df_logs.reset_index(drop=True).to_csv(filepath)
+            print(f"Completed creating csv file at {filepath}.")
+
 
     def _parse_line(self, line):
         """Process line from logfile"""
