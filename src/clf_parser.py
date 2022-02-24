@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import time
 from apachelogs import LogParser
+from datetime import datetime
 
 COLUMN_NAMES = ['ip', 'identd', 'userid', 'datetime', 'request',
                 'status', 'size', 'referer', 'user_agent']
@@ -30,6 +31,9 @@ class CLFParse(object):
             log_parsed = list(map(self._parse_line, lines))
             self.df_logs = pd.concat([self.df_logs, pd.DataFrame(log_parsed, columns=COLUMN_NAMES)])
             counter += 1
+        self.df_logs['datetime'] = pd.to_datetime(self.df_logs['datetime'], utc=True)
+        print(f"Expanding datetime field...")
+        self._datetime_expand()
         elapsed = np.round((time.time() - tick) / 60, 2)
         print(f"{elapsed}m to process log files.")
 
@@ -47,7 +51,6 @@ class CLFParse(object):
             self.df_logs.reset_index(drop=True).to_csv(filepath)
             print(f"Completed creating csv file at {filepath}.")
 
-
     def _parse_line(self, line):
         """Process line from logfile"""
         parsed = PARSER.parse(line)
@@ -63,3 +66,10 @@ class CLFParse(object):
                        parsed.headers_in["User-Agent"]
                        ]
         return parsed_line
+
+    def _datetime_expand(self):
+        """Create columns of datetime attributes"""
+        self.df_logs['date'] = self.df_logs['datetime'].dt.date
+        self.df_logs['month_year'] = self.df_logs['datetime'].dt.strftime('%m-%Y')
+        self.df_logs['DOW'] = self.df_logs['datetime'].dt.day_name()
+        self.df_logs['hour'] = self.df_logs['datetime'].dt.hour
