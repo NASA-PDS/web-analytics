@@ -17,7 +17,11 @@ class CLFParse(object):
         self.df_logs = pd.DataFrame(columns=COLUMN_NAMES)
 
     def parse_files(self):
-        """"""
+        """Take list of CLF log files and produce dataframe
+        
+        TODO: multiprocess
+        """
+        
         print(f"Logfiles list contains {len(self.logfiles)} files.")
         tick = time.time()
         counter = 1
