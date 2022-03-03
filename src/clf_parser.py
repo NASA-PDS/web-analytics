@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import pandas as pd
 import time
@@ -15,6 +16,12 @@ class CLFParse(object):
     def __init__(self, logfiles: list[str]):
         self.logfiles = logfiles
         self.df_logs = pd.DataFrame(columns=COLUMN_NAMES)
+        self.logger = logging.getLogger(__name__)
+        self.c_handler = logging.StreamHandler()
+        self.c_handler.setLevel(logging.INFO)
+        self.c_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+        self.c_handler.setFormatter(self.c_format)
+        self.logger.addHandler(self.c_handler)
 
     def parse_files(self):
         """Take list of CLF log files and produce dataframe
@@ -26,10 +33,11 @@ class CLFParse(object):
         tick = time.time()
         counter = 1
         for file in self.logfiles:
-            if counter % 10 == 0:
+            if counter % 50 == 0:
                 tock = time.time()
                 curr_time = np.round((tock - tick) / 60, 2)
                 print(f"{counter} files have been processed. {curr_time} minutes elapsed")
+                self.logger.info(f"{counter} files have been processed. {curr_time} minutes elapsed.")
             log = open(file)
             lines = log.readlines()
             log_parsed = list(map(self._parse_line, lines))
@@ -57,19 +65,25 @@ class CLFParse(object):
 
     def _parse_line(self, line):
         """Process line from logfile"""
-        parsed = PARSER.parse(line)
-        datetime = parsed.request_time
-        parsed_line = [parsed.remote_host,
-                       parsed.remote_logname,
-                       parsed.remote_user,
-                       datetime,
-                       parsed.request_line,
-                       parsed.final_status,
-                       parsed.bytes_sent,
-                       parsed.headers_in["Referer"],
-                       parsed.headers_in["User-Agent"]
-                       ]
+        try:
+            parsed = PARSER.parse(line)
+            datetime = parsed.request_time
+            parsed_line = [parsed.remote_host,
+                           parsed.remote_logname,
+                           parsed.remote_user,
+                           datetime,
+                           parsed.request_line,
+                           parsed.final_status,
+                           parsed.bytes_sent,
+                           parsed.headers_in["Referer"],
+                           parsed.headers_in["User-Agent"]]
+        except Exception as e:
+            print(f"Error parsing {line}.")
+            self.logger.exception(f"Exception occurred when attempting to parse log file")
+            parsed_line =  [None] * 9
         return parsed_line
+
+
 
     def _datetime_expand(self):
         """Create columns of datetime attributes"""
