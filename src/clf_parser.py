@@ -1,6 +1,8 @@
 import logging
+import multiprocessing
+
 import numpy as np
-import modin.pandas as pd
+import pandas as pd
 import time
 import tqdm
 from apachelogs import LogParser
@@ -57,11 +59,11 @@ class CLFParse(object):
         print(f"Logfiles list contains {len(self.logfiles)} files.")
         tick = time.time()
 
-        pool = Pool(processes=16)
+        pool = Pool(processes=multiprocessing.cpu_count())
         results = [pool.apply_async(proc_file, args=[f]) for f in self.logfiles]
         pool.close()
+        pool.join()
         results_pandas = []
-
         for res in tqdm.tqdm(results):
             results_pandas.append(pd.DataFrame(res.get(), columns=COLUMN_NAMES))
 
