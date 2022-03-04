@@ -35,6 +35,7 @@ data/
 datasets/
 *.feather
 *.csv
+dask-worker-space*
 
 
 # Python build, virtual environments, and buildouts

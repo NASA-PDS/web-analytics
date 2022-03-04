@@ -1,14 +1,42 @@
 import logging
 import numpy as np
-import pandas as pd
+import modin.pandas as pd
 import time
+import tqdm
 from apachelogs import LogParser
+from multiprocessing import Pool
 from datetime import datetime
 
 COLUMN_NAMES = ['ip', 'identd', 'userid', 'datetime', 'request',
                 'status', 'size', 'referer', 'user_agent']
 PARSER = LogParser("%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"")
 
+
+def parse_line(line):
+    """Process line from logfile"""
+    try:
+        parsed = PARSER.parse(line)
+        datetime = parsed.request_time
+        parsed_line = [parsed.remote_host,
+                       parsed.remote_logname,
+                       parsed.remote_user,
+                       datetime,
+                       parsed.request_line,
+                       parsed.final_status,
+                       parsed.bytes_sent,
+                       parsed.headers_in["Referer"],
+                       parsed.headers_in["User-Agent"]]
+    except Exception as e:
+        print(f"Error parsing {line}.")
+        self.logger.exception(f"Exception occurred when attempting to parse log file")
+        parsed_line = [None] * 9
+    return parsed_line
+
+def proc_file(file):
+    log = open(file)
+    lines = log.readlines()
+    log_parsed = list(map(parse_line, lines))
+    return(log_parsed)
 
 class CLFParse(object):
     """Parse Combined Log Format Apache log files into Pandas dataframes with option to output to other formats"""
@@ -25,24 +53,19 @@ class CLFParse(object):
 
     def parse_files(self):
         """Take list of CLF log files and produce dataframe
-        
-        TODO: multiprocess
         """
-        
         print(f"Logfiles list contains {len(self.logfiles)} files.")
         tick = time.time()
-        counter = 1
-        for file in self.logfiles:
-            if counter % 50 == 0:
-                tock = time.time()
-                curr_time = np.round((tock - tick) / 60, 2)
-                print(f"{counter} files have been processed. {curr_time} minutes elapsed")
-                self.logger.info(f"{counter} files have been processed. {curr_time} minutes elapsed.")
-            log = open(file)
-            lines = log.readlines()
-            log_parsed = list(map(self._parse_line, lines))
-            self.df_logs = pd.concat([self.df_logs, pd.DataFrame(log_parsed, columns=COLUMN_NAMES)])
-            counter += 1
+
+        pool = Pool(processes=16)
+        results = [pool.apply_async(proc_file, args=[f]) for f in self.logfiles]
+        pool.close()
+        results_pandas = []
+
+        for res in tqdm.tqdm(results):
+            results_pandas.append(pd.DataFrame(res.get(), columns=COLUMN_NAMES))
+
+        self.df_logs = pd.concat(results_pandas)
         self.df_logs['datetime'] = pd.to_datetime(self.df_logs['datetime'], utc=True)
         print(f"Expanding datetime field...")
         self._datetime_expand()
