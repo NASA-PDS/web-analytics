@@ -30,15 +30,17 @@ def parse_line(line):
                        parsed.headers_in["User-Agent"]]
     except Exception as e:
         print(f"Error parsing {line}.")
-        self.logger.exception(f"Exception occurred when attempting to parse log file")
+        # self.logger.exception(f"Exception occurred when attempting to parse log file")
         parsed_line = [None] * 9
     return parsed_line
+
 
 def proc_file(file):
     log = open(file)
     lines = log.readlines()
     log_parsed = list(map(parse_line, lines))
     return(log_parsed)
+
 
 class CLFParse(object):
     """Parse Combined Log Format Apache log files into Pandas dataframes with option to output to other formats"""
@@ -107,8 +109,6 @@ class CLFParse(object):
             self.logger.exception(f"Exception occurred when attempting to parse log file")
             parsed_line =  [None] * 9
         return parsed_line
-
-
 
     def _datetime_expand(self):
         """Create columns of datetime attributes"""
