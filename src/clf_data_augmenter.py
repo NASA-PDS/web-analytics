@@ -14,16 +14,14 @@ class CLFDataAugmenter(object):
 
     def augment_data(self):
         """Data mutations and augmentations """
-
-        self.df = self.df.astype({'status': int, 'size': int, 'hour': int}, errors='ignore')
+        self.df.fillna(0, inplace=True)
+        #self.df = self.df.astype({'status': 'int64', 'size': 'int64', 'hour': 'int64'}, errors='ignore')
         self.df['req_type'] = self.df['request'].str.split().str.get(0)
-        self.df['date'] = pd.to_datetime(self.df['date'])
-        self.df['month_year'] = pd.to_datetime(self.df['month_year'])
 
         # Assume if I can't categorize the tool, it's just basic content.
         self.df['tool'] = "content"
-        self.df.loc[(~self.df['log_name'].str.contains("tool", na=False)) &
-                   (self.df['request'].str.contains('viewer|tracker|ephem')), 'tool'] = (
+        self.df.loc[(~self.df['log_name'].astype('str').str.contains("tool", na=False)) &
+                   (self.df['request'].astype('str').str.contains('viewer|tracker|ephem')), 'tool'] = (
             self.df['request'].str.split(r'/').str.get(2).str.split('_').str.get(0)
         )
         self.df.loc[(~self.df['log_name'].str.contains("tool", na=False)) &
@@ -36,4 +34,4 @@ class CLFDataAugmenter(object):
 
     def get_df(self):
         print(f"Data augmented? {self.augmented}")
-        return self.df
+        return self.df.copy()
