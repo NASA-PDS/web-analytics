@@ -1,4 +1,5 @@
-CREATE EXTERNAL TABLE tbl_pds_all_logs_raw(
+-- Create initial raw table from PDS node web logs.
+CREATE EXTERNAL TABLE prd_tbl_all_det(
             client_ip string,
             client_id string,
             user_id string,
