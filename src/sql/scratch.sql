@@ -63,3 +63,10 @@ select CASE
 from pds_analytics.prd_tbl_rings_agg
 group by 1
 --limit 500
+
+/*
+  Imaging EDA
+ */
+
+select request_type, request
+from pds_analytics.prd_tbl_img_agg
