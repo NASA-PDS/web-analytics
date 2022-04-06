@@ -14,13 +14,20 @@ SELECT
         ELSE 'human'
     END as user_type,
     CASE
-    WHEN regexp_like(client_request, 'tools') AND regexp_like(client_request, 'viewer') THEN 'viewer'
-    WHEN regexp_like(client_request, 'tools') AND regexp_like(client_request, 'tracker') THEN 'tracker'
-    WHEN regexp_like(client_request, 'tools') AND regexp_like(client_request, 'ephem') THEN 'ephem'
-    WHEN regexp_like(client_request, 'tools') AND regexp_like(client_request, 'galleries') THEN 'galleries'
-    WHEN regexp_like(client_request, 'tools') AND regexp_like(client_request, 'viewmaster') THEN 'viewmaster'
+    WHEN regexp_like(client_request, 'viewer3')
+        AND split(client_request, '/')[2] = 'tools' THEN 'planet viewer'
+    WHEN regexp_like(client_request, 'tracker2')
+        AND split(client_request, '/')[2] = 'tools' THEN 'moon tracker'
+    WHEN regexp_like(client_request, 'ephem')
+        AND split(client_request, '/')[2] = 'tools' THEN 'ephemeris'
+    WHEN regexp_like(client_request, 'galleries')
+        AND split(client_request, '/')[2] = 'galleries' THEN 'galleries'
+    WHEN regexp_like(client_request, 'viewmaster')
+        AND split(client_request, '/')[2] = 'viewmaster' THEN 'viewmaster'
+    WHEN regexp_like(client_request, 'opus')
+        AND split(client_request, '/')[2] = 'opus' THEN 'opus'
     ELSE 'archive'
-    END AS request_class,
+    END AS request_type,
     client_request,
     user_agent,
     client_ip,

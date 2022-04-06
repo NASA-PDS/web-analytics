@@ -29,6 +29,37 @@ where request_class <> 'archive'
 limit 1000;
 
 
-select request_class, http_method, status, sum(bytes) / pow(2, 30) as gigabytes, count(*) as requests
+select request_type, sum(bytes) / pow(2, 30) as gigabytes, sum(transactions) as requests
 from pds_analytics.prd_tbl_rings_agg
-group by 1, 2, 3
+group by 1
+
+select * from pds_analytics.prd_tbl_rings_agg
+where regexp_like(client_request, 'opus') and split(client_request, '/')[2] = 'opus'
+limit 1000;
+
+select sum(bytes) / pow(2, 20), sum(transactions) from pds_analytics.prd_tbl_rings_agg
+where 1 = 1
+and regexp_like(client_request, 'galleries')
+and split(client_request, '/')[2] = 'galleries';
+
+
+select CASE
+    WHEN regexp_like(client_request, 'viewer3')
+        AND split(client_request, '/')[2] = 'tools' THEN 'planet viewer'
+    WHEN regexp_like(client_request, 'tracker2')
+        AND split(client_request, '/')[2] = 'tools' THEN 'moon tracker'
+    WHEN regexp_like(client_request, 'ephem')
+        AND split(client_request, '/')[2] = 'tools' THEN 'ephemeris'
+    WHEN regexp_like(client_request, 'galleries')
+        AND split(client_request, '/')[2] = 'galleries' THEN 'galleries'
+    WHEN regexp_like(client_request, 'viewmaster')
+        AND split(client_request, '/')[2] = 'viewmaster' THEN 'viewmaster'
+    WHEN regexp_like(client_request, 'opus')
+        AND split(client_request, '/')[2] = 'opus' THEN 'opus'
+    ELSE 'archive'
+    END AS request_class,
+    sum(bytes),
+    sum(transactions)
+from pds_analytics.prd_tbl_rings_agg
+group by 1
+--limit 500
