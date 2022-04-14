@@ -1,6 +1,9 @@
 CREATE TABLE prd_tbl_geo_agg AS
 SELECT
     DATE(DATE_PARSE(SPLIT(datetime, ' ')[1], '[%d/%M/%Y:%H:%i:%s')) as date,
+CREATE TABLE prd_tbl_geo_agg AS
+SELECT
+    DATE(DATE_PARSE(SPLIT(datetime, ' ')[1], '[%d/%M/%Y:%H:%i:%s')) as date,
     node,
     CASE WHEN SPLIT(client_request, ' ')[1] IN ('GET', 'HEAD', 'POST', 'PUT',
                                                 'DELETE', 'CONNECT', 'OPTIONS',
@@ -15,18 +18,19 @@ SELECT
     END as user_type,
     CASE
     WHEN split(client_request, '/')[2] = 'spectrallibrary' THEN 'Spectral Library'
-    WHEN regexp_like(client_request, 'spectral_library')
-        AND split(client_request, '/')[2] = 'missions' THEN 'CRISM Spectral Library'
+    WHEN split(client_request, '/')[2] = 'speclib' THEN 'Spectral Library'
+    WHEN regexp_like(client_request, 'crism')
+        AND split(client_request, '/')[2] = 'mro' THEN 'CRISM Spectral Library'
     WHEN regexp_like(client_request, 'makelabels')
         AND split(client_request, '/')[2] = 'tools' THEN 'MakeLabels'
-    WHEN regexp_like(client_request, 'lro\/lend')
-        AND split(client_request, '/')[2] = 'missions' THEN 'LRO LEND Data Viewer'
+    WHEN regexp_like(client_request, 'lend')
+        AND split(client_request, '/')[2] = 'lro' THEN 'LRO LEND Data Viewer'
     WHEN regexp_like(client_request, 'sharad')
-        AND split(client_request, '/')[2] = 'missions' THEN 'MRO SHARAD Reader'
-    WHEN regexp_like(client_request, 'mro\/crism')
-        AND split(client_request, '/')[2] = 'missions' THEN 'CRISM Analysis Toolkit (CAT)'
-    WHEN regexp_like(client_request, 'mars_express\/omega')
-        AND split(client_request, '/')[2] = 'missions' THEN 'OMEGA Analysis Toolkit (OAT)'
+        AND split(client_request, '/')[2] = 'mro' THEN 'MRO SHARAD Reader'
+    WHEN regexp_like(client_request, 'crism')
+        AND split(client_request, '/')[2] = 'mro' THEN 'CRISM Analysis Toolkit (CAT)'
+    WHEN regexp_like(client_request, 'omega')
+        AND split(client_request, '/')[2] = 'mex' THEN 'OMEGA Analysis Toolkit (OAT)'
     ELSE 'archive'
     END AS request_type,
     client_request,

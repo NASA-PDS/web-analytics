@@ -73,9 +73,13 @@ from pds_analytics.prd_tbl_img_agg
 group by 1, 2;
 
 
-*/
+/*
   Geo exploration
 */
-select request_type, http_method, sum(bytes), sum(transactions)
+select request_type, sum(bytes) / pow(2, 20), sum(transactions), count(*)
 from pds_analytics.prd_tbl_geo_agg
-group by 1, 2;
+group by 1
+
+select *
+from pds_analytics.prd_tbl_geo_agg
+limit 1000
