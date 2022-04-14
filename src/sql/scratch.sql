@@ -68,5 +68,14 @@ group by 1
   Imaging EDA
  */
 
-select request_type, request
+select request_type, http_method, sum(bytes), sum(transactions)
 from pds_analytics.prd_tbl_img_agg
+group by 1, 2;
+
+
+*/
+  Geo exploration
+*/
+select request_type, http_method, sum(bytes), sum(transactions)
+from pds_analytics.prd_tbl_geo_agg
+group by 1, 2;
