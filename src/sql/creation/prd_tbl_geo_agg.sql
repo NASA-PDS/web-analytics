@@ -1,9 +1,6 @@
 CREATE TABLE prd_tbl_geo_agg AS
 SELECT
     DATE(DATE_PARSE(SPLIT(datetime, ' ')[1], '[%d/%M/%Y:%H:%i:%s')) as date,
-CREATE TABLE prd_tbl_geo_agg AS
-SELECT
-    DATE(DATE_PARSE(SPLIT(datetime, ' ')[1], '[%d/%M/%Y:%H:%i:%s')) as date,
     node,
     CASE WHEN SPLIT(client_request, ' ')[1] IN ('GET', 'HEAD', 'POST', 'PUT',
                                                 'DELETE', 'CONNECT', 'OPTIONS',

@@ -82,4 +82,19 @@ group by 1
 
 select *
 from pds_analytics.prd_tbl_geo_agg
-limit 1000
+limit 1000;
+
+
+
+
+
+select date, node, request_type, user_type, http_method, status,
+  sum(bytes) as bytes, count(transactions) as transactions
+from pds_analytics.prd_tbl_geo_agg
+group by date, node, request_type, user_type, http_method, status
+UNION ALL
+select date, node, request_type, user_type, http_method, status,
+  sum(bytes) as bytes, count(transactions) as transactions
+from pds_analytics.prd_tbl_img_agg
+group by date, node, request_type, user_type, http_method, status
+order by node, date, user_type, request_type, user_type, status
