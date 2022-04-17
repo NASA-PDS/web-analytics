@@ -85,7 +85,10 @@ from pds_analytics.prd_tbl_geo_agg
 limit 1000;
 
 
-
+select split(client_request, '/')[1], split(client_request, '/')[2], * from pds_analytics.prd_tbl_all_det
+where node = 'atm'
+limit 1000;
+-- and cardinality(split(client_request, '/')) <= 1
 
 
 select date, node, request_type, user_type, http_method, status,
