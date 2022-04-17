@@ -14,9 +14,9 @@ SELECT
         ELSE 'human'
     END as user_type,
     CASE
-    WHEN split(client_request, '/')[2] like '%cgi-bin%' THEN 'Various Perl CGI'
     WHEN regexp_like(client_request, 'atmospheres_data') THEN 'PDS ATM Data Set Catalog'
     WHEN regexp_like(client_request, 'epic')
+        AND CARDINALITY(split(client_request, '/')) > 1
         AND split(client_request, '/')[2] = 'data_and_services' THEN 'EPIC'
     WHEN regexp_like(client_request, 'mogc_0001') THEN 'Mars GCM'
     WHEN regexp_like(client_request, 'OAL') THEN 'Object Access Library'
@@ -31,6 +31,7 @@ SELECT
         AND regexp_like(client_request, 'ngims') THEN 'MAVEN NGIMS'
     WHEN regexp_like(client_request, 'VENUS-EXPRESS') THEN ' Venus Express'
     WHEN regexp_like(client_request, 'Cassini')
+        AND CARDINALITY(split(client_request, '/')) > 1
         AND split(client_request, '/')[2] = 'data_and_services' THEN 'Cassini Data and Resources'
     ELSE 'archive'
     END AS request_type,
@@ -44,8 +45,5 @@ WHERE
     1 = 1
     AND CARDINALITY(SPLIT(size, ' ')) = 1
     AND node = 'atm'
-    AND CARDINALITY(split(client_request, '/')) > 1
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
 ORDER BY 1
-
-

@@ -91,6 +91,35 @@ limit 1000;
 -- and cardinality(split(client_request, '/')) <= 1
 
 
+/*
+ NAIF
+ */
+
+select *
+from pds_analytics.prd_tbl_all_det
+where node = 'naif'
+and client_request like '%utilities%'
+limit 500;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 select date, node, request_type, user_type, http_method, status,
   sum(bytes) as bytes, count(transactions) as transactions
 from pds_analytics.prd_tbl_geo_agg
