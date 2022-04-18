@@ -1,6 +1,6 @@
 # Changelog
 
-## [v1.1.0-dev](https://github.com/NASA-PDS/web-analytics/tree/v1.1.0-dev) (2022-04-17)
+## [v1.1.0-dev](https://github.com/NASA-PDS/web-analytics/tree/v1.1.0-dev) (2022-04-18)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...v1.1.0-dev)
 
