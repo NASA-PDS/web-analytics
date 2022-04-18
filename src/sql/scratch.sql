@@ -95,11 +95,15 @@ limit 1000;
  NAIF
  */
 
-select *
+select client_request, count(*)
 from pds_analytics.prd_tbl_all_det
 where node = 'naif'
-and client_request like '%utilities%'
-limit 500;
+and client_request like '%spice_announce%'
+group by client_request
+order by count(*) desc
+
+
+
 
 
 
