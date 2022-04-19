@@ -118,12 +118,13 @@ group by 1
 order by 2 desc;
 
 
-select client_request, count(*)
+select count(*) --client_request, count(*)
 from pds_analytics.prd_tbl_all_det
 where node = 'ppi'
-and client_request like '%ditdos%'
-group by 1
-order by 2 desc
+and cardinality(split(client_request, '/')) > 1
+AND split(client_request, '/')[2] = 'software'
+--group by 1
+--order by 2 desc;
 
 
 

@@ -14,7 +14,29 @@ SELECT
         ELSE 'human'
     END as user_type,
     CASE
-    WHEN client_request like '%ditdos%' THEN 'DITDOS'
+    /*
+    WHEN lower(client_request) like '%labeler%'
+        AND split(client_request, '/')[2] = 'software' THEN 'Labeler'
+    WHEN lower(client_request) like '%splash%'
+        AND split(client_request, '/')[2] = 'software' THEN 'Splash'
+    WHEN cardinality(split(client_request, '/')) > 2
+        AND split(client_request, '/')[3] = 'index'
+        AND split(client_request, '/')[2] = 'software' THEN 'Index Generator'
+    WHEN lower(client_request) like '%cassiniffhscan%'
+        AND split(client_request, '/')[2] = 'software' THEN 'CassiniFFHScan'
+    WHEN lower(client_request) like '%compare%'
+        AND split(client_request, '/')[2] = 'software' THEN 'Compare'
+    WHEN lower(client_request) like '%formatdescription%'
+        AND split(client_request, '/')[2] = 'software' THEN 'FormatDescription'
+    WHEN lower(client_request) like '%imath%'
+        AND split(client_request, '/')[2] = 'software' THEN 'IMath'
+    WHEN lower(client_request) like '%labelvalue%'
+        AND split(client_request, '/')[2] = 'software' THEN 'LabelValue'
+    WHEN lower(client_request) like '%lookup%'
+        AND split(client_request, '/')[2] = 'software' THEN 'Lookup'
+    */
+    WHEN cardinality(split(client_request, '/')) > 1
+        AND split(client_request, '/')[2] = 'software' THEN 'PDS3 Software Pkgs'
     ELSE 'archive'
     END AS request_type,
     client_request,
@@ -29,5 +51,3 @@ WHERE
     AND node = 'ppi'
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
 ORDER BY 1
-
-
