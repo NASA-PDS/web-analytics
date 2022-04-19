@@ -106,13 +106,24 @@ order by count(*) desc
 
 
 
+/*
+  PPI Eexp
+ */
+
+select split(client_request, '/')[2] as url_root, count(*) as transactions
+from pds_analytics.prd_tbl_all_det
+where node = 'ppi'
+and split(client_request, ' ')[1] = 'GET'
+group by 1
+order by 2 desc;
 
 
-
-
-
-
-
+select client_request, count(*)
+from pds_analytics.prd_tbl_all_det
+where node = 'ppi'
+and client_request like '%ditdos%'
+group by 1
+order by 2 desc
 
 
 
