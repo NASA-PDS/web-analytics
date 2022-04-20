@@ -129,7 +129,28 @@ AND split(client_request, '/')[2] = 'software'
 
 
 
+/*
+ Small Bodies
 
+ */
+select *
+from pds_analytics.prd_tbl_sbn_agg;
+
+select client_request, count(*) as reqs
+from pds_analytics.prd_tbl_all_det
+where node = 'sbn'
+and lower(client_request) like '%pds-phoebe%'
+--and cardinality(split(client_request, '/')) > 1
+--and split(client_request, '/')[2] = 'data'
+group by 1
+order by 2 desc;
+
+
+
+select request_type, sum(bytes) / pow(2, 30) as gb, sum(transactions) as transactions
+from pds_analytics.prd_tbl_sbn_agg
+group by 1
+order by 2 desc;
 
 
 
