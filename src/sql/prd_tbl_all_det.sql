@@ -23,3 +23,5 @@ WITH SERDEPROPERTIES ('input.format' = '^%{IPV4:client_ip}
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
 LOCATION 's3://pds-web-analytics/';
+
+msck repair table prd_tbl_all_det

@@ -36,6 +36,8 @@ datasets/
 *.feather
 *.csv
 dask-worker-space*
+foo*
+
 
 
 # Python build, virtual environments, and buildouts
