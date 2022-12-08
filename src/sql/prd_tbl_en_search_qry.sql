@@ -5,5 +5,7 @@ client_request, client_ip, datetime, status, size, referer, user_agent
 from pds_analytics.prd_tbl_all_det
 where 1=1
 and node = 'en'
-and client_request like '%GET /datasearch/keyword--search/search.jsp?q=%' ESCAPE '-'
-and regexp_extract("$path", 's3\:\/\/pds\-web\-analytics\/([a-zA-z]+)\/([^\/]+)', 2) = 'en-http-pdscloud-prod2'
+and client_request like '%GET /datasearch/keyword--search/search.jsp?q=%' ESCAPE '-';
+
+
+
