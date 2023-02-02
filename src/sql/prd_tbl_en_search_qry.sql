@@ -1,4 +1,4 @@
-CREATE TABLE prd_tbl_en_search_qry AS
+CREATE TABLE prd_tbl_en AS
 SELECT DATE(DATE_PARSE(SPLIT(datetime, ' ')[1], '[%d/%M/%Y:%H:%i:%s')) as date,
 lower(regexp_replace(regexp_extract(client_request, 'GET \/datasearch\/keyword-search\/search.jsp\?q\=([\w\+\-\%]+)', 1), '(\+|(\%20))', ' ')) as query_text,
 client_request, client_ip, datetime, status,
