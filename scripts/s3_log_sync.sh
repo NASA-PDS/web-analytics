@@ -6,5 +6,4 @@ BASE_LOGDIR="/report_service/logs/final"
 aws --profile saml-pub s3 sync ${BASE_LOGDIR}/en s3://pds-web-analytics-cloud/logs/en --exclude "*" --include "en-http-pdscloud*/*.txt.gz" 
 
 # Imaging
-aws --profile saml-pub s3 sync ${BASE_LOGDIR}/img s3://pds-web-analytics-cloud/logs/img --exclude "*" --include "img-pdsimg*"
-
+aws --profile saml-pub s3 sync ${BASE_LOGDIR}/img s3://pds-web-analytics-cloud/logs/img --exclude "*" --include "*http/*.txt" --include "*http/*.log"
