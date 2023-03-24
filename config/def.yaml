@@ -1,2 +1,5 @@
+log_directory: "/report_service/logs/final"
+node_dirs: ["geo"]
 profile_name: "saml-pub"
 s3_bucket: "pds-web-analytics-cloud"
+s3_logdir: "logs"
