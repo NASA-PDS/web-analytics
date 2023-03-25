@@ -11,11 +11,17 @@ import os
 import time
 from multiprocessing import Process
 
+import os
+import sys
+import boto3
+from boto3.s3.transfer import TransferConfig
+from tqdm import tqdm
 import boto3
 import os
 import time
 from multiprocessing import Process
 from tqdm import tqdm
+import io
 
 
 class S3Sync:
@@ -41,17 +47,31 @@ class S3Sync:
         except:
             last_sync_time = 0
 
-        # Sync new and modified files to S3
+        # Calculate total size of files that need to be synced
         total_size = 0
+        files_to_sync = []
         for local_file in local_files:
             if os.path.getmtime(local_file) > last_sync_time:
                 total_size += os.path.getsize(local_file)
+                files_to_sync.append(local_file)
+
+        # Sync new and modified files to S3
+        transmitted_size = 0
+        processed_files = 0
         progress_bar = tqdm(total=total_size, unit='B', unit_scale=True, desc=f"Uploading {local_dir}")
         start_time = time.time()
-        for local_file in local_files:
-            if os.path.getmtime(local_file) > last_sync_time:
-                s3_key = os.path.join(self.s3_prefix, os.path.relpath(local_file, local_dir))
-                self.s3.meta.client.upload_file(local_file, self.bucket_name, s3_key, Callback=lambda sent: progress_bar.update(sent - progress_bar.n))
+        for local_file in files_to_sync:
+            s3_key = os.path.join(self.s3_prefix, os.path.relpath(local_file, local_dir))
+            with open(local_file, 'rb') as f:
+                file_contents = io.BytesIO(f.read())
+            size = os.path.getsize(local_file)
+            transmitted_size += size
+            progress_bar.update(size)
+            progress_bar.set_postfix(files_transmitted=f"{processed_files+1}/{len(files_to_sync)}", current_file=local_file)
+            self.s3.Object(self.bucket_name, s3_key).upload_fileobj(file_contents, Callback=lambda sent: progress_bar.update(sent - progress_bar.n))
+
+            processed_files += 1
+
         end_time = time.time()
 
         # Calculate throughput and display it in the progress bar
@@ -74,7 +94,6 @@ class S3Sync:
         for p in processes:
             p.join()
 
-
 if __name__ == '__main__':
     # Parse basic config file and set up AWS Session
     with open('../config/def.yaml', 'r') as file:
@@ -82,8 +101,11 @@ if __name__ == '__main__':
     config = Box(config, box_dots=True)
     local_dirs = [config.log_directory + "/" + node for node in config.node_dirs]
     s3_sync = S3Sync(profile_name=config.profile_name,
-                    local_dirs=local_dirs,
-                    bucket_name=config.s3_bucket,
-                    s3_prefix=config.s3_logdir)
-    s3_sync.sync()
+                     local_dirs=local_dirs,
+                     bucket_name=config.s3_bucket, s3_prefix=config.s3_logdir)
+    # s3_sync.sync()
+    print(type(config.subdirs))
+    print([config.log_directory + "/" + dir + "/" + subdir
+           for dir in config.subdirs.keys()
+           for subdir in config.subdirs[dir]])
 
