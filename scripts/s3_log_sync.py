@@ -15,8 +15,9 @@ import math
 import subprocess
 from multiprocessing import Pool, cpu_count
 
+class S3Sync3:
+    start_time = time.monotonic()
 
-class S3Sync2:
     def __init__(self,
                  src_paths,
                  src_logdir,
@@ -39,8 +40,18 @@ class S3Sync2:
             "--exclude",
             ".DS_Store"  # exclude macOS metadata files
         ]
+        self.total_size = 0
+        self.sent = 0
 
     def run(self):
+        # Use os.walk to get total size of directories (for progress bar)
+        for src_path in self.src_paths:
+            self.total_size += sum(
+                os.path.getsize(os.path.join(dirpath, filename))
+                for dirpath, _, filenames in os.walk(src_path)
+                for filename in filenames
+            )
+
         pool = Pool(processes=self.workers)
         pool.map(self.sync_directory, self.src_paths)
         pool.close()
@@ -50,41 +61,27 @@ class S3Sync2:
         # Use subprocess to call the AWS CLI command and display progress
         s3_path = os.path.join(self.s3_subdir, os.path.relpath(src_path, self.src_logdir))
         cmd = self.s3_sync_cmd + [src_path, f"s3://{self.bucket_name}/{s3_path}"]
-        proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1
-        )
-        # Use os.walk to get total size of directory (for progress bar)
-        total_size = sum(
-            os.path.getsize(os.path.join(dirpath, filename))
-            for dirpath, _, filenames in os.walk(src_path)
-            for filename in filenames
-        )
-
-        # Display progress bar
-        sent = 0
-        for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
-            print(line.rstrip())
-            if "sent" in line:
-                if line.split()[2] is not None:
-                    sent += int(line.split()[2])
-                    progress = sent / total_size
-                    print(f"{src_path} - "
-                          f"{self.convert_size(sent)} / {self.convert_size(total_size)} - "
-                          f"{progress:.0%} - "
-                          f"{self.get_throughput(sent)}")
-                else:
-                    continue
-        for line in io.TextIOWrapper(proc.stderr, encoding="utf-8"):
-            print(line.rstrip())
-
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        while True:
+            #for line in proc.stdout:
+            for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+                if "Completed" in line:
+                    self.sent += int(float(line.split()[1]))
+                    progress = self.sent / self.total_size
+                    print(f"Overall Progress: {progress:.0%} - {self.convert_size(self.sent)} / "
+                          f"{self.convert_size(self.total_size)} - "
+                          f"{self.get_throughput(self.sent)}")
+            output = proc.stderr.readline().decode()
+            if output == "" and proc.poll() is not None:
+                break
         # Wait for the subprocess to finish
         proc.wait()
-        if proc.returncode != 0:
-            raise Exception(f"S3 sync failed with return code {proc.returncode}")
 
     @staticmethod
     def convert_size(size_bytes):
-        # Convert bytes to a human-readable format
+        """
+        Convert bytes to a human-readable format
+        """
         if size_bytes == 0:
             return "0B"
         size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
@@ -93,12 +90,13 @@ class S3Sync2:
         s = round(size_bytes / p, 2)
         return f"{s}{size_name[i]}"
 
-    @staticmethod
-    def get_throughput(sent):
+    #@staticmethod
+    def get_throughput(self, sent):
         # Calculate and return the current throughput in MB/s
-        elapsed_time = time.monotonic() - start_time
+        elapsed_time = time.monotonic() - self.start_time
         mb_sent = sent / (1024 * 1024)
         return f"{mb_sent / elapsed_time:.2f} MB/s"
+
 
 
 if __name__ == '__main__':
@@ -109,7 +107,7 @@ if __name__ == '__main__':
     local_dirs = [config.log_directory + "/" + dir + "/" + subdir
                   for dir in config.subdirs.keys()
                   for subdir in config.subdirs[dir]]
-    s3_sync = S3Sync2(src_paths=local_dirs,
+    s3_sync = S3Sync3(src_paths=local_dirs,
                       src_logdir=config.log_directory,
                       bucket_name=config.s3_bucket,
                       s3_subdir=config.s3_logdir,
