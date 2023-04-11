@@ -27,17 +27,24 @@ class S3Sync2:
         self.s3_sync_cmd = ["aws", "s3", "sync"]
         if self.profile_name:
             self.s3_sync_cmd += ["--profile", self.profile_name]
-        self.s3_sync_cmd += ["--exclude", ".DS_Store"]
+        self.s3_sync_cmd += ["--exclude", "*"]
 
     def run(self):
-        for src_path in self.src_paths:
+        for src_path in self.src_paths.items():
             self.sync_directory(src_path)
 
-    def sync_directory(self, src_path):
+    def sync_directory(self, path_tuple):
         # Use subprocess to call the AWS CLI command and display progress
-        start_time = time.monotonic()
+        # HACK
+
+        src_path = path_tuple[0]
+        path_include = path_tuple[1]['include']
+        print(path_include)
         s3_path = os.path.join(self.s3_subdir, os.path.relpath(src_path, self.src_logdir))
         cmd = self.s3_sync_cmd + [src_path, f"s3://{self.bucket_name}/{s3_path}"]
+        cmd += ["--include"] + path_include
+        start_time = time.monotonic()
+        print(cmd)
         # Use subprocess to call the AWS CLI command and display progress
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
                               universal_newlines=True) as proc:
@@ -45,7 +52,7 @@ class S3Sync2:
                 if "Completed" in line:
                     try:
                         line_components = line.split()
-                        sent = int((line_components[1]))
+                        sent = int(float(line_components[1]))
                         sent_incre = line_components[2].split('/')[0]
                         total_size = int(float(line_components[2].split('/')[1].replace("~", "")))
                         total_size_incre =  line_components[3]
@@ -79,11 +86,11 @@ class S3Sync2:
     def get_bytes(size, size_incre):
         if size_incre == "KiB":
             size *= 2**10
-        if size_incre == "MiB":
+        elif size_incre == "MiB":
             size *= 2**20
-        if size_incre == "GiB":
+        elif size_incre == "GiB":
             size *= 2**30
-        if size_incre == "TiB":
+        elif size_incre == "TiB":
             size *= 2**40
         return size
 
@@ -100,12 +107,13 @@ if __name__ == '__main__':
     with open('../config/def.yaml', 'r') as file:
         config = yaml.safe_load(file)
     config = Box(config, box_dots=True)
-    local_dirs = [config.log_directory + "/" + dir + "/" + subdir
+    local_dirs = {config.log_directory + "/" + dir + "/" + subdir: config.subdirs[dir][subdir]
                   for dir in config.subdirs.keys()
-                  for subdir in config.subdirs[dir]]
+                  for subdir in config.subdirs[dir]}
     s3_sync = S3Sync2(src_paths=local_dirs,
                       src_logdir=config.log_directory,
                       bucket_name=config.s3_bucket,
                       s3_subdir=config.s3_logdir,
                       profile_name=config.profile_name)
     s3_sync.run()
+    print(local_dirs)

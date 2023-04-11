@@ -6,8 +6,14 @@ s3_logdir: logs
 #s3_logdir: logs_dev
 subdirs:
   en:
-    - en-http-pdscloud-prod1
-    - en-http-pdscloud-prod2
+    en-http-pdscloud-prod1:
+      include:
+        - "*.2022*"
+    en-http-pdscloud-prod2:
+      include:
+        - "*.2022*"
   img:
-    - img-pdsimg1-http
+    img-pdsimg1-http:
+      include:
+        - "*.2022*"
 
