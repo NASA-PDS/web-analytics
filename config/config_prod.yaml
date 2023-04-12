@@ -1,0 +1,65 @@
+log_directory: /report_service/logs/final
+#log_directory: /home/kaipak/datasets/report_service/logs/final
+profile_name: saml-pub
+s3_bucket: pds-web-analytics-cloud
+s3_logdir: logs
+#s3_logdir: logs_dev
+subdirs:
+  en:
+    en-http-pdscloud-prod1:
+      include:
+        - "*.2023*.txt.gz"
+        - "*.2022*.txt.gz"
+        - "*.2021*.txt.gz"
+    en-http-pdscloud-prod2:
+      include:
+        - "*.2023*.txt.gz"
+        - "*.2022*.txt.gz"
+        - "*.2021*.txt.gz"
+  geo:
+    geo-ode:
+      include:
+        - "u_ex23*"
+        - "u_ex22*"
+        - "u_ex21*"
+    geo-ode-cart:
+      include:
+        - "u_ex23*"
+        - "u_ex22*"
+        - "u_ex21*"
+    geo-pds:
+      include:
+        - "u_ex23*"
+        - "u_ex22*"
+        - "u_ex21*"
+    geo-speclib:
+      include:
+        - "u_ex23*"
+        - "u_ex22*"
+        - "u_ex21*"
+    geo-va:
+      include:
+        - "u_ex23*"
+        - "u_ex22*"
+        - "u_ex21*"
+  img:
+    img-pdsimage-http:
+      include:
+        - "*.2023*"
+        - "*.2022*"
+        - "*.2021*"
+    img-pdsimg1-http:
+      include:
+        - "*.2023*"
+        - "*.2022*"
+        - "*.2021*"
+    img-pdsimg2-http:
+      include:
+        - "*.2023*"
+        - "*.2022*"
+        - "*.2021*"
+    img-pdsimg3-http:
+      include:
+        - "*.2023*"
+        - "*.2022*"
+        - "*.2021*"

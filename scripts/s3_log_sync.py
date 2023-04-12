@@ -36,16 +36,13 @@ class S3Sync2:
     def sync_directory(self, path_tuple):
         # Use subprocess to call the AWS CLI command and display progress
         # HACK
-
         src_path = path_tuple[0]
         path_include = path_tuple[1]['include']
-        print(path_include)
         s3_path = os.path.join(self.s3_subdir, os.path.relpath(src_path, self.src_logdir))
         cmd = self.s3_sync_cmd + [src_path, f"s3://{self.bucket_name}/{s3_path}"]
-        cmd += ["--include"] + path_include
+        for include in path_include:
+            cmd += ["--include", include]
         start_time = time.monotonic()
-        print(cmd)
-        # Use subprocess to call the AWS CLI command and display progress
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
                               universal_newlines=True) as proc:
             for line in proc.stdout:
@@ -104,7 +101,7 @@ class S3Sync2:
 
 if __name__ == '__main__':
     # Parse basic config file and set up AWS Session
-    with open('../config/def.yaml', 'r') as file:
+    with open('../config/config_dev.yaml', 'r') as file:
         config = yaml.safe_load(file)
     config = Box(config, box_dots=True)
     local_dirs = {config.log_directory + "/" + dir + "/" + subdir: config.subdirs[dir][subdir]
@@ -116,4 +113,3 @@ if __name__ == '__main__':
                       s3_subdir=config.s3_logdir,
                       profile_name=config.profile_name)
     s3_sync.run()
-    print(local_dirs)
