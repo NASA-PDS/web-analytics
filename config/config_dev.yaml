@@ -5,17 +5,22 @@ s3_bucket: pds-web-analytics-cloud
 s3_logdir: logs_dev
 #s3_logdir: logs_dev
 subdirs:
+  atm:
+    atm-apache-http:
+      include:
+        - "atm-atmos-apache.2022*.txt"
   en:
+    en-http-pds-proxy:
+      include:
+        - "*.2022*.txt.gz"
     en-http-pdscloud-prod1:
       include:
         - "*.2023*.txt.gz"
         - "*.2022*.txt.gz"
-        - "*.2021*.txt.gz"
     en-http-pdscloud-prod2:
       include:
         - "*.2023*.txt.gz"
         - "*.2022*.txt.gz"
-        - "*.2021*.txt.gz"
   geo:
     geo-ode:
       include:
@@ -45,3 +50,22 @@ subdirs:
     img-pdsimg3-http:
       include:
         - "*.2022*"
+  ppi:
+    ppi-tomcat:
+      include:
+        - "*2022*.log.gz"
+  rings:
+    rings-apache-metrics:
+      include:
+        - "*.2021*.log"
+  naif:
+    naif-httpdlogs:
+      include:
+        - "naif_access_log.22*"
+  sbn:
+    sbn-apache-http:
+      include:
+        - "sbnumd2022*.log"
+    sbn-psi-tomcat:
+      include:
+        - "sbn_archive_2022*.txt"
