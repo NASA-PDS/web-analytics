@@ -35,29 +35,33 @@ class S3Sync:
         # Use subprocess to call the AWS CLI command and display progress
         # HACK
         src_path = path_tuple[0]
-        path_include = path_tuple[1]['include']
+        path_include = path_tuple[1]["include"]
         s3_path = os.path.join(self.s3_subdir, os.path.relpath(src_path, self.src_logdir))
         cmd = self.s3_sync_cmd + [src_path, f"s3://{self.bucket_name}/{s3_path}"]
         for include in path_include:
             cmd += ["--include", include]
         start_time = time.monotonic()
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
-                              universal_newlines=True) as proc:
+        with subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True
+        ) as proc:
             for line in proc.stdout:
                 if "Completed" in line:
                     try:
                         line_components = line.split()
                         sent = int(float(line_components[1]))
-                        sent_incre = line_components[2].split('/')[0]
-                        total_size = int(float(line_components[2].split('/')[1].replace("~", "")))
+                        sent_incre = line_components[2].split("/")[0]
+                        total_size = int(float(line_components[2].split("/")[1].replace("~", "")))
                         total_size_incre = line_components[3]
                         sent = self.get_bytes(sent, sent_incre)
                         total_size = self.get_bytes(total_size, total_size_incre)
                         progress = sent / total_size
-                        print(f"{src_path} - "
-                              f"{self.convert_size(sent)} / {self.convert_size(total_size)} - "
-                              f"{progress:.0%} - "
-                              f"{self.get_throughput(sent, start_time)}", end="\r")
+                        print(
+                            f"{src_path} - "
+                            f"{self.convert_size(sent)} / {self.convert_size(total_size)} - "
+                            f"{progress:.0%} - "
+                            f"{self.get_throughput(sent, start_time)}",
+                            end="\r",
+                        )
                     except Exception as e:
                         print(f"Error parsing aws cli output: {e}", end="\r")
             print(f"Completed syncing {src_path}")
@@ -97,17 +101,21 @@ class S3Sync:
         return f"{mb_sent / elapsed_time:.2f} MB/s"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Parse basic config file and set up AWS Session
-    with open('../config/config_dev.yaml', 'r') as file:
+    with open("../config/config_dev.yaml", "r") as file:
         config = yaml.safe_load(file)
     config = Box(config, box_dots=True)
-    local_dirs = {config.log_directory + "/" + dir + "/" + subdir: config.subdirs[dir][subdir]
-                  for dir in config.subdirs.keys()
-                  for subdir in config.subdirs[dir]}
-    s3_sync = S3Sync(src_paths=local_dirs,
-                     src_logdir=config.log_directory,
-                     bucket_name=config.s3_bucket,
-                     s3_subdir=config.s3_logdir,
-                     profile_name=config.profile_name)
+    local_dirs = {
+        config.log_directory + "/" + dir + "/" + subdir: config.subdirs[dir][subdir]
+        for dir in config.subdirs.keys()
+        for subdir in config.subdirs[dir]
+    }
+    s3_sync = S3Sync(
+        src_paths=local_dirs,
+        src_logdir=config.log_directory,
+        bucket_name=config.s3_bucket,
+        s3_subdir=config.s3_logdir,
+        profile_name=config.profile_name,
+    )
     s3_sync.run()
