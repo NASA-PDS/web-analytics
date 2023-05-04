@@ -5,17 +5,15 @@
 """
 from box import Box
 import yaml
-import io
 import os
-import re
-import sys
-from tqdm import tqdm
 import time
 import math
 import subprocess
-from multiprocessing import Pool, cpu_count, Value
+import shutil
+from multiprocessing import cpu_count
 
-class S3Sync2:
+
+class S3Sync:
     def __init__(self, src_paths, src_logdir, bucket_name, s3_subdir, profile_name=None, delete=False, workers=None):
         self.src_paths = src_paths
         self.src_logdir = src_logdir
@@ -52,7 +50,7 @@ class S3Sync2:
                         sent = int(float(line_components[1]))
                         sent_incre = line_components[2].split('/')[0]
                         total_size = int(float(line_components[2].split('/')[1].replace("~", "")))
-                        total_size_incre =  line_components[3]
+                        total_size_incre = line_components[3]
                         sent = self.get_bytes(sent, sent_incre)
                         total_size = self.get_bytes(total_size, total_size_incre)
                         progress = sent / total_size
@@ -107,9 +105,9 @@ if __name__ == '__main__':
     local_dirs = {config.log_directory + "/" + dir + "/" + subdir: config.subdirs[dir][subdir]
                   for dir in config.subdirs.keys()
                   for subdir in config.subdirs[dir]}
-    s3_sync = S3Sync2(src_paths=local_dirs,
-                      src_logdir=config.log_directory,
-                      bucket_name=config.s3_bucket,
-                      s3_subdir=config.s3_logdir,
-                      profile_name=config.profile_name)
+    s3_sync = S3Sync(src_paths=local_dirs,
+                     src_logdir=config.log_directory,
+                     bucket_name=config.s3_bucket,
+                     s3_subdir=config.s3_logdir,
+                     profile_name=config.profile_name)
     s3_sync.run()

@@ -1,9 +1,7 @@
 log_directory: /report_service/logs/final
-#log_directory: /home/kaipak/datasets/report_service/logs/final
 profile_name: saml-pub
 s3_bucket: pds-web-analytics-cloud
 s3_logdir: logs_dev
-#s3_logdir: logs_dev
 subdirs:
   atm:
     atm-apache-http:
