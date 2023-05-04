@@ -41,9 +41,8 @@ class S3Sync:
         for include in path_include:
             cmd += ["--include", include]
         start_time = time.monotonic()
-        with subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True
-        ) as proc:
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              bufsize=1, universal_newlines=True, shell=False) as proc:
             for line in proc.stdout:
                 if "Completed" in line:
                     try:
