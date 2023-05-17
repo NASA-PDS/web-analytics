@@ -12,7 +12,15 @@ This requirement is not impacted by the current version
 
 
 This requirement is not impacted by the current version
-## Logfile Error checking ([#6](https://github.com/NASA-PDS/web-analytics/issues/6)) 
+## Dashboard: EN Search Query analytics - queries over time period ([#9](https://github.com/NASA-PDS/web-analytics/issues/9)) 
+
+
+This requirement is not impacted by the current version
+## Sync script fails silently if aws call fails ([#12](https://github.com/NASA-PDS/web-analytics/issues/12)) 
+
+
+This requirement is not impacted by the current version
+## Map special characters in Athena/Presto SQL queries before dataset creation in QS. ([#13](https://github.com/NASA-PDS/web-analytics/issues/13)) 
 
 
 This requirement is not impacted by the current version
