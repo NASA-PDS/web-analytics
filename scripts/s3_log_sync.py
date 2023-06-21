@@ -102,7 +102,7 @@ class S3Sync:
 
 if __name__ == "__main__":
     # Parse basic config file and set up AWS Session
-    with open("../config/config_dev.yaml", "r") as file:
+    with open("../config/config_prod.yaml", "r") as file:
         config = yaml.safe_load(file)
     config = Box(config, box_dots=True)
     local_dirs = {

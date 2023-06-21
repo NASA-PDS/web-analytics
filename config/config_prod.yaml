@@ -3,15 +3,23 @@ profile_name: saml-pub
 s3_bucket: pds-web-analytics-cloud
 s3_logdir: logs
 subdirs:
+  atm:
+    atm-apache-http:
+      include:
+        - "atm-atmos-apache.2023*.txt"
+        - "atm-atmos-apache.2022*.txt"
+        - "atm-atmos-apache.2021*.txt"
   en:
     en-http-pdscloud-prod1:
       include:
         - "*.2023*.txt.gz"
         - "*.2022*.txt.gz"
+        - "*.2021*.txt.gz"
     en-http-pdscloud-prod2:
       include:
         - "*.2023*.txt.gz"
         - "*.2022*.txt.gz"
+        - "*.2021*.txt.gz"
   geo:
     geo-ode:
       include:
@@ -59,3 +67,32 @@ subdirs:
         - "*.2023*"
         - "*.2022*"
         - "*.2021*"
+  ppi:
+    ppi-tomcat:
+      include:
+        - "*2023*.log.gz"
+        - "*2022*.log.gz"
+        - "*2021*.log.gz"
+  rings:
+    rings-apache-metrics:
+      include:
+        - "*.2023*.log"
+        - "*.2022*.log"
+        - "*.2021*.log"
+  naif:
+    naif-httpdlogs:
+      include:
+        - "naif_access_log.23*"
+        - "naif_access_log.22*"
+        - "naif_access_log.21*"
+  sbn:
+    sbn-apache-http:
+      include:
+        - "sbnumd2023*.log"
+        - "sbnumd2022*.log"
+        - "sbnumd2021*.log"
+    sbn-psi-tomcat:
+      include:
+        - "sbn_archive_2023*.txt"
+        - "sbn_archive_2022*.txt"
+        - "sbn_archive_2021*.txt"
