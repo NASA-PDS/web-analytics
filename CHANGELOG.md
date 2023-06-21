@@ -1,12 +1,16 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2023-05-17)
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2023-06-21)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...«unknown»)
 
 **Requirements:**
 
 - As a data engineer, I want to sync logs from PDS website in an automated fashion [\#2](https://github.com/NASA-PDS/web-analytics/issues/2)
+
+**Improvements:**
+
+- Migrate PDS Web Analytics dashboards in PDS-managed AWS environment [\#3](https://github.com/NASA-PDS/web-analytics/issues/3)
 
 **Other closed issues:**
 
