@@ -24,3 +24,11 @@ This requirement is not impacted by the current version
 
 
 This requirement is not impacted by the current version
+## As a manager, I want access metrics on a specific subset of USA domains ([#17](https://github.com/NASA-PDS/web-analytics/issues/17)) 
+
+
+This requirement is not impacted by the current version
+## As a manager, I want access metrics on a specific subset of International domains ([#18](https://github.com/NASA-PDS/web-analytics/issues/18)) 
+
+
+This requirement is not impacted by the current version
