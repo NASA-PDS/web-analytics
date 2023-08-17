@@ -4,6 +4,14 @@ Requirements Summary
 
 # default
 
+## As a project scientist I want to know the number of requests for products over a specified period of time ([#23](https://github.com/NASA-PDS/web-analytics/issues/23)) 
+
+
+This requirement is not impacted by the current version
+## As a Node Manager, I want to know the frequency of access of each archive artifact ([#22](https://github.com/NASA-PDS/web-analytics/issues/22)) 
+
+
+This requirement is not impacted by the current version
 ## As a data engineer, I want to sync logs from PDS website in an automated fashion ([#2](https://github.com/NASA-PDS/web-analytics/issues/2)) 
 
 
@@ -16,19 +24,19 @@ This requirement is not impacted by the current version
 
 
 This requirement is not impacted by the current version
-## Sync script fails silently if aws call fails ([#12](https://github.com/NASA-PDS/web-analytics/issues/12)) 
-
-
-This requirement is not impacted by the current version
-## Map special characters in Athena/Presto SQL queries before dataset creation in QS. ([#13](https://github.com/NASA-PDS/web-analytics/issues/13)) 
-
-
-This requirement is not impacted by the current version
 ## As a manager, I want access metrics on a specific subset of USA domains ([#17](https://github.com/NASA-PDS/web-analytics/issues/17)) 
 
 
 This requirement is not impacted by the current version
 ## As a manager, I want access metrics on a specific subset of International domains ([#18](https://github.com/NASA-PDS/web-analytics/issues/18)) 
+
+
+This requirement is not impacted by the current version
+## As a user, I want year over year metrics for total egress ([#21](https://github.com/NASA-PDS/web-analytics/issues/21)) 
+
+
+This requirement is not impacted by the current version
+## As a user, I want a mission-specific dashboard showing instrument and product type download metrics ([#24](https://github.com/NASA-PDS/web-analytics/issues/24)) 
 
 
 This requirement is not impacted by the current version
