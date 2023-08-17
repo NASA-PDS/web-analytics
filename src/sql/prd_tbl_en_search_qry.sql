@@ -11,3 +11,4 @@ and client_request like '%GET /datasearch/keyword--search/search.jsp?q=%' ESCAPE
 
 
 
+<script type="text/javascript" async="" src="https://www.google.com/cse/cse.js?cx=007870209983431604483:hux2hfzwefc"></script>
