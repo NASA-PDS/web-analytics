@@ -12,3 +12,4 @@ and SPLIT(datetime, ' ')[1] <> '-'
 
 
 
+<script type="text/javascript" async="" src="https://www.google.com/cse/cse.js?cx=007870209983431604483:hux2hfzwefc"></script>
