@@ -1,11 +1,12 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2023-09-12)
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2024-03-13)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...«unknown»)
 
 **Requirements:**
 
+- As a user, I want year over year metrics for total egress [\#21](https://github.com/NASA-PDS/web-analytics/issues/21)
 - Dashboard: EN Search Query analytics - queries over time period [\#9](https://github.com/NASA-PDS/web-analytics/issues/9)
 - As a data scientist, I want to update and refine web metrics dashboards, to provide improved views on PDS node usage patterns over time [\#4](https://github.com/NASA-PDS/web-analytics/issues/4)
 - As a data engineer, I want to sync logs from PDS website in an automated fashion [\#2](https://github.com/NASA-PDS/web-analytics/issues/2)
@@ -18,6 +19,7 @@
 
 **Other closed issues:**
 
+- Do logs need to persist in S3? [\#25](https://github.com/NASA-PDS/web-analytics/issues/25)
 - Create sync script for syncing logs from logging server to AWS and load into Athena [\#15](https://github.com/NASA-PDS/web-analytics/issues/15)
 - Dashboard: EN Search Query analytics - most used queries or search terms [\#10](https://github.com/NASA-PDS/web-analytics/issues/10)
 
