@@ -1,6 +1,6 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2024-03-13)
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2024-03-29)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...«unknown»)
 
@@ -16,6 +16,10 @@
 
 - Map special characters in Athena/Presto SQL queries before dataset creation in QS. [\#13](https://github.com/NASA-PDS/web-analytics/issues/13)
 - Migrate PDS Web Analytics dashboards in PDS-managed AWS environment [\#3](https://github.com/NASA-PDS/web-analytics/issues/3)
+
+**Defects:**
+
+- Sync script fails silently if aws call fails [\#12](https://github.com/NASA-PDS/web-analytics/issues/12) [[s.medium](https://github.com/NASA-PDS/web-analytics/labels/s.medium)]
 
 **Other closed issues:**
 
