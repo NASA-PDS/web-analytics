@@ -1,0 +1,7 @@
+name: pds-analytics
+channels:
+  - conda-forge
+dependencies:
+  - awscli
+  - python-box
+  - pyyaml
