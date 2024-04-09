@@ -40,3 +40,7 @@ This requirement is not impacted by the current version
 
 
 This requirement is not impacted by the current version
+## update repo with template files ([#39](https://github.com/NASA-PDS/web-analytics/issues/39)) 
+
+
+This requirement is not impacted by the current version
