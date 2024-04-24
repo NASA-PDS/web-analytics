@@ -39,7 +39,7 @@ You're now set up to run the code in this repository.
 
 ## PDS Web Analytics System, Architecture, and Data Flow
 
-![PDS Web Analytics System Architecture](docs/pds-web-analytics-architecture.png)
+![PDS Web Analytics System Architecture](docs/pds_aws_web_analytics_arch.jpg)
 
 PDS Web Analytics is designed to process and visualize web traffic
 data from web logs produced from the PDS Nodes. This system is built on the following AWS services:
