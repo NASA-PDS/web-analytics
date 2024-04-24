@@ -21,7 +21,7 @@ distributions.
 - [Conda Environment Files](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
 - [AWS CLI Configuration](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 
-### Installation Steps
+## Installation Steps
 1. Ensure prerequisites are installed.
    1. Install Anaconda.
    1. Following instructions to set up Conda environment will install everything else.
@@ -37,12 +37,27 @@ distributions.
     ```
 You're now set up to run the code in this repository.
 
-## s3_log_sync.py
+## PDS Web Analytics System, Architecture, and Data Flow
+
+![PDS Web Analytics System Architecture](docs/pds-web-analytics-architecture.png)
+
+PDS Web Analytics is designed to process and visualize web traffic
+data from web logs produced from the PDS Nodes. This system is built on the following AWS services:
+
+- **AWS S3**: store raw log files (Apache Common Log Format (CLF)) from the PDS reporting server.
+- **AWS Glue**: Used to crawl new logs and store them in a format that can be queried by Athena.
+- **AWS Athena**: Used to query processed log files and generate backend tables.
+- **AWS QuickSight**: Data visualization tool used to create dashboards and reports.
+- **AWS CloudWatch**: Used to monitor and manage the system.
+- **AWS Lambda**: Used to automate tasks and manage the system.
+
+
+### S3 Log Sync
 This script syncs log files from PDS reporting server to AWS S3 bucket to be 
 later processed by AWS Glue. The script is designed to be run as a cron job on 
 the reporting server.
 
-### Usage
+#### Usage
 Ensure that tokens to allow access to the S3 bucket are configured correctly in
 your environment to run this script. This script will not work properly without
 proper AWS credentials. Please contact your system administrator for help with 
@@ -67,3 +82,4 @@ template is provided in this repository at `config/config_example.yaml`:
    ```
 If run manually, the script will sync all log files from the specified directory
 and produce output to stdout.
+
