@@ -1,6 +1,8 @@
 # PDS Web Analytics
-This repo contains code, configuration, and other artifacts related to the PDS 
-Web Analytics platform using Athena, Glue, and QuickSight. 
+![QuickSight Dashboard](docs/pds_analytics_qs.jpg)
+
+NASA Planetary Data Systems (PDS) web analytics platform built with AWS Athena, Glue, 
+and QuickSight. 
 
 ## Quick Start
 It is highly recommended to use Conda environments for running the code in this 
@@ -21,7 +23,7 @@ distributions.
 - [Conda Environment Files](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
 - [AWS CLI Configuration](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 
-### Installation Steps
+## Installation Steps
 1. Ensure prerequisites are installed.
    1. Install Anaconda.
    1. Following instructions to set up Conda environment will install everything else.
@@ -37,12 +39,37 @@ distributions.
     ```
 You're now set up to run the code in this repository.
 
-## s3_log_sync.py
+## PDS Web Analytics System, Architecture, and Data Flow
+
+![PDS Web Analytics System Architecture](docs/pds_aws_web_analytics_arch.jpg)
+PDS Web Analytics is designed to process and visualize web traffic data from web logs produced from the PDS Nodes. The
+system relies on several AWS services and we have made every effort to ensure each component is responsible for one class
+of tasks. For example, AWS Glue handles data cleaning, transformations, and error handling, while we have avoided heavy
+use of calculated fields in QuickSight to keep feature management consistent. The rest of the environment is managed
+by AWS components described here:
+
+- **AWS S3**: store raw log files (Apache Common Log Format (CLF)) from the PDS reporting server.
+- **AWS Glue**: Primary ETL tool. Used to crawl new logs and store them in a format that can be queried by Athena.
+- **AWS Athena**: Used to query processed log files and generate backend tables.
+- **AWS QuickSight**: Data visualization tool used to create dashboards and reports.
+- **AWS CloudWatch**: Used to monitor and manage the system.
+- **AWS Lambda**: Used to automate tasks and manage the system.
+
+### Data Flow Overview
+
+1. Log files are generated on the PDS reporting server.
+2. `s3_log_sync.py` script syncs log files to an S3 bucket.
+3. Glue crawls the S3 bucket and processes the log files.
+4. Athena generates tables.
+5. Lambda functions run data transformations and loads results to s3.
+5. QuickSight presents dashboards.
+
+### S3 Log Sync
 This script syncs log files from PDS reporting server to AWS S3 bucket to be 
 later processed by AWS Glue. The script is designed to be run as a cron job on 
 the reporting server.
 
-### Usage
+#### Usage
 Ensure that tokens to allow access to the S3 bucket are configured correctly in
 your environment to run this script. This script will not work properly without
 proper AWS credentials. Please contact your system administrator for help with 
@@ -67,3 +94,7 @@ template is provided in this repository at `config/config_example.yaml`:
    ```
 If run manually, the script will sync all log files from the specified directory
 and produce output to stdout.
+
+### SQL Queries
+SQL queries are used to generate tables in Athena. These queries are stored in 
+the `sql/` directory and can be executed to rebuild tables in Athena if needed.
