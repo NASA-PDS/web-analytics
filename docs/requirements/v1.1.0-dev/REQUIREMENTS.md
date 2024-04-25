@@ -32,6 +32,10 @@ This requirement is not impacted by the current version
 
 
 This requirement is not impacted by the current version
+## Implement crawler to refresh Athena table partitions. ([#19](https://github.com/NASA-PDS/web-analytics/issues/19)) 
+
+
+This requirement is not impacted by the current version
 ## As a user, I want year over year metrics for total egress ([#21](https://github.com/NASA-PDS/web-analytics/issues/21)) 
 
 
