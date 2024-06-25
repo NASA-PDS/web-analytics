@@ -1,11 +1,12 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2024-04-25)
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2024-06-25)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...«unknown»)
 
 **Requirements:**
 
+- As a user, I want a mission-specific dashboard showing instrument and product type download metrics [\#24](https://github.com/NASA-PDS/web-analytics/issues/24)
 - As a user, I want year over year metrics for total egress [\#21](https://github.com/NASA-PDS/web-analytics/issues/21)
 - Dashboard: EN Search Query analytics - queries over time period [\#9](https://github.com/NASA-PDS/web-analytics/issues/9)
 - As a data scientist, I want to update and refine web metrics dashboards, to provide improved views on PDS node usage patterns over time [\#4](https://github.com/NASA-PDS/web-analytics/issues/4)
