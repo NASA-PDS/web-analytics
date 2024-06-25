@@ -11,7 +11,7 @@ CREATE EXTERNAL TABLE prd_tbl_all_det(
             user_agent string)
 PARTITIONED BY (`node` string)
 ROW FORMAT SERDE 'com.amazonaws.glue.serde.GrokSerDe'
-WITH SERDEPROPERTIES ('input.format' = '^%{IPV4:client_ip}
+WITH SERDEPROPERTIES ('input.format' = '^%{IPORHOST:client_ip_or_hostname}
                        %{DATA:client_id}
                        %{USERNAME:user_id}
                        %{GREEDYDATA:datetime}
