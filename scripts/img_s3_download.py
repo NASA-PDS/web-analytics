@@ -34,6 +34,6 @@ for obj in source_bucket.objects.filter(Prefix=SOURCE_PREFIX):
         source_bucket.download_file(obj.key, local_file_path)
     except ClientError as e:
         print(f"Error downloading {obj.key}: {e}")
-    break
+
 
 print("Download complete!")
