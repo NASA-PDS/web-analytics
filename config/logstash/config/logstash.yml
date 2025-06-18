@@ -10,10 +10,7 @@ pipeline.batch.delay: 5
 queue.type: persisted              # durable disk-based buffering between inputs and filters/outputs
 queue.max_bytes: 2gb               # Rule of thumb: use 25%–50% of available disk on /var/lib/logstash/queue if you want high resiliency.
 queue.max_events: 2000
-
-# Use pipelines.yml, do NOT use path.config here
-path.config: ""                    # Must be blank or removed if using pipelines.yml
-path.pipeline: ${LOGSTASH_CONF_HOME}/pipelines.yml  # Adjust if your pipelines.yml is elsewhere
+path.config: "${LS_SETTINGS_DIR}/pipelines.yml"
 
 
 # ----------- Log Level -----------
