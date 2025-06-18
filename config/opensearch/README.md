@@ -7,7 +7,7 @@ git clone https://github.com/elastic/ecs.git
 
 git checkout v8.17.0
 
-cp generated/elasticsearch/legacy/template.json $LOGSTASH_CONF_HOME/opensearch/
+cp generated/elasticsearch/legacy/template.json $LS_SETTINGS_DIR/opensearch/
 ```
 
 Then there were some customizations needed for it to work with OpenSearch.
