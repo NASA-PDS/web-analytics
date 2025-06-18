@@ -1,23 +1,23 @@
 - pipeline.id: atm
-  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-atm.conf"
+  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-pds-input-s3-atm.conf"
 
 - pipeline.id: en
-  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-en.conf"
+  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-pds-input-s3-en.conf"
 
 - pipeline.id: geo
-  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-geo.conf"
+  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-pds-input-s3-geo.conf"
 
 - pipeline.id: img
-  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-img.conf"
+  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-pds-input-s3-img.conf"
 
 - pipeline.id: naif
-  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-naif.conf"
+  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-pds-input-s3-naif.conf"
 
 - pipeline.id: ppi
-  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-ppi.conf"
+  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-pds-input-s3-ppi.conf"
 
 - pipeline.id: rings
-  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-rings.conf"
+  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-pds-input-s3-rings.conf"
 
 - pipeline.id: sbn
-  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-sbn.conf"
+  path.config: "$LS_SETTINGS_DIR/pipelines/pipeline-pds-input-s3-sbn.conf"
