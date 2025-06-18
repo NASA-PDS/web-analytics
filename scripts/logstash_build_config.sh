@@ -18,4 +18,5 @@ for input_file in $LS_SETTINGS_DIR/inputs/*.conf; do
   name=$(basename "$input_file" .conf)
   cat "$input_file" $SHARED_FILTER $SHARED_OUTPUT \
     > "$PIPELINE_DIR/pipeline-${name}.conf"
+  echo "Created $PIPELINE_DIR/pipeline-${name}.conf"
 done
