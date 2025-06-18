@@ -1,0 +1,23 @@
+- pipeline.id: atm
+  path.config: "$LOGSTASH_CONF_HOME/pipeline-atm.conf"
+
+- pipeline.id: en
+  path.config: "$LOGSTASH_CONF_HOME/pipeline-en.conf"
+
+- pipeline.id: geo
+  path.config: "$LOGSTASH_CONF_HOME/pipeline-geo.conf"
+
+- pipeline.id: img
+  path.config: "$LOGSTASH_CONF_HOME/pipeline-img.conf"
+
+- pipeline.id: naif
+  path.config: "$LOGSTASH_CONF_HOME/pipeline-naif.conf"
+
+- pipeline.id: ppi
+  path.config: "$LOGSTASH_CONF_HOME/pipeline-ppi.conf"
+
+- pipeline.id: rings
+  path.config: "$LOGSTASH_CONF_HOME/pipeline-rings.conf"
+
+- pipeline.id: sbn
+  path.config: "$LOGSTASH_CONF_HOME/pipeline-sbn.conf"

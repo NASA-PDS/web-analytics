@@ -1,0 +1,5 @@
+pipeline.workers: 4                # Match vCPU count for t3.xlarge
+pipeline.batch.size: 125           # Tune as needed
+pipeline.batch.delay: 5
+queue.type: persisted
+queue.max_bytes: 4gb
