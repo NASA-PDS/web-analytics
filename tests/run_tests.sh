@@ -3,7 +3,7 @@
 # Get the directory where the script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKSPACE_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
-export LOGSTASH_CONF_HOME="${WORKSPACE_DIR}/config/"
+export LOGSTASH_CONF_HOME="${WORKSPACE_DIR}/config/logstash/config"
 export SCRIPT_DIR
 echo "SCRIPT_DIR: $SCRIPT_DIR"
 
@@ -15,7 +15,7 @@ rm -fr $SCRIPT_DIR/output/*
 TMP_CONF=$(mktemp)
 echo "TMP_CONF: $TMP_CONF"
 cat "$SCRIPT_DIR/config/test-input-https.conf" \
-    "$WORKSPACE_DIR/config/logstash/pds-filter.conf" \
+    "$LOGSTASH_CONF_HOME/shared/pds-filter.conf" \
     "$SCRIPT_DIR/config/test-output.conf" > "$TMP_CONF"
 
 # "$SCRIPT_DIR/config/test-input-ftp.conf" 
