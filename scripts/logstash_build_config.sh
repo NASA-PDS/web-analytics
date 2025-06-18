@@ -14,6 +14,9 @@ PIPELINE_DIR="$LS_SETTINGS_DIR/pipelines"
 
 mkdir -p $LS_SETTINGS_DIR/pipelines
 
+echo "Creating $LS_SETTINGS_DIR/pipelines.yml from template"
+envsubst < $LS_SETTINGS_DIR/pipelines.yml.template > $LS_SETTINGS_DIR/pipelines.yml
+
 for input_file in $LS_SETTINGS_DIR/inputs/*.conf; do
   name=$(basename "$input_file" .conf)
   cat "$input_file" $SHARED_FILTER $SHARED_OUTPUT \
