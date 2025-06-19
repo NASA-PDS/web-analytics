@@ -1,5 +1,3 @@
-log_directory: /Users/jpadams/proj/pds/pdsen/workspace/web-analytics/
-profile_name: "441083951559_mcp-tenantDeveloper"
 s3_bucket: pds-dev-web-analytics
 s3_logdir: ''
 subdirs:
@@ -39,7 +37,7 @@ subdirs:
    geo-ftp:
      include:
        - "u_ex25*"
-  img:
+ img:
    img-pdsimage-http:
      include:
        - "*.2025*"
@@ -49,9 +47,9 @@ subdirs:
    img-pdsimg2-http:
      include:
        - "*-2025*"
-    img-web-log-s3:
-      include:
-        - "*_2025*"
+   img-web-log-s3:
+     include:
+       - "*_2025*"
  ppi:
    ppi-tomcat:
      include:
@@ -59,15 +57,18 @@ subdirs:
  rings:
    rings-apache-metrics:
      include:
-       - "*.2025-*.log"
+       - "*2025-*"
  naif:
    naif-httpdlogs:
      include:
        - "naif_access_log.25*"
+   naif-xferlogs:
+     include:
+       - "naif-xferlogs.25*"
  sbn:
    sbn-apache-http:
      include:
-       - "sbnumd2025*.log"
+       - "sbnumd2025*"
    sbn-psi-tomcat:
      include:
        - "sbn_archive_2025*.txt"

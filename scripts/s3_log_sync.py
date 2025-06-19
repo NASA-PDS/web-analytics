@@ -179,11 +179,14 @@ def parse_args():
     parser.add_argument(
         '-c', '--config', required=True, help='Path to the configuration file.'
     )
-
-    # Check if any arguments were provided. If not, print help and exit.
-    if len(os.sys.argv) == 1:
-        parser.print_help()
-        parser.exit(status=1, message='\nError: The --config argument is required.\n')
+    parser.add_argument(
+        '-d', '--log-directory', required=True, 
+        help='Base directory containing the log subdirectories to sync.'
+    )
+    parser.add_argument(
+        '--aws-profile', required=True,
+        help='AWS CLI profile name to use for authentication.'
+    )
 
     return parser.parse_args()
 
@@ -200,7 +203,7 @@ if __name__ == "__main__":
         os.sys.exit(1)
 
     local_dirs = {
-        config.log_directory + "/" + dir + "/" + subdir: config.subdirs[dir][subdir]
+        args.log_directory + "/" + dir + "/" + subdir: config.subdirs[dir][subdir]
         for dir in config.subdirs.keys()
         for subdir in config.subdirs[dir]
     }
@@ -208,9 +211,9 @@ if __name__ == "__main__":
 
     s3_sync = S3Sync(
         src_paths=local_dirs,
-        src_logdir=config.log_directory,
+        src_logdir=args.log_directory,
         bucket_name=config.s3_bucket,
         s3_subdir=config.s3_logdir,
-        profile_name=config.profile_name,
+        profile_name=args.aws_profile,
     )
     s3_sync.run()
