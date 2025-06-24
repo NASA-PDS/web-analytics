@@ -12,13 +12,13 @@ mkdir -p "$SCRIPT_DIR/output"
 
 rm -fr $SCRIPT_DIR/output/*
 
-# TMP_CONF=$(mktemp)
-# echo "TMP_CONF: $TMP_CONF"
-# cat "$SCRIPT_DIR/config/test-input-https.conf" \
-#     "$LS_SETTINGS_DIR/shared/pds-filter.conf" \
-#     "$SCRIPT_DIR/config/test-output.conf" > "$TMP_CONF"
+TMP_CONF=$(mktemp)
+echo "TMP_CONF: $TMP_CONF"
+cat "$SCRIPT_DIR/config/test-input-https.conf" \
+    "$LS_SETTINGS_DIR/shared/pds-filter.conf" \
+    "$SCRIPT_DIR/config/test-output.conf" > "$TMP_CONF"
 
-# logstash -f "$TMP_CONF" --log.level=debug
+logstash -f "$TMP_CONF" --log.level=debug
 
 rm -f "$TMP_CONF"
 
@@ -28,7 +28,7 @@ cat "$SCRIPT_DIR/config/test-input-ftp.conf" \
     "$LS_SETTINGS_DIR/shared/pds-filter.conf" \
     "$SCRIPT_DIR/config/test-output.conf" > "$TMP_CONF2"
 
-logstash -f "$TMP_CONF2" --log.level=debug
+# logstash -f "$TMP_CONF2" --log.level=debug
 
 rm -f "$TMP_CONF2"
 
