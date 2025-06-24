@@ -87,6 +87,7 @@ lib64/
 *~
 .*.swp
 var/
+target/
 
 # other stuff
 *.log
