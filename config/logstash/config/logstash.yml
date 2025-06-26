@@ -13,4 +13,4 @@ queue.max_events: 2000
 
 
 # ----------- Log Level -----------
-log.level: info   
+log.level: info
