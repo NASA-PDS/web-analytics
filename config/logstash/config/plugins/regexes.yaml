@@ -1403,7 +1403,7 @@ os_parsers:
   # Box Drive and Box Sync on Mac OS X use OSX version numbers, not Darwin
   - regex: '^Box.{0,200};(Darwin)/(10)\.(1\d)(?:\.(\d+)|)'
     os_replacement: 'Mac OS X'
-  
+
   ##########
   # Hashicorp API
   # APN/1.0 HashiCorp/1.0 Terraform/1.8.0 (+https://www.terraform.io) terraform-provider-aws/4.67.0 (+https://registry.terraform.io/providers/hashicorp/aws) aws-sdk-go/1.44.261 (go1.19.8; darwin; arm64)
