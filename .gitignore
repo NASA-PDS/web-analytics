@@ -87,7 +87,7 @@ lib64/
 *~
 .*.swp
 var/
-target/
+output/
 config/logstash/config/pipelines.yml
 config/logstash/config/pipelines/
 .env
