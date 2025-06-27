@@ -83,6 +83,7 @@ cd web-analytics
 ```
 
 ### 2. Set Up Python Environment
+*TODO: We should update this to use Python venv. Conda is not the path forward.*
 ```bash
 # Create and activate Conda environment
 conda env create -f environment.yml
@@ -101,6 +102,7 @@ export INDEX_PREFIX=pds-web-analytics
 # Logstash Configuration
 export LS_SETTINGS_DIR=$(pwd)/config/logstash/config
 ```
+*See internal wiki for details of how to populate this file*
 
 ### 4. Set Up Logstash Configuration
 ```bash
