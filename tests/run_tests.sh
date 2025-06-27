@@ -63,10 +63,10 @@ validate_directory() {
     local dir="$1"
     local expected="$2"
     local description="$3"
-    
+
     local actual=$(count_files "$dir")
     echo -n "$description: "
-    
+
     if [ "$actual" -eq "$expected" ]; then
         echo "✅ PASS ($actual files, expected $expected)"
         return 0
