@@ -144,16 +144,16 @@ class TestExample(unittest.TestCase):
     def setUp(self):
         self.test_data_dir = create_test_data_dir()
         self.config_file = create_temp_config_file()
-    
+
     def tearDown(self):
         cleanup_test_data_dir(self.test_data_dir)
         cleanup_temp_config_file(self.config_file)
-    
+
     def test_with_mocked_aws(self):
         with MockAWSCredentials():
             # Test code here
             pass
-    
+
     def test_with_mocked_subprocess(self):
         with MockSubprocess(stdout="success", returncode=0) as mock_run:
             # Test code here
@@ -196,4 +196,4 @@ When adding new tests:
 4. Use unittest assertion methods (`self.assertEqual()`, `self.assertTrue()`, etc.)
 5. Add appropriate test data to `data/logs/` if needed
 6. Update this README with any new test procedures
-7. Use helper functions from `conftest.py` for common testing tasks 
+7. Use helper functions from `conftest.py` for common testing tasks
