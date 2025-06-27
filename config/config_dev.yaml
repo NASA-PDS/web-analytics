@@ -1,74 +1,74 @@
 s3_bucket: pds-dev-web-analytics
 s3_logdir: ''
 subdirs:
- atm:
-   atm-apache-http:
-     include:
-       - "atm-atmos-apache.2025-*.txt"
-   atm-atmos-ftp:
-     include:
-       - "atm-atmos-ftp.2025-*"
- en:
-   en-http-pds-proxy:
-     include:
-       - "*.2025-*.txt.gz"
-   en-http-pdscloud-prod1:
-     include:
-       - "*.2025-*.txt.gz"
-   en-http-pdscloud-prod2:
-     include:
-       - "*.2025-*.txt.gz"
- geo:
-   geo-ode:
-     include:
-       - "u_ex25*"
-   geo-ode-cart:
-     include:
-       - "u_ex25*"
-   geo-pds:
-     include:
-       - "u_ex25*"
-   geo-speclib:
-     include:
-       - "u_ex25*"
-   geo-va:
-     include:
-       - "u_ex25*"
-   geo-ftp:
-     include:
-       - "u_ex25*"
+  atm:
+    atm-apache-http:
+      include:
+        - "atm-atmos-apache.2025-*.txt"
+    atm-atmos-ftp:
+      include:
+        - "atm-atmos-ftp.2025-*"
+  en:
+    en-http-pds-proxy:
+      include:
+        - "*.2025-*.txt.gz"
+    en-http-pdscloud-prod1:
+      include:
+        - "*.2025-*.txt.gz"
+    en-http-pdscloud-prod2:
+      include:
+        - "*.2025-*.txt.gz"
+  geo:
+    geo-ode:
+      include:
+        - "u_ex25*"
+    geo-ode-cart:
+      include:
+        - "u_ex25*"
+    geo-pds:
+      include:
+        - "u_ex25*"
+    geo-speclib:
+      include:
+        - "u_ex25*"
+    geo-va:
+      include:
+        - "u_ex25*"
+    geo-ftp:
+      include:
+        - "u_ex25*"
   img:
-   img-pdsimage-http:
-     include:
-       - "*.2025*"
-   img-pdsimg1-http:
-     include:
-       - "*-2025*"
-   img-pdsimg2-http:
-     include:
-       - "*-2025*"
+    img-pdsimage-http:
+      include:
+        - "*.2025*"
+    img-pdsimg1-http:
+      include:
+        - "*-2025*"
+    img-pdsimg2-http:
+      include:
+        - "*-2025*"
     img-web-log-s3:
       include:
         - "*_2025*"
- ppi:
-   ppi-tomcat:
-     include:
-       - "*2025-*.log.gz"
- rings:
-   rings-apache-metrics:
-     include:
-       - "*2025-*"
- naif:
-   naif-httpdlogs:
-     include:
-       - "naif_access_log.25*"
-   naif-xferlogs:
-     include:
-       - "naif-xferlogs.25*"
- sbn:
-   sbn-apache-http:
-     include:
-       - "sbnumd2025*"
-   sbn-psi-tomcat:
-     include:
-       - "sbn_archive_2025*.txt"
+  ppi:
+    ppi-tomcat:
+      include:
+        - "*2025-*.log.gz"
+  rings:
+    rings-apache-metrics:
+      include:
+        - "*2025-*"
+  naif:
+    naif-httpdlogs:
+      include:
+        - "naif_access_log.25*"
+    naif-xferlogs:
+      include:
+        - "naif-xferlogs.25*"
+  sbn:
+    sbn-apache-http:
+      include:
+        - "sbnumd2025*"
+    sbn-psi-tomcat:
+      include:
+        - "sbn_archive_2025*.txt"
