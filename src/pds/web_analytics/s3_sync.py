@@ -1,16 +1,18 @@
 """S3 synchronization module for PDS web analytics."""
-
-from typing import Dict, Optional, Tuple
-import os
-import time
-import math
-import subprocess
-import shutil
-import gzip
-from multiprocessing import cpu_count
 import argparse
-import yaml  # type: ignore
+import gzip
+import math
+import os
+import shutil
+import subprocess
 import sys
+import time
+from multiprocessing import cpu_count
+from typing import Dict
+from typing import Optional
+from typing import Tuple
+
+import yaml  # type: ignore
 from box import Box
 
 
@@ -29,9 +31,17 @@ class S3Sync:
         enable_gzip (bool): Flag to enable/disable gzip compression. Default is True.
     """
 
-    def __init__(self, src_paths: Dict[str, Dict[str, str]], src_logdir: str, bucket_name: str,
-                 s3_subdir: str, profile_name: Optional[str] = None, delete: bool = False,
-                 workers: Optional[int] = None, enable_gzip: bool = True) -> None:
+    def __init__(
+        self,
+        src_paths: Dict[str, Dict[str, str]],
+        src_logdir: str,
+        bucket_name: str,
+        s3_subdir: str,
+        profile_name: Optional[str] = None,
+        delete: bool = False,
+        workers: Optional[int] = None,
+        enable_gzip: bool = True,
+    ) -> None:
         """Initialize the S3Sync object with configuration for syncing."""
         self.src_paths = src_paths
         self.src_logdir = src_logdir
@@ -149,8 +159,7 @@ class S3Sync:
         # Execute and capture output
         try:
             result = subprocess.run(
-                cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                universal_newlines=True
+                cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
             )
             if result.stdout:
                 print(f"{src_path} sync to {s3_path}: {result.stdout}")
@@ -192,13 +201,13 @@ class S3Sync:
         """
         # Convert size to bytes based on unit
         if size_incre == "KiB":
-            size *= 2 ** 10
+            size *= 2**10
         elif size_incre == "MiB":
-            size *= 2 ** 20
+            size *= 2**20
         elif size_incre == "GiB":
-            size *= 2 ** 30
+            size *= 2**30
         elif size_incre == "TiB":
-            size *= 2 ** 40
+            size *= 2**40
         return size
 
     @staticmethod
@@ -250,22 +259,17 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(
         description="Sync directories to an AWS S3 bucket with optional gzip compression.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument("-c", "--config", required=True, help="Path to the configuration file.")
     parser.add_argument(
-        "-c", "--config", required=True, help="Path to the configuration file."
+        "-d", "--log-directory", required=True, help="Base directory containing the log subdirectories to sync."
     )
+    parser.add_argument("--aws-profile", required=True, help="AWS CLI profile name to use for authentication.")
     parser.add_argument(
-        "-d", "--log-directory", required=True,
-        help="Base directory containing the log subdirectories to sync."
-    )
-    parser.add_argument(
-        "--aws-profile", required=True,
-        help="AWS CLI profile name to use for authentication."
-    )
-    parser.add_argument(
-        "--no-gzip", action="store_true",
-        help="Disable gzip compression. Files will be synced as-is without compression."
+        "--no-gzip",
+        action="store_true",
+        help="Disable gzip compression. Files will be synced as-is without compression.",
     )
 
     return parser.parse_args()
