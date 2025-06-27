@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Test runner script for PDS Web Analytics unit tests
+# Test runner script for PDS Web Analytics tests
+# This script runs both unit tests and integration tests using unittest
 # Usage: ./run_unit_tests.sh [options]
 
 set -e
@@ -15,10 +16,11 @@ NC='\033[0m' # No Color
 # Default values
 TEST_DIR="tests"
 VERBOSE=""
-COVERAGE=""
 FAIL_FAST=""
-PARALLEL=""
-MARKERS=""
+INTEGRATION_ONLY=""
+UNIT_ONLY=""
+TEST_FILE=""
+TEST_NAME=""
 
 # Function to print usage
 print_usage() {
@@ -27,20 +29,23 @@ print_usage() {
     echo "Options:"
     echo "  -h, --help              Show this help message"
     echo "  -v, --verbose           Run tests in verbose mode"
-    echo "  -c, --coverage          Run tests with coverage report"
     echo "  -f, --fail-fast         Stop on first failure"
-    echo "  -p, --parallel          Run tests in parallel"
-    echo "  -m, --markers MARKERS   Run only tests with specific markers"
     echo "  -t, --test-file FILE    Run specific test file"
     echo "  -k, --test-name NAME    Run specific test by name"
+    echo "  -i, --integration       Run only integration tests"
+    echo "  -u, --unit              Run only unit tests"
+    echo ""
+    echo "Test Types:"
+    echo "  Unit Tests:             Python-based tests for individual components"
+    echo "  Integration Tests:      End-to-end tests for Logstash pipeline"
     echo ""
     echo "Examples:"
-    echo "  $0                      # Run all tests"
+    echo "  $0                      # Run all tests (unit + integration)"
     echo "  $0 -v                   # Run all tests in verbose mode"
-    echo "  $0 -c                   # Run tests with coverage"
+    echo "  $0 -i                   # Run only integration tests"
+    echo "  $0 -u                   # Run only unit tests"
     echo "  $0 -t test_s3_sync.py   # Run only S3Sync tests"
     echo "  $0 -k test_init         # Run tests with 'init' in the name"
-    echo "  $0 -m 'not slow'        # Run tests not marked as slow"
 }
 
 # Parse command line arguments
@@ -54,29 +59,25 @@ while [[ $# -gt 0 ]]; do
             VERBOSE="-v"
             shift
             ;;
-        -c|--coverage)
-            COVERAGE="--cov=src/pds/web_analytics --cov-report=html --cov-report=term-missing"
-            shift
-            ;;
         -f|--fail-fast)
-            FAIL_FAST="-x"
+            FAIL_FAST="-f"
             shift
-            ;;
-        -p|--parallel)
-            PARALLEL="-n auto"
-            shift
-            ;;
-        -m|--markers)
-            MARKERS="-m $2"
-            shift 2
             ;;
         -t|--test-file)
             TEST_FILE="$2"
             shift 2
             ;;
         -k|--test-name)
-            TEST_NAME="-k $2"
+            TEST_NAME="$2"
             shift 2
+            ;;
+        -i|--integration)
+            INTEGRATION_ONLY=true
+            shift
+            ;;
+        -u|--unit)
+            UNIT_ONLY=true
+            shift
             ;;
         *)
             echo "Unknown option: $1"
@@ -93,10 +94,9 @@ if [[ ! -d "$TEST_DIR" ]]; then
     exit 1
 fi
 
-# Check if pytest is installed
-if ! command -v pytest &> /dev/null; then
-    echo -e "${RED}Error: pytest is not installed.${NC}"
-    echo "Please install pytest: pip install pytest"
+# Check if Python is available
+if ! command -v python &> /dev/null; then
+    echo -e "${RED}Error: Python is not installed or not in PATH.${NC}"
     exit 1
 fi
 
@@ -107,65 +107,92 @@ if ! python -c "import pds.web_analytics" 2>/dev/null; then
     pip install -e .
 fi
 
-# Build command
-PYTEST_CMD="pytest $TEST_DIR"
-
-if [[ -n "$TEST_FILE" ]]; then
-    PYTEST_CMD="$PYTEST_CMD/$TEST_FILE"
+# Determine which tests to run
+if [[ "$INTEGRATION_ONLY" == true ]]; then
+    echo -e "${BLUE}Running integration tests only...${NC}"
+    TEST_PATTERN="$TEST_DIR/test_logstash_integration.py"
+elif [[ "$UNIT_ONLY" == true ]]; then
+    echo -e "${BLUE}Running unit tests only...${NC}"
+    TEST_PATTERN="$TEST_DIR/test_s3_sync.py"
+else
+    echo -e "${BLUE}Running all tests (unit + integration)...${NC}"
+    TEST_PATTERN="$TEST_DIR"
 fi
 
-if [[ -n "$VERBOSE" ]]; then
-    PYTEST_CMD="$PYTEST_CMD $VERBOSE"
-fi
+# Function to run unittest tests
+run_unittest() {
+    local test_pattern="$1"
+    local verbose_flag=""
+    local fail_fast_flag=""
 
-if [[ -n "$COVERAGE" ]]; then
-    PYTEST_CMD="$PYTEST_CMD $COVERAGE"
-fi
-
-if [[ -n "$FAIL_FAST" ]]; then
-    PYTEST_CMD="$PYTEST_CMD $FAIL_FAST"
-fi
-
-if [[ -n "$PARALLEL" ]]; then
-    # Check if pytest-xdist is installed for parallel execution
-    if ! python -c "import xdist" 2>/dev/null; then
-        echo -e "${YELLOW}Warning: pytest-xdist not installed. Installing...${NC}"
-        pip install pytest-xdist
+    if [[ "$VERBOSE" == "-v" ]]; then
+        verbose_flag="-v"
     fi
-    PYTEST_CMD="$PYTEST_CMD $PARALLEL"
-fi
 
-if [[ -n "$MARKERS" ]]; then
-    PYTEST_CMD="$PYTEST_CMD $MARKERS"
-fi
+    if [[ "$FAIL_FAST" == "-f" ]]; then
+        fail_fast_flag="-f"
+    fi
 
-if [[ -n "$TEST_NAME" ]]; then
-    PYTEST_CMD="$PYTEST_CMD $TEST_NAME"
-fi
+    # Build unittest command
+    UNITTEST_CMD="python -m unittest"
 
-# Add common options
-PYTEST_CMD="$PYTEST_CMD --tb=short --strict-markers"
+    if [[ -n "$TEST_FILE" ]]; then
+        # Run specific test file
+        test_file_path="$TEST_DIR/$TEST_FILE"
+        if [[ -f "$test_file_path" ]]; then
+            UNITTEST_CMD="$UNITTEST_CMD $test_file_path"
+        else
+            echo -e "${RED}Error: Test file '$test_file_path' not found.${NC}"
+            exit 1
+        fi
+    elif [[ -n "$TEST_NAME" ]]; then
+        # Run specific test by name pattern
+        UNITTEST_CMD="$UNITTEST_CMD -k $TEST_NAME $test_pattern"
+    else
+        # Run all tests in pattern
+        UNITTEST_CMD="$UNITTEST_CMD discover $test_pattern"
+    fi
 
-echo -e "${BLUE}Running tests with command:${NC}"
-echo "$PYTEST_CMD"
-echo ""
+    if [[ -n "$verbose_flag" ]]; then
+        UNITTEST_CMD="$UNITTEST_CMD $verbose_flag"
+    fi
 
-# Run the tests
+    if [[ -n "$fail_fast_flag" ]]; then
+        UNITTEST_CMD="$UNITTEST_CMD $fail_fast_flag"
+    fi
+
+    echo -e "${BLUE}Running unittest: $UNITTEST_CMD${NC}"
+    eval $UNITTEST_CMD
+}
+
+# Run tests
 echo -e "${BLUE}Starting test execution...${NC}"
 echo "=================================="
 
-if eval $PYTEST_CMD; then
+if [[ "$INTEGRATION_ONLY" == true ]]; then
+    # Run only integration tests
+    run_unittest "$TEST_DIR/test_logstash_integration.py"
+
+elif [[ "$UNIT_ONLY" == true ]]; then
+    # Run only unit tests
+    run_unittest "$TEST_DIR/test_s3_sync.py"
+
+else
+    # Run all tests
+    echo -e "${BLUE}Running integration tests...${NC}"
+    run_unittest "$TEST_DIR/test_logstash_integration.py"
+
+    echo -e "${BLUE}Running unit tests...${NC}"
+    run_unittest "$TEST_DIR/test_s3_sync.py"
+fi
+
+# Check if tests passed
+if [[ $? -eq 0 ]]; then
     echo ""
     echo -e "${GREEN}All tests passed!${NC}"
-    
-    if [[ -n "$COVERAGE" ]]; then
-        echo ""
-        echo -e "${BLUE}Coverage report generated in htmlcov/index.html${NC}"
-    fi
-    
     exit 0
 else
     echo ""
     echo -e "${RED}Some tests failed!${NC}"
     exit 1
-fi 
+fi

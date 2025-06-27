@@ -45,7 +45,6 @@ cat "$SCRIPT_DIR/config/test-input-ftp.conf" \
     "$SCRIPT_DIR/config/test-output.conf" > "$TMP_CONF2"
 
 logstash -f "$TMP_CONF2" --log.level=debug
-
 rm -f "$TMP_CONF2"
 
 # Function to count files in a directory
