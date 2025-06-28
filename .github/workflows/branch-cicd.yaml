@@ -1,11 +1,7 @@
 # 🏃‍♀️ Continuous Integration and Delivery: Branch Testing
 # ======================================================
 
-
----
-
 name: 🔁 Branch integration testing
-
 
 # Driving Event
 # -------------
@@ -15,9 +11,8 @@ name: 🔁 Branch integration testing
 on:
     push:
         branches:
-            -   '**'
-            -   '!main'
-
+            - '**'
+            - '!main'
 
 # What to Do
 # ----------
@@ -31,33 +26,48 @@ jobs:
         if: github.actor != 'pdsen-ci'
 
         steps:
-            -
-                name: 💳 Checkout
-                uses: actions/checkout@v4
-                with:
-                    lfs: true
-                    fetch-depth: 0
-                    token: ${{secrets.ADMIN_GITHUB_TOKEN || github.token}}
-            -
-                name: Set up Python 3
-                uses: actions/setup-python@v5
-                with:
-                    python-version: '3.9'
-            -
-                name: 💵 Python Cache
-                uses: actions/cache@v3
-                with:
-                    path: ~/.cache/pip
-                    # The "key" used to indicate a set of cached files is the operating system runner
-                    # plus "py" for Python-specific builds, plus a hash of the wheels, plus "pds" because
-                    # we pds-prefix everything with "pds" in PDS! 😅
-                    key: pds-${{runner.os}}-py-${{hashFiles('**/*.whl')}}
-                    # To restore a set of files, we only need to match a prefix of the saved key.
-                    restore-keys: pds-${{runner.os}}-py-
-            -
-                name: 🩺 Test Software
-                run:
-                    pip install --editable '.[dev]'
+            - name: 💳 Checkout
+              uses: actions/checkout@v4
+              with:
+                  lfs: true
+                  fetch-depth: 0
+                  token: ${{secrets.ADMIN_GITHUB_TOKEN || github.token}}
 
-                    tox
-                shell: bash
+            - name: Set up Python 3
+              uses: actions/setup-python@v5
+              with:
+                  python-version: '3.9'
+
+            - name: 💵 Python Cache
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cache/pip
+                  # The "key" used to indicate a set of cached files is the operating system runner
+                  # plus "py" for Python-specific builds, plus a hash of the wheels, plus "pds" because
+                  # we pds-prefix everything with "pds" in PDS! 😅
+                  key: pds-${{runner.os}}-py-${{hashFiles('**/*.whl')}}
+                  # To restore a set of files, we only need to match a prefix of the saved key.
+                  restore-keys: pds-${{runner.os}}-py-
+
+            - name: 🩺 Install Logstash
+              run: |
+                  wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.0-linux-x86_64.tar.gz
+                  tar -xzf logstash-8.17.0-linux-x86_64.tar.gz
+                  ln -s $(pwd)/logstash-8.17.1 $(pwd)/logstash
+
+                  # Add to PATH
+                  echo 'export PATH="$(pwd)/logstash/bin:$PATH"' >> ~/.bashrc
+                  source ~/.bashrc
+
+                  # Verify installation
+                  logstash --version
+
+                  # Install tld opensearch plugins:
+                  logstash-plugin install logstash-filter-tld
+                  logstash-plugin install logstash-output-opensearch
+
+            - name: 🩺 Test Software
+              run: |
+                  pip install --editable '.[dev]'
+                  tox
+              shell: bash
