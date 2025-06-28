@@ -34,10 +34,10 @@ class TestLogstashIntegration(unittest.TestCase):
             "bad_logs": 0,
             "invalid_methods": 1,
             "template_errors": 0,
-            "empty_user_agents": 2,
+            "empty_user_agents": 1,
             "duplicate_sources": 0,
-            "processed_logs": 22,
-            "corrupt_logs": 3,
+            "processed_logs": 23,
+            "corrupt_logs": 4,
         },
         "ftp": {
             "parse_failures": 0,

@@ -12,7 +12,7 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 
-import boto3
+import boto3  # type: ignore
 import yaml  # type: ignore
 from box import Box
 
