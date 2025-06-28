@@ -38,7 +38,7 @@ See internal wiki for more detailed architecture.
 - **Memory**: Minimum 4GB RAM (8GB+ recommended for production)
 - **Storage**: 10GB+ available disk space
 
-### AWS Resources
+### AWS Infrastructure Setup
 
 See internal wiki for more details.
 
@@ -66,18 +66,31 @@ venv\Scripts\activate
 # Download Logstash 8.x
 wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.0-linux-x86_64.tar.gz
 tar -xzf logstash-8.17.0-linux-x86_64.tar.gz
-sudo mv logstash-8.17.0 /opt/logstash
+ln -s $(pwd)/logstash-8.17.1 $(pwd)/logstash
 
 # Add to PATH
-echo 'export PATH="/opt/logstash/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH="$(pwd)/logstash/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 
 # Verify installation
 logstash --version
 ```
 
+We also need to install additional logstash plugins:
+```bash
+# Install tld opensearch plugins:
+
+logstash-plugin install logstash-filter-tld
+logstash-plugin install logstash-output-opensearch
+```
+
 #### 4. envsubst (for environment variable substitution)
 ```bash
+# Verify if this is already installed
+envsubst --help
+
+# If note, install
+
 # On Ubuntu/Debian:
 sudo apt-get install gettext-base
 
@@ -94,6 +107,10 @@ brew install gettext
 ```bash
 git clone https://github.com/NASA-PDS/web-analytics.git
 cd web-analytics
+
+# Create WEB_ANALYTICS_HOME environment variable
+echo 'export WEB_ANALYTICS_HOME="$(pwd)"' >> ~/.bashrc
+source ~/.bashrc
 ```
 
 ### 2. Set Up Python Environment
@@ -124,11 +141,10 @@ export LS_SETTINGS_DIR=$(pwd)/config/logstash/config
 
 ### 4. Set Up Logstash Configuration
 ```bash
+cd $WEB_ANALYTICS_HOME
+
 # Source your config
 source .env
-
-# Make the build script executable
-chmod +x scripts/logstash_build_config.sh
 
 # Run the configuration build script
 ./scripts/logstash_build_config.sh
@@ -138,6 +154,24 @@ This script will:
 - Copy the pipelines template and replace the env variables to `pipelines.yml`
 - Create individual pipeline configuration files for each PDS node
 - Combine input, filter, and output configurations automatically
+
+#### 5. Set Up OpenSearch
+
+1. Log into AWS and navigate to the OpenSearch Dashboard → Dev Tools
+2. Check if template already exists (ecs-web-template):
+```
+GET _cat/templates
+```
+3. If not, create the template:
+```
+PUT _index_template/ecs-web-template
+
+# copy-paste from https://github.com/NASA-PDS/web-analytics/tree/main/config/opensearch/ecs-8.17-custom-template.json
+```
+4. Verify success
+```
+GET _cat/templates
+```
 
 ## Package Structure
 
@@ -155,6 +189,8 @@ src/pds/web_analytics/
 After setting up the environment, install the package in development mode:
 
 ```bash
+cd $WEB_ANALYTICS_HOME
+
 # Install in development mode
 pip install -e .
 
@@ -211,6 +247,8 @@ The configuration supports environment variable substitution using `${VARIABLE_N
 Sync logs from PDS reporting servers to S3:
 
 ```bash
+cd $WEB_ANALYTICS_HOME
+
 # Using the package command (recommended)
 s3-log-sync -c config/config.yaml -d /var/log/pds
 
@@ -235,16 +273,22 @@ s3-log-sync -c config/config.yaml -d /var/log/pds --no-gzip
 Start Logstash with the PDS configuration:
 
 ```bash
-# Set environment variables
-export LS_SETTINGS_DIR=$(pwd)/config/logstash/config
+cd $WEB_ANALYTICS_HOME
+
+# Source the environment variables
+source .env
+
+# Pull the latest changes on the repo
+git pull
+
+# If anything changed, re-generate the pipeline configs
+./scripts/logstash_build_config.sh
 
 # Start Logstash
-logstash -f config/logstash/config/pipelines.yml --config.reload.automatic
+logstash -f ${WEB_ANALYTICS_HOME}/config/logstash/config/pipelines.yml
 
-# Or run with specific configuration
-logstash -f config/logstash/config/inputs/pds-input-s3-en.conf \
-         -f config/logstash/config/shared/pds-filter.conf \
-         -f config/logstash/config/shared/pds-output-opensearch.conf
+# To run in background
+nohup $HOME/logstash/bin/logstash > $OUTPUT_LOG 2>&1&
 ```
 
 ### 3. Testing
