@@ -372,6 +372,25 @@ web-analytics/
 └── src/                       # Source code
 ```
 
+### Installation
+
+Install in editable mode and with extra developer dependencies into your virtual environment of choice:
+
+    pip install --editable '.[dev]'
+
+See [the wiki entry on Secrets](https://github.com/NASA-PDS/nasa-pds.github.io/wiki/Git-and-Github-Guide#detect-secrets) to install and setup detect-secrets.
+
+Then, configure the `pre-commit` hooks:
+
+    pre-commit install
+    pre-commit install -t pre-push
+    pre-commit install -t prepare-commit-msg
+    pre-commit install -t commit-msg
+
+These hooks then will check for any future commits that might contain secrets. They also check code formatting, PEP8 compliance, type hints, etc.
+
+👉 **Note:** A one time setup is required both to support `detect-secrets` and in your global Git configuration. See [the wiki entry on Secrets](https://github.com/NASA-PDS/nasa-pds.github.io/wiki/Git-and-Github-Guide#detect-secrets) to learn how.
+
 ### Adding New PDS Nodes
 
 1. Create a new input configuration in `config/logstash/config/inputs/`
