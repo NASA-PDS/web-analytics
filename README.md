@@ -325,14 +325,18 @@ Check Logstash status and logs:
 # Check Logstash process
 ps aux | grep logstash
 
-# View Logstash logs
-tail -f /var/log/logstash/logstash.log
+# Monitor nohup logs
+source $WEB_ANALYTICS_HOME/.env
+tail -f $OUTPUT_LOG
+
+# Monitor logstash logs
+tail -f $LOGSTASH_HOME/logs/logstash-plain.log
 
 # Monitor bad logs
 tail -f /tmp/bad_logs_$(date +%Y-%m).txt
 ```
 
-## Data Processing
+## Data Processing Overview
 
 ### Supported Log Formats
 
