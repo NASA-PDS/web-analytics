@@ -1,0 +1,9 @@
+# Config file to sync those log files in the 'final' directories
+# that need to be processed prior to upload to S3
+s3_bucket: ${S3_BUCKET_PROD}
+s3_subdir: ''
+subdirs:
+  rings:
+    rings-apache-metrics:
+      include:
+        - "*2025-*"

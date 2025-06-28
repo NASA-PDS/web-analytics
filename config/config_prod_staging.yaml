@@ -1,5 +1,7 @@
-s3_bucket: pds-dev-web-analytics
-s3_logdir: ''
+# Config file to sync those log files in the 'staging' directories
+# that should not be processed prior to upload to S3
+s3_bucket: ${S3_BUCKET_PROD}
+s3_subdir: ''
 subdirs:
   atm:
     atm-apache-http:
@@ -54,10 +56,6 @@ subdirs:
     ppi-tomcat:
       include:
         - "*2025-*.log.gz"
-  rings:
-    rings-apache-metrics:
-      include:
-        - "*2025-*"
   naif:
     naif-httpdlogs:
       include:

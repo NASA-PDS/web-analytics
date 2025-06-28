@@ -265,14 +265,55 @@ def parse_args():
     parser.add_argument(
         "-d", "--log-directory", required=True, help="Base directory containing the log subdirectories to sync."
     )
-    parser.add_argument("--aws-profile", required=True, help="AWS CLI profile name to use for authentication.")
+    parser.add_argument(
+        "--aws-profile",
+        default=os.environ.get("AWS_PROFILE"),
+        help="AWS CLI profile name to use for authentication. Defaults to AWS_PROFILE environment variable if set.",
+    )
     parser.add_argument(
         "--no-gzip",
         action="store_true",
         help="Disable gzip compression. Files will be synced as-is without compression.",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Check if aws-profile is required but not provided
+    if not args.aws_profile:
+        parser.error("--aws-profile is required when AWS_PROFILE environment variable is not set.")
+
+    return args
+
+
+def load_config_with_env_vars(config_path: str) -> Box:
+    """Load YAML config file with environment variable substitution using envsubst."""
+    try:
+        # Read the config file and pipe it through envsubst
+        with open(config_path, "r") as file:
+            config_content = file.read()
+
+        result = subprocess.run(["envsubst"], input=config_content, capture_output=True, text=True, check=True)
+        processed_content = result.stdout
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error running envsubst: {e}")
+        print(f"stderr: {e.stderr}")
+        raise
+    except FileNotFoundError:
+        print("Error: envsubst command not found. Please install gettext package.")
+        print("On Ubuntu/Debian: sudo apt-get install gettext")
+        print("On CentOS/RHEL: sudo yum install gettext")
+        print("On macOS: brew install gettext")
+        raise
+    except Exception as e:
+        print(f"Unexpected error during config processing: {str(e)}")
+        raise
+
+    config = yaml.safe_load(processed_content)
+    # Handle empty config content
+    if config is None:
+        config = {}
+    return Box(config)
 
 
 def main():
@@ -280,9 +321,7 @@ def main():
     args = parse_args()
 
     try:
-        with open(args.config, "r") as file:
-            config = yaml.safe_load(file)
-        config = Box(config)
+        config = load_config_with_env_vars(args.config)
     except FileNotFoundError:
         print(f"Error: Configuration file '{args.config}' not found.")
         sys.exit(1)
@@ -297,7 +336,7 @@ def main():
         src_paths=local_dirs,
         src_logdir=args.log_directory,
         bucket_name=config.s3_bucket,
-        s3_subdir=config.s3_logdir,
+        s3_subdir=config.s3_subdir,
         profile_name=args.aws_profile,
         enable_gzip=not args.no_gzip,
     )

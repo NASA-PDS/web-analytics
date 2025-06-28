@@ -1,7 +1,7 @@
 log_directory: /log/directory
 profile_name: profile-reference
 s3_bucket: s3-bucket
-s3_logdir: log-dir
+s3_subdir: log-dir
 subdirs:
   node:
     subdir-http:

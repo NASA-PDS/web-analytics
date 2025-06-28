@@ -2,6 +2,7 @@
 import gzip
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import call
@@ -9,6 +10,7 @@ from unittest.mock import MagicMock
 from unittest.mock import Mock
 from unittest.mock import patch
 
+from box import Box
 from pds.web_analytics.s3_sync import S3Sync
 
 
@@ -426,6 +428,252 @@ class TestS3SyncIntegration(unittest.TestCase):
 
         self.assertTrue(os.path.exists(os.path.join(self.atm_dir, "error.log")))
         self.assertFalse(os.path.exists(os.path.join(self.atm_dir, "error.log.gz")))
+
+
+class TestLoadConfigWithEnvVars(unittest.TestCase):
+    """Test cases for the load_config_with_env_vars function."""
+
+    def setUp(self):
+        """Set up test environment before each test."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.config_path = os.path.join(self.temp_dir, "test_config.yaml")
+
+    def tearDown(self):
+        """Clean up after each test."""
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def create_config_file(self, content):
+        """Helper method to create a config file with given content."""
+        with open(self.config_path, "w") as f:
+            f.write(content)
+
+    @patch("subprocess.run")
+    def test_load_config_with_env_vars_success(self, mock_run):
+        """Test successful loading of config with environment variable substitution."""
+        # Create a config file with environment variables
+        config_content = """
+s3_bucket: ${S3_BUCKET_NAME}
+s3_logdir: ${S3_LOG_DIR}
+subdirs:
+  atm:
+    atm-apache-http:
+      include: ["*.log"]
+  en:
+    en-http:
+      include: ["*.txt"]
+"""
+        self.create_config_file(config_content)
+
+        # Mock envsubst output
+        mock_run.return_value.stdout = """
+s3_bucket: my-test-bucket
+s3_logdir: logs
+subdirs:
+  atm:
+    atm-apache-http:
+      include: ["*.log"]
+  en:
+    en-http:
+      include: ["*.txt"]
+"""
+        mock_run.return_value.returncode = 0
+
+        # Import the function
+        from pds.web_analytics.s3_sync import load_config_with_env_vars
+
+        # Call the function
+        result = load_config_with_env_vars(self.config_path)
+
+        # Verify the result
+        self.assertEqual(result.s3_bucket, "my-test-bucket")
+        self.assertEqual(result.s3_logdir, "logs")
+        self.assertIn("atm", result.subdirs)
+        self.assertIn("en", result.subdirs)
+
+        # Verify envsubst was called correctly
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args
+        self.assertEqual(call_args[0][0], ["envsubst"])
+        self.assertEqual(call_args[1]["input"], config_content)
+        self.assertTrue(call_args[1]["capture_output"])
+        self.assertTrue(call_args[1]["text"])
+        self.assertTrue(call_args[1]["check"])
+
+    @patch("subprocess.run")
+    def test_load_config_with_env_vars_envsubst_not_found(self, mock_run):
+        """Test handling when envsubst command is not found."""
+        config_content = "s3_bucket: ${S3_BUCKET_NAME}"
+        self.create_config_file(config_content)
+
+        # Mock FileNotFoundError
+        mock_run.side_effect = FileNotFoundError("envsubst: command not found")
+
+        from pds.web_analytics.s3_sync import load_config_with_env_vars
+
+        with self.assertRaises(FileNotFoundError):
+            load_config_with_env_vars(self.config_path)
+
+    @patch("subprocess.run")
+    def test_load_config_with_env_vars_envsubst_error(self, mock_run):
+        """Test handling when envsubst returns an error."""
+        config_content = "s3_bucket: ${S3_BUCKET_NAME}"
+        self.create_config_file(config_content)
+
+        # Mock subprocess.CalledProcessError
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=1, cmd=["envsubst"], stderr="Invalid variable reference"
+        )
+
+        from pds.web_analytics.s3_sync import load_config_with_env_vars
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            load_config_with_env_vars(self.config_path)
+
+    @patch("subprocess.run")
+    def test_load_config_with_env_vars_invalid_yaml(self, mock_run):
+        """Test handling when envsubst returns invalid YAML."""
+        config_content = "s3_bucket: ${S3_BUCKET_NAME}"
+        self.create_config_file(config_content)
+
+        # Mock envsubst returning invalid YAML
+        mock_run.return_value.stdout = "invalid: yaml: content: ["
+        mock_run.return_value.returncode = 0
+
+        from pds.web_analytics.s3_sync import load_config_with_env_vars
+
+        with self.assertRaises(Exception):  # yaml.safe_load will raise an exception
+            load_config_with_env_vars(self.config_path)
+
+    @patch("subprocess.run")
+    def test_load_config_with_env_vars_empty_config(self, mock_run):
+        """Test loading an empty config file."""
+        self.create_config_file("")
+
+        # Mock envsubst returning empty content
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.returncode = 0
+
+        from pds.web_analytics.s3_sync import load_config_with_env_vars
+
+        result = load_config_with_env_vars(self.config_path)
+        # Should return an empty Box instead of None
+        self.assertEqual(len(result), 0)
+        self.assertIsInstance(result, Box)
+
+    @patch("subprocess.run")
+    def test_load_config_with_env_vars_complex_substitution(self, mock_run):
+        """Test loading config with complex environment variable substitution."""
+        config_content = """
+s3_bucket: ${S3_BUCKET_NAME}
+s3_logdir: ${S3_LOG_DIR:-logs}
+subdirs:
+  ${ORG_NAME}:
+    ${SERVICE_NAME}:
+      include: ["*.${FILE_EXTENSION}"]
+"""
+        self.create_config_file(config_content)
+
+        # Mock envsubst output with substituted values
+        mock_run.return_value.stdout = """
+s3_bucket: my-production-bucket
+s3_logdir: logs
+subdirs:
+  atm:
+    atm-apache-http:
+      include: ["*.log"]
+"""
+        mock_run.return_value.returncode = 0
+
+        from pds.web_analytics.s3_sync import load_config_with_env_vars
+
+        result = load_config_with_env_vars(self.config_path)
+
+        # Verify the result
+        self.assertEqual(result.s3_bucket, "my-production-bucket")
+        self.assertEqual(result.s3_logdir, "logs")
+        self.assertIn("atm", result.subdirs)
+        self.assertIn("atm-apache-http", result.subdirs.atm)
+
+    def test_load_config_with_env_vars_file_not_found(self):
+        """Test handling when config file does not exist."""
+        from pds.web_analytics.s3_sync import load_config_with_env_vars
+
+        with self.assertRaises(FileNotFoundError):
+            load_config_with_env_vars("/nonexistent/config.yaml")
+
+
+class TestParseArgs(unittest.TestCase):
+    """Test cases for the parse_args function."""
+
+    def setUp(self):
+        """Set up test environment before each test."""
+        # Save original environment variables
+        self.original_aws_profile = os.environ.get("AWS_PROFILE")
+
+    def tearDown(self):
+        """Clean up after each test."""
+        # Restore original environment variables
+        if self.original_aws_profile is not None:
+            os.environ["AWS_PROFILE"] = self.original_aws_profile
+        elif "AWS_PROFILE" in os.environ:
+            del os.environ["AWS_PROFILE"]
+
+    @patch("sys.argv", ["script.py", "-c", "config.yaml", "-d", "/logs"])
+    def test_parse_args_with_aws_profile_env_var(self):
+        """Test parse_args when AWS_PROFILE environment variable is set."""
+        # Set AWS_PROFILE environment variable
+        os.environ["AWS_PROFILE"] = "test-profile"
+
+        from pds.web_analytics.s3_sync import parse_args
+
+        args = parse_args()
+
+        self.assertEqual(args.config, "config.yaml")
+        self.assertEqual(args.log_directory, "/logs")
+        self.assertEqual(args.aws_profile, "test-profile")
+        self.assertFalse(args.no_gzip)
+
+    @patch("sys.argv", ["script.py", "-c", "config.yaml", "-d", "/logs", "--aws-profile", "override-profile"])
+    def test_parse_args_with_aws_profile_arg_override(self):
+        """Test parse_args when --aws-profile argument overrides environment variable."""
+        # Set AWS_PROFILE environment variable
+        os.environ["AWS_PROFILE"] = "env-profile"
+
+        from pds.web_analytics.s3_sync import parse_args
+
+        args = parse_args()
+
+        self.assertEqual(args.config, "config.yaml")
+        self.assertEqual(args.log_directory, "/logs")
+        self.assertEqual(args.aws_profile, "override-profile")  # Argument should override env var
+        self.assertFalse(args.no_gzip)
+
+    @patch("sys.argv", ["script.py", "-c", "config.yaml", "-d", "/logs"])
+    def test_parse_args_without_aws_profile(self):
+        """Test parse_args when neither AWS_PROFILE env var nor --aws-profile arg is provided."""
+        # Ensure AWS_PROFILE is not set
+        if "AWS_PROFILE" in os.environ:
+            del os.environ["AWS_PROFILE"]
+
+        from pds.web_analytics.s3_sync import parse_args
+
+        with self.assertRaises(SystemExit):
+            parse_args()
+
+    @patch("sys.argv", ["script.py", "-c", "config.yaml", "-d", "/logs", "--no-gzip"])
+    def test_parse_args_with_no_gzip(self):
+        """Test parse_args with --no-gzip flag."""
+        # Set AWS_PROFILE environment variable
+        os.environ["AWS_PROFILE"] = "test-profile"
+
+        from pds.web_analytics.s3_sync import parse_args
+
+        args = parse_args()
+
+        self.assertEqual(args.config, "config.yaml")
+        self.assertEqual(args.log_directory, "/logs")
+        self.assertEqual(args.aws_profile, "test-profile")
+        self.assertTrue(args.no_gzip)
 
 
 if __name__ == "__main__":
