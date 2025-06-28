@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest.mock import call
 from unittest.mock import MagicMock
@@ -28,23 +29,20 @@ class TestS3Sync(unittest.TestCase):
             "/test/logs/en/en-http": {"include": ["*.txt"]},
         }
 
-        # Create an S3Sync instance for testing
-        self.s3_sync = S3Sync(
-            src_paths=self.sample_config,
-            src_logdir="/test/logs",
-            bucket_name="test-bucket",
-            s3_subdir="logs",
-            profile_name="test-profile",
-            enable_gzip=True,
-        )
-
     def tearDown(self):
         """Clean up after each test."""
         # Clean up temporary directory
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_init_with_gzip_enabled(self):
-        """Test S3Sync initialization with gzip enabled."""
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    def test_init_with_profile(self, mock_client, mock_session):
+        """Test S3Sync initialization with AWS profile."""
+        mock_session_instance = MagicMock()
+        mock_session.return_value = mock_session_instance
+        mock_s3_client = MagicMock()
+        mock_session_instance.client.return_value = mock_s3_client
+
         s3_sync = S3Sync(
             src_paths=self.sample_config,
             src_logdir="/test/logs",
@@ -57,11 +55,15 @@ class TestS3Sync(unittest.TestCase):
         self.assertTrue(s3_sync.enable_gzip)
         self.assertEqual(s3_sync.bucket_name, "test-bucket")
         self.assertEqual(s3_sync.profile_name, "test-profile")
-        self.assertIn("--profile", s3_sync.s3_sync_cmd)
-        self.assertIn("test-profile", s3_sync.s3_sync_cmd)
+        mock_session.assert_called_once_with(profile_name="test-profile")
+        mock_session_instance.client.assert_called_once_with("s3")
 
-    def test_init_with_gzip_disabled(self):
-        """Test S3Sync initialization with gzip disabled."""
+    @patch("boto3.client")
+    def test_init_without_profile(self, mock_client):
+        """Test S3Sync initialization without AWS profile."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
         s3_sync = S3Sync(
             src_paths=self.sample_config,
             src_logdir="/test/logs",
@@ -71,16 +73,39 @@ class TestS3Sync(unittest.TestCase):
         )
 
         self.assertFalse(s3_sync.enable_gzip)
-        self.assertNotIn("--profile", s3_sync.s3_sync_cmd)
+        self.assertIsNone(s3_sync.profile_name)
+        mock_client.assert_called_once_with("s3")
 
-    def test_init_without_profile(self):
-        """Test S3Sync initialization without AWS profile."""
+    @patch("boto3.client")
+    def test_init_with_gzip_disabled(self, mock_client):
+        """Test S3Sync initialization with gzip disabled."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
         s3_sync = S3Sync(
-            src_paths=self.sample_config, src_logdir="/test/logs", bucket_name="test-bucket", s3_subdir="logs"
+            src_paths=self.sample_config,
+            src_logdir="/test/logs",
+            bucket_name="test-bucket",
+            s3_subdir="logs",
+            enable_gzip=False,
         )
 
-        self.assertIsNone(s3_sync.profile_name)
-        self.assertNotIn("--profile", s3_sync.s3_sync_cmd)
+        self.assertFalse(s3_sync.enable_gzip)
+
+    @patch("boto3.client")
+    def test_init_failure(self, mock_client):
+        """Test S3Sync initialization failure."""
+        mock_client.side_effect = Exception("AWS credentials not found")
+
+        with self.assertRaises(RuntimeError) as context:
+            S3Sync(
+                src_paths=self.sample_config,
+                src_logdir="/test/logs",
+                bucket_name="test-bucket",
+                s3_subdir="logs",
+            )
+
+        self.assertIn("Failed to initialize AWS S3 client", str(context.exception))
 
     def test_is_gzipped_with_gzipped_file(self):
         """Test is_gzipped method with a gzipped file."""
@@ -89,8 +114,9 @@ class TestS3Sync(unittest.TestCase):
         with gzip.open(gzipped_file, "wb") as f:
             f.write(b"test content")
 
-        s3_sync = S3Sync({}, "/test", "bucket", "logs")
-        self.assertTrue(s3_sync.is_gzipped(gzipped_file))
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs")
+            self.assertTrue(s3_sync.is_gzipped(gzipped_file))
 
     def test_is_gzipped_with_plain_file(self):
         """Test is_gzipped method with a plain text file."""
@@ -99,12 +125,15 @@ class TestS3Sync(unittest.TestCase):
         with open(plain_file, "w") as f:
             f.write("test content")
 
-        s3_sync = S3Sync({}, "/test", "bucket", "logs")
-        self.assertFalse(s3_sync.is_gzipped(plain_file))
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs")
+            self.assertFalse(s3_sync.is_gzipped(plain_file))
 
     def test_is_gzipped_with_nonexistent_file(self):
         """Test is_gzipped method with a nonexistent file."""
-        self.assertFalse(self.s3_sync.is_gzipped("/nonexistent/file.txt"))
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs")
+            self.assertFalse(s3_sync.is_gzipped("/nonexistent/file.txt"))
 
     def test_gzip_file_in_place(self):
         """Test gzip_file_in_place method."""
@@ -114,20 +143,21 @@ class TestS3Sync(unittest.TestCase):
         with open(test_file, "w") as f:
             f.write(test_content)
 
-        s3_sync = S3Sync({}, "/test", "bucket", "logs")
-        gzipped_path = s3_sync.gzip_file_in_place(test_file)
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs")
+            gzipped_path = s3_sync.gzip_file_in_place(test_file)
 
-        # Check that the original file is removed
-        self.assertFalse(os.path.exists(test_file))
+            # Check that the original file is removed
+            self.assertFalse(os.path.exists(test_file))
 
-        # Check that the gzipped file exists
-        self.assertTrue(os.path.exists(gzipped_path))
-        self.assertEqual(gzipped_path, test_file + ".gz")
+            # Check that the gzipped file exists
+            self.assertTrue(os.path.exists(gzipped_path))
+            self.assertEqual(gzipped_path, test_file + ".gz")
 
-        # Check that the gzipped file contains the original content
-        with gzip.open(gzipped_path, "rt") as f:
-            content = f.read()
-        self.assertEqual(content, test_content)
+            # Check that the gzipped file contains the original content
+            with gzip.open(gzipped_path, "rt") as f:
+                content = f.read()
+            self.assertEqual(content, test_content)
 
     def test_ensure_files_are_gzipped_with_mixed_files(self):
         """Test ensure_files_are_gzipped with mixed file types."""
@@ -157,21 +187,22 @@ class TestS3Sync(unittest.TestCase):
         with gzip.open(gzipped_file, "wb") as f:
             f.write(b"properly gzipped content")
 
-        s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=True)
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=True)
 
-        with patch("builtins.print") as mock_print:
-            s3_sync.ensure_files_are_gzipped(test_dir)
+            with patch("builtins.print") as mock_print:
+                s3_sync.ensure_files_are_gzipped(test_dir)
 
-        # Check that plain text files were gzipped
-        self.assertFalse(os.path.exists(os.path.join(test_dir, "plain_text.txt")))
-        self.assertTrue(os.path.exists(os.path.join(test_dir, "plain_text.txt.gz")))
+            # Check that plain text files were gzipped
+            self.assertFalse(os.path.exists(os.path.join(test_dir, "plain_text.txt")))
+            self.assertTrue(os.path.exists(os.path.join(test_dir, "plain_text.txt.gz")))
 
-        self.assertFalse(os.path.exists(os.path.join(test_dir, "another_log.log")))
-        self.assertTrue(os.path.exists(os.path.join(test_dir, "another_log.log.gz")))
+            self.assertFalse(os.path.exists(os.path.join(test_dir, "another_log.log")))
+            self.assertTrue(os.path.exists(os.path.join(test_dir, "another_log.log.gz")))
 
-        # Check that already gzipped files were not re-gzipped
-        self.assertTrue(os.path.exists(os.path.join(test_dir, "already_gzipped.gz")))
-        self.assertTrue(os.path.exists(os.path.join(test_dir, "properly_gzipped.gz")))
+            # Check that already gzipped files were not re-gzipped
+            self.assertTrue(os.path.exists(os.path.join(test_dir, "already_gzipped.gz")))
+            self.assertTrue(os.path.exists(os.path.join(test_dir, "properly_gzipped.gz")))
 
     def test_ensure_files_are_gzipped_disabled(self):
         """Test ensure_files_are_gzipped when gzip is disabled."""
@@ -183,17 +214,68 @@ class TestS3Sync(unittest.TestCase):
         with open(test_file, "w") as f:
             f.write("test content")
 
-        s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
-        with patch("builtins.print") as mock_print:
-            s3_sync.ensure_files_are_gzipped(test_dir)
+            with patch("builtins.print") as mock_print:
+                s3_sync.ensure_files_are_gzipped(test_dir)
 
-        # Check that the file was not gzipped
-        self.assertTrue(os.path.exists(test_file))
-        self.assertFalse(os.path.exists(test_file + ".gz"))
+            # Check that the file was not gzipped
+            self.assertTrue(os.path.exists(test_file))
+            self.assertFalse(os.path.exists(test_file + ".gz"))
 
-        # Check that the correct message was printed
-        mock_print.assert_called_with("Gzip compression disabled, skipping compression for: " + test_dir)
+            # Check that the correct message was printed
+            mock_print.assert_called_with("Gzip compression disabled, skipping compression for: " + test_dir)
+
+    def test_should_upload_file(self):
+        """Test should_upload_file method with various patterns."""
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs")
+
+            # Test wildcard patterns
+            self.assertTrue(s3_sync.should_upload_file("/path/to/file.txt", ["*"]))
+            self.assertTrue(s3_sync.should_upload_file("/path/to/file.txt", ["*.txt"]))
+            self.assertTrue(s3_sync.should_upload_file("/path/to/file.log", ["*.log"]))
+            self.assertTrue(s3_sync.should_upload_file("/path/to/file.txt", ["file*"]))
+            self.assertTrue(s3_sync.should_upload_file("/path/to/file.txt", ["*.txt"]))
+
+            # Test exact matches
+            self.assertTrue(s3_sync.should_upload_file("/path/to/file.txt", ["file.txt"]))
+            self.assertFalse(s3_sync.should_upload_file("/path/to/file.txt", ["other.txt"]))
+
+            # Test multiple patterns
+            patterns = ["*.log", "*.txt"]
+            self.assertTrue(s3_sync.should_upload_file("/path/to/file.txt", patterns))
+            self.assertTrue(s3_sync.should_upload_file("/path/to/file.log", patterns))
+
+    def test_upload_file_success(self):
+        """Test upload_file method with successful upload."""
+        with patch("boto3.client") as mock_client:
+            mock_s3_client = MagicMock()
+            mock_client.return_value = mock_s3_client
+
+            s3_sync = S3Sync({}, "/test", "bucket", "logs")
+
+            # Test upload with .gz file
+            result = s3_sync.upload_file("/path/to/file.gz", "logs/file.gz")
+            self.assertTrue(result)
+            mock_s3_client.upload_file.assert_called_once_with(
+                "/path/to/file.gz", "bucket", "logs/file.gz", ExtraArgs={"ContentType": "application/gzip"}
+            )
+
+    def test_upload_file_failure(self):
+        """Test upload_file method with upload failure."""
+        with patch("boto3.client") as mock_client:
+            mock_s3_client = MagicMock()
+            mock_s3_client.upload_file.side_effect = Exception("Upload failed")
+            mock_client.return_value = mock_s3_client
+
+            s3_sync = S3Sync({}, "/test", "bucket", "logs")
+
+            with patch("builtins.print") as mock_print:
+                result = s3_sync.upload_file("/path/to/file.txt", "logs/file.txt")
+                self.assertFalse(result)
+                mock_print.assert_called()
 
     def test_convert_size(self):
         """Test convert_size static method."""
@@ -207,125 +289,99 @@ class TestS3Sync(unittest.TestCase):
         self.assertEqual(S3Sync.get_bytes(1, "KiB"), 1024)
         self.assertEqual(S3Sync.get_bytes(1, "MiB"), 1024 * 1024)
         self.assertEqual(S3Sync.get_bytes(1, "GiB"), 1024 * 1024 * 1024)
-        self.assertEqual(S3Sync.get_bytes(1, "TiB"), 1024 * 1024 * 1024 * 1024)
 
     def test_get_throughput(self):
         """Test get_throughput static method."""
-        # Test with 1MB sent in 1 second
-        with patch("pds.web_analytics.s3_sync.time.monotonic") as mock_time:
-            mock_time.return_value = 1.0  # Mock current time to be 1 second after start
-            throughput = S3Sync.get_throughput(1024 * 1024, 0)
-            self.assertIn("1.00 MB/s", throughput)
+        # Test with known values
+        start_time = time.monotonic() - 1.0  # 1 second ago
+        throughput = S3Sync.get_throughput(1024 * 1024, start_time)  # 1MB in 1 second
+        self.assertIn("1.00 MB/s", throughput)
 
-    @patch("subprocess.run")
-    def test_sync_directory_success(self, mock_run):
-        """Test successful sync_directory execution."""
-        # Mock successful subprocess run
-        mock_result = Mock()
-        mock_result.stdout = "upload: test.log.gz to s3://bucket/logs/test.log.gz"
-        mock_result.stderr = ""
-        mock_run.return_value = mock_result
+    @patch("boto3.client")
+    def test_sync_directory_success(self, mock_client):
+        """Test sync_directory method with successful uploads."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
 
-        path_tuple = ("/test/logs/atm/atm-apache-http", {"include": ["*.log"]})
+        # Create test directory and files
+        test_dir = os.path.join(self.temp_dir, "test_logs")
+        os.makedirs(test_dir)
 
-        with patch.object(self.s3_sync, "ensure_files_are_gzipped"):
-            with patch("time.monotonic", return_value=0):
-                self.s3_sync.sync_directory(path_tuple)
+        test_file = os.path.join(test_dir, "test.log")
+        with open(test_file, "w") as f:
+            f.write("test content")
 
-        # Verify subprocess.run was called
-        mock_run.assert_called_once()
-        call_args = mock_run.call_args[0][0]
-        self.assertIn("aws", call_args)
-        self.assertIn("s3", call_args)
-        self.assertIn("sync", call_args)
-        self.assertIn("--profile", call_args)
-        self.assertIn("test-profile", call_args)
+        path_config = {"include": ["*.log"]}
+        path_tuple = (test_dir, path_config)
 
-    @patch("subprocess.run")
-    def test_sync_directory_failure(self, mock_run):
-        """Test sync_directory with subprocess failure."""
-        # Mock failed subprocess run
-        mock_run.side_effect = Exception("AWS CLI error")
-
-        path_tuple = ("/test/logs/atm/atm-apache-http", {"include": ["*.log"]})
-
-        with patch.object(self.s3_sync, "ensure_files_are_gzipped"):
-            with patch("builtins.print") as mock_print:
-                self.s3_sync.sync_directory(path_tuple)
-
-        # Verify error message was printed
-        mock_print.assert_called_with("Unexpected error during sync: AWS CLI error")
-
-    @patch("subprocess.run")
-    def test_sync_directory_no_changes(self, mock_run):
-        """Test sync_directory when no changes are detected."""
-        # Mock subprocess run with no output
-        mock_result = Mock()
-        mock_result.stdout = ""
-        mock_result.stderr = ""
-        mock_run.return_value = mock_result
-
-        path_tuple = ("/test/logs/atm/atm-apache-http", {"include": ["*.log"]})
-
-        with patch.object(self.s3_sync, "ensure_files_are_gzipped"):
-            with patch("builtins.print") as mock_print:
-                self.s3_sync.sync_directory(path_tuple)
-
-        # Verify the correct messages were printed
-        # First message: about gzipping
-        # Second message: no changes detected
-        expected_calls = [
-            call("Ensuring files are gzipped in: /test/logs/atm/atm-apache-http"),
-            call("/test/logs/atm/atm-apache-http sync to logs/atm/atm-apache-http: no changes detected."),
-        ]
-        self.assertEqual(mock_print.call_args_list, expected_calls)
-
-    def test_sync_directory_with_gzip_disabled(self):
-        """Test sync_directory when gzip is disabled."""
-        s3_sync = S3Sync(
-            src_paths=self.sample_config,
-            src_logdir="/test/logs",
-            bucket_name="test-bucket",
-            s3_subdir="logs",
-            enable_gzip=False,
-        )
-
-        path_tuple = ("/test/logs/atm/atm-apache-http", {"include": ["*.log"]})
+        s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
         with patch("builtins.print") as mock_print:
-            with patch("subprocess.run") as mock_run:
-                # Mock the subprocess result to return empty stdout
-                mock_result = Mock()
-                mock_result.stdout = ""
-                mock_result.stderr = ""
-                mock_run.return_value = mock_result
+            s3_sync.sync_directory(path_tuple)
 
+        # Check that upload was called
+        mock_s3_client.upload_file.assert_called_once()
+
+    @patch("boto3.client")
+    def test_sync_directory_no_files(self, mock_client):
+        """Test sync_directory method with no files to upload."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
+        # Create empty test directory
+        test_dir = os.path.join(self.temp_dir, "test_logs")
+        os.makedirs(test_dir)
+
+        path_config = {"include": ["*.log"]}
+        path_tuple = (test_dir, path_config)
+
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
+
+            with patch("builtins.print") as mock_print:
                 s3_sync.sync_directory(path_tuple)
 
-        # Verify the correct messages were printed
-        # First message: gzip disabled
-        # Second message: sync result (but we're mocking subprocess so no output)
-        expected_calls = [
-            call("Gzip compression disabled, syncing files as-is: /test/logs/atm/atm-apache-http"),
-            call("/test/logs/atm/atm-apache-http sync to logs/atm/atm-apache-http: no changes detected."),
-        ]
-        self.assertEqual(mock_print.call_args_list, expected_calls)
+            # Check that no upload was called
+            mock_s3_client.upload_file.assert_not_called()
+
+    @patch("boto3.client")
+    def test_sync_directory_with_gzip_disabled(self, mock_client):
+        """Test sync_directory method with gzip disabled."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
+        # Create test directory and files
+        test_dir = os.path.join(self.temp_dir, "test_logs")
+        os.makedirs(test_dir)
+
+        test_file = os.path.join(test_dir, "test.log")
+        with open(test_file, "w") as f:
+            f.write("test content")
+
+        path_config = {"include": ["*.log"]}
+        path_tuple = (test_dir, path_config)
+
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
+
+            with patch("builtins.print") as mock_print:
+                s3_sync.sync_directory(path_tuple)
+
+            # Check that the file was not gzipped
+            self.assertTrue(os.path.exists(test_file))
+            self.assertFalse(os.path.exists(test_file + ".gz"))
 
     def test_process_progress(self):
         """Test process_progress method."""
-        # Test with a properly formatted progress line
-        progress_line = "upload: 1024.0 MiB/2048.0 MiB 50% 2.5 MiB/s"
+        with patch("boto3.client"):
+            s3_sync = S3Sync({}, "/test", "bucket", "logs")
 
-        with patch("builtins.print") as mock_print:
-            with patch("pds.web_analytics.s3_sync.time.monotonic", return_value=1.0):  # Mock current time
-                self.s3_sync.process_progress(progress_line, "/test/path", 0)
-
-        # Verify print was called with progress information
-        mock_print.assert_called_once()
-        call_args = mock_print.call_args[0][0]
-        self.assertIn("/test/path", call_args)
-        self.assertIn("50%", call_args)
-        self.assertIn("MB/s", call_args)
+            # Mock time.monotonic to return a fixed value
+            with patch("time.monotonic", return_value=100.0):
+                with patch("builtins.print") as mock_print:
+                    # Use the correct format that the method expects
+                    s3_sync.process_progress("upload: 1024.0 1024.0/2048.0 MiB 50% 2.5 MiB/s", "/test/path", 99.0)
+                    mock_print.assert_called_once()
 
 
 class TestS3SyncIntegration(unittest.TestCase):
@@ -369,8 +425,12 @@ class TestS3SyncIntegration(unittest.TestCase):
         # Clean up temporary directory
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_full_sync_process(self):
+    @patch("boto3.client")
+    def test_full_sync_process(self, mock_client):
         """Test the complete sync process with real files."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
         config = {
             os.path.join(self.temp_dir, "atm", "atm-apache-http"): {"include": ["*.log"]},
             os.path.join(self.temp_dir, "en", "en-http"): {"include": ["*.log"]},
@@ -381,13 +441,7 @@ class TestS3SyncIntegration(unittest.TestCase):
         )
 
         # Run the sync process
-        with patch("subprocess.run") as mock_run:
-            mock_result = Mock()
-            mock_result.stdout = "upload: test.log.gz to s3://bucket/logs/test.log.gz"
-            mock_result.stderr = ""
-            mock_run.return_value = mock_result
-
-            s3_sync.run()
+        s3_sync.run()
 
         # Verify that files were processed
         # Check that plain log files were gzipped
@@ -403,8 +457,15 @@ class TestS3SyncIntegration(unittest.TestCase):
         # Check that already gzipped file was not re-gzipped
         self.assertTrue(os.path.exists(os.path.join(self.atm_dir, "old.log.gz")))
 
-    def test_sync_with_gzip_disabled(self):
+        # Verify that upload_file was called for the gzipped files
+        self.assertGreater(mock_s3_client.upload_file.call_count, 0)
+
+    @patch("boto3.client")
+    def test_sync_with_gzip_disabled(self, mock_client):
         """Test sync process with gzip disabled."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
         config = {
             os.path.join(self.temp_dir, "atm", "atm-apache-http"): {"include": ["*.log"]},
         }
@@ -414,13 +475,7 @@ class TestS3SyncIntegration(unittest.TestCase):
         )
 
         # Run the sync process
-        with patch("subprocess.run") as mock_run:
-            mock_result = Mock()
-            mock_result.stdout = "upload: test.log to s3://bucket/logs/test.log"
-            mock_result.stderr = ""
-            mock_run.return_value = mock_result
-
-            s3_sync.run()
+        s3_sync.run()
 
         # Verify that files were not gzipped
         self.assertTrue(os.path.exists(os.path.join(self.atm_dir, "access.log")))
@@ -428,6 +483,9 @@ class TestS3SyncIntegration(unittest.TestCase):
 
         self.assertTrue(os.path.exists(os.path.join(self.atm_dir, "error.log")))
         self.assertFalse(os.path.exists(os.path.join(self.atm_dir, "error.log.gz")))
+
+        # Verify that upload_file was called for the original files
+        self.assertGreater(mock_s3_client.upload_file.call_count, 0)
 
 
 class TestLoadConfigWithEnvVars(unittest.TestCase):

@@ -12,6 +12,7 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 
+import boto3
 import yaml  # type: ignore
 from box import Box
 
@@ -27,7 +28,7 @@ class S3Sync:
         profile_name (Optional[str]): AWS CLI profile name. Default is None.
         delete (bool): Flag to delete source files after sync. Default is False.
         workers (int): Number of worker processes to use. Default is the number of CPUs.
-        s3_sync_cmd (List[str]): Base command for AWS S3 sync operations.
+        s3_client: boto3 S3 client for AWS operations.
         enable_gzip (bool): Flag to enable/disable gzip compression. Default is True.
     """
 
@@ -51,10 +52,16 @@ class S3Sync:
         self.delete = delete
         self.workers = workers if workers else cpu_count()
         self.enable_gzip = enable_gzip
-        self.s3_sync_cmd = ["aws", "s3", "sync"]
-        if self.profile_name:
-            self.s3_sync_cmd += ["--profile", self.profile_name]
-        self.s3_sync_cmd += ["--exclude", "*"]
+
+        # Initialize boto3 session and S3 client
+        try:
+            if self.profile_name:
+                session = boto3.Session(profile_name=self.profile_name)
+                self.s3_client = session.client("s3")
+            else:
+                self.s3_client = boto3.client("s3")
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize AWS S3 client: {str(e)}")
 
     def is_gzipped(self, file_path: str) -> bool:
         """Check if a file is already gzipped by examining its magic bytes.
@@ -124,6 +131,61 @@ class S3Sync:
                 except Exception as e:
                     print(f"Error gzipping {file_path}: {str(e)}")
 
+    def upload_file(self, local_path: str, s3_key: str) -> bool:
+        """Upload a single file to S3.
+
+        Args:
+            local_path (str): Local file path to upload.
+            s3_key (str): S3 key (path) for the file.
+
+        Returns:
+            bool: True if upload was successful, False otherwise.
+        """
+        try:
+            # Determine content type based on file extension
+            content_type = None
+            if local_path.endswith(".gz"):
+                content_type = "application/gzip"
+            elif local_path.endswith(".log") or local_path.endswith(".txt"):
+                content_type = "text/plain"
+
+            extra_args = {}
+            if content_type:
+                extra_args["ContentType"] = content_type
+
+            self.s3_client.upload_file(local_path, self.bucket_name, s3_key, ExtraArgs=extra_args)
+            return True
+        except Exception as e:
+            print(f"Error uploading {local_path} to s3://{self.bucket_name}/{s3_key}: {str(e)}")
+            return False
+
+    def should_upload_file(self, file_path: str, include_patterns: list) -> bool:
+        """Check if a file should be uploaded based on include patterns.
+
+        Args:
+            file_path (str): Path to the file to check.
+            include_patterns (list): List of include patterns.
+
+        Returns:
+            bool: True if file should be uploaded, False otherwise.
+        """
+        file_name = os.path.basename(file_path)
+
+        for pattern in include_patterns:
+            # Simple pattern matching - can be enhanced with fnmatch if needed
+            if pattern == "*" or pattern == "*.*":
+                return True
+            if pattern.endswith("*") and file_name.startswith(pattern[:-1]):
+                return True
+            if pattern.startswith("*") and file_name.endswith(pattern[1:]):
+                return True
+            if file_name == pattern:
+                return True
+            if file_name.endswith(pattern):
+                return True
+
+        return False
+
     def run(self) -> None:
         """Execute the sync process for all configured source paths."""
         for src_path in self.src_paths.items():
@@ -144,31 +206,49 @@ class S3Sync:
         else:
             print(f"Gzip compression disabled, syncing files as-is: {src_path}")
 
-        s3_path = os.path.join(self.s3_subdir, os.path.relpath(src_path, self.src_logdir))
+        s3_base_path = os.path.join(self.s3_subdir, os.path.relpath(src_path, self.src_logdir))
 
-        # Construct CLI Sync command
-        cmd = self.s3_sync_cmd + [src_path, f"s3://{self.bucket_name}/{s3_path}"]
-
+        # Collect all include patterns
+        all_patterns = []
         for includes in path_include.values():
             for pattern in includes:
                 # Update include patterns based on gzip setting
                 if self.enable_gzip and not pattern.endswith(".gz"):
                     pattern += ".gz"
-                cmd += ["--include", pattern]
+                all_patterns.append(pattern)
 
-        # Execute and capture output
-        try:
-            result = subprocess.run(
-                cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
-            )
-            if result.stdout:
-                print(f"{src_path} sync to {s3_path}: {result.stdout}")
-            else:
-                print(f"{src_path} sync to {s3_path}: no changes detected.")
-        except subprocess.CalledProcessError as e:
-            print(f"Sync failed: {e.stderr}")
-        except Exception as e:
-            print(f"Unexpected error during sync: {str(e)}")
+        # Upload files
+        uploaded_count = 0
+        total_files = 0
+
+        for root, _dirs, files in os.walk(src_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+
+                if self.should_upload_file(file_path, all_patterns):
+                    total_files += 1
+
+                    # Calculate S3 key
+                    rel_path = os.path.relpath(file_path, src_path)
+                    s3_key = os.path.join(s3_base_path, rel_path).replace("\\", "/")
+
+                    print(f"Uploading: {file_path} -> s3://{self.bucket_name}/{s3_key}")
+
+                    if self.upload_file(file_path, s3_key):
+                        uploaded_count += 1
+
+                        # Delete source file if requested
+                        if self.delete:
+                            try:
+                                os.remove(file_path)
+                                print(f"Deleted source file: {file_path}")
+                            except Exception as e:
+                                print(f"Error deleting source file {file_path}: {str(e)}")
+
+        if uploaded_count > 0:
+            print(f"{src_path} sync to {s3_base_path}: {uploaded_count}/{total_files} files uploaded successfully.")
+        else:
+            print(f"{src_path} sync to {s3_base_path}: no files to upload.")
 
     @staticmethod
     def convert_size(size: int) -> str:

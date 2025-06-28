@@ -15,6 +15,9 @@ This system ingests web access logs from various PDS nodes (ATM, EN, GEO, IMG, N
 - **User Agent Analysis**: Bot detection and user agent parsing
 - **Test Framework**: Automated testing with sample log data
 - **AWS Integration**: S3 log ingestion and OpenSearch output
+- **Environment Variable Support**: Configuration via environment variables with envsubst
+- **Flexible AWS Profile**: Support for AWS_PROFILE environment variable
+- **Native boto3 S3 Uploads**: S3 log sync now uses boto3 (no AWS CLI required for S3 uploads)
 
 ## Architecture
 
@@ -37,27 +40,26 @@ See internal wiki for more detailed architecture.
 
 ### AWS Resources
 
-
 See internal wiki for more details.
 
 ### Required Software
 
-#### 1. Anaconda/Conda
+#### 1. Python Virtual Environment
 ```bash
-# Download and install Anaconda from https://www.anaconda.com/products/individual
-# Or install Miniconda for a minimal installation
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
+# On Linux/macOS:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
 ```
 
-#### 2. AWS CLI
-```bash
-# Install AWS CLI v2
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-
-# Configure AWS credentials
-aws configure
-```
+#### 2. AWS Credentials (boto3)
+- The S3 sync tool now uses [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html) for all S3 operations.
+- You do **not** need the AWS CLI for S3 uploads, but you must have valid AWS credentials (via `~/.aws/credentials`, environment variables, or IAM role).
+- The `--aws-profile` argument or `AWS_PROFILE` environment variable can be used to select a profile.
 
 #### 3. Logstash
 ```bash
@@ -74,6 +76,18 @@ source ~/.bashrc
 logstash --version
 ```
 
+#### 4. envsubst (for environment variable substitution)
+```bash
+# On Ubuntu/Debian:
+sudo apt-get install gettext-base
+
+# On CentOS/RHEL:
+sudo yum install gettext
+
+# On macOS:
+brew install gettext
+```
+
 ## Installation
 
 ### 1. Clone the Repository
@@ -83,12 +97,16 @@ cd web-analytics
 ```
 
 ### 2. Set Up Python Environment
-*TODO: We should update this to use Python venv. Conda is not the path forward.*
 ```bash
-# Create and activate Conda environment
-conda env create -f environment.yml
-conda activate pds-analytics
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install the package in development mode (dependencies will be installed automatically)
+pip install -e .
 ```
+
+**Note**: A legacy `environment.yml` file is provided for users who prefer conda, but the recommended approach is to use Python virtual environments with the package's setup.cfg configuration.
 
 ### 3. Configure Environment Variables
 Create a `.env` file in the repository root:
@@ -128,7 +146,7 @@ The PDS Web Analytics system is organized as a Python package:
 ```
 src/pds/web_analytics/
 ├── __init__.py          # Package initialization
-├── s3_sync.py          # S3Sync class implementation
+├── s3_sync.py          # S3Sync class implementation (now uses boto3)
 └── VERSION.txt         # Package version
 ```
 
@@ -175,24 +193,16 @@ config/logstash/config/
 Create a configuration file based on `config/config_example.yaml`:
 
 ```yaml
-log_directory: /var/log/pds
-profile_name: pds-analytics
-s3_bucket: your-pds-logs-bucket
-s3_logdir: logs
+s3_bucket: ${S3_BUCKET}
+s3_subdir: logs
 subdirs:
-  atm:
-    atm-apache-http:
+  data:
+    logs:
       include:
-        - "*.log"
-    atm-atmos-ftp:
-      include:
-        - "*.log"
-  en:
-    en-http:
-      include:
-        - "*.log"
-  # Add other nodes as needed
+        - "*"
 ```
+
+The configuration supports environment variable substitution using `${VARIABLE_NAME}` syntax, which is processed by `envsubst` (still required).
 
 ## Usage
 
@@ -201,18 +211,24 @@ subdirs:
 Sync logs from PDS reporting servers to S3:
 
 ```bash
-# Using the new package command (recommended)
+# Using the package command (recommended)
+s3-log-sync -c config/config.yaml -d /var/log/pds
+
+# If AWS_PROFILE environment variable is set, it will be used automatically
+export AWS_PROFILE=pds-analytics
+s3-log-sync -c config/config.yaml -d /var/log/pds
+
+# Or explicitly specify the AWS profile
 s3-log-sync -c config/config.yaml -d /var/log/pds --aws-profile pds-analytics
 
-# Or using the legacy script wrapper
-python scripts/s3_log_sync.py -c config/config.yaml -d /var/log/pds --aws-profile pds-analytics
-
 # Disable gzip compression
-s3-log-sync -c config/config.yaml -d /var/log/pds --aws-profile pds-analytics --no-gzip
+s3-log-sync -c config/config.yaml -d /var/log/pds --no-gzip
 
 # Set up as a cron job (example: every hour)
-0 * * * * cd /path/to/web-analytics && s3-log-sync -c config/config.yaml -d /var/log/pds --aws-profile pds-analytics
+0 * * * * cd /path/to/web-analytics && s3-log-sync -c config/config.yaml -d /var/log/pds
 ```
+
+**Note**: The `--aws-profile` argument defaults to the `AWS_PROFILE` environment variable if it's set. If neither is provided, the command will fail with a helpful error message. All S3 uploads are performed using boto3 (not the AWS CLI).
 
 ### 2. Logstash Processing
 
@@ -236,11 +252,15 @@ logstash -f config/logstash/config/inputs/pds-input-s3-en.conf \
 Run the comprehensive test suite:
 
 ```bash
-# Make test script executable
-chmod +x tests/run_tests.sh
+# Run unit tests
+python -m pytest tests/test_s3_sync.py -v
 
-# Run tests
-./tests/run_tests.sh
+# Run integration tests
+python -m unittest tests.test_logstash_integration
+
+# Or use the test runner script
+chmod +x tests/run_unit_tests.sh
+./tests/run_unit_tests.sh
 ```
 
 The test suite validates:
@@ -249,6 +269,9 @@ The test suite validates:
 - Bad log detection
 - ECS field mapping
 - Output formatting
+- Configuration loading with environment variables
+- AWS profile handling
+- **boto3 S3 upload logic**
 
 ### 4. Monitoring
 
