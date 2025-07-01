@@ -57,8 +57,7 @@ jobs:
                   ln -s $(pwd)/logstash-8.17.1 $(pwd)/logstash
 
                   # Add to PATH
-                  echo 'export PATH="'$(pwd)'/logstash/bin:$PATH"' >> ~/.bashrc
-                  source ~/.bashrc
+                  export PATH="$(pwd)/logstash/bin:$PATH"
 
                   ls $(pwd)
                   echo "PATH: $PATH"
