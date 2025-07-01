@@ -49,7 +49,7 @@ jobs:
                   # To restore a set of files, we only need to match a prefix of the saved key.
                   restore-keys: pds-${{runner.os}}-py-
 
-            - name: Install Logstash
+            - name: 🩺 Install Logstash and Test Software
               run: |
                   wget --output-document=- \
                   https://artifacts.elastic.co/downloads/logstash/logstash-8.17.1-linux-x86_64.tar.gz \
@@ -65,10 +65,7 @@ jobs:
                   # Install tld opensearch plugins:
                   logstash-plugin install logstash-filter-tld
                   logstash-plugin install logstash-output-opensearch
-              shell: bash
-
-            - name: 🩺 Test Software
-              run: |
+                  
                   pip install --editable '.[dev]'
                   tox
               shell: bash
