@@ -24,33 +24,6 @@ This directory contains tests for the PDS Web Analytics project, including both 
 
 ## Running Tests
 
-### Using the Test Runner Script
-
-The `run_unit_tests.sh` script provides a unified interface for running all tests:
-
-```bash
-# Run all tests (unit + integration)
-./run_unit_tests.sh
-
-# Run only integration tests
-./run_unit_tests.sh -i
-
-# Run only unit tests
-./run_unit_tests.sh -u
-
-# Run tests in verbose mode
-./run_unit_tests.sh -v
-
-# Run specific test file
-./run_unit_tests.sh -t test_s3_sync.py
-
-# Run specific test by name
-./run_unit_tests.sh -k test_init
-
-# Run tests with fail-fast (stop on first failure)
-./run_unit_tests.sh -f
-```
-
 ### Running Tests Directly
 
 #### Unit Tests
@@ -109,7 +82,7 @@ The `data/logs/` directory contains sample log files for testing:
 ## Prerequisites
 
 ### For All Tests
-- Python 3.7+
+- Python 3.9+
 - No additional Python dependencies required
 
 ### For Integration Tests

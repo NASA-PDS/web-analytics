@@ -296,7 +296,7 @@ class S3Sync:
 
         Args:
             sent (int): The number of bytes sent.
-            start_time (float): The start time of the transfer.
+            start_time (float): The start time of the transfer (must be set with time.monotonic()).
 
         Returns:
             str: The throughput in MB/s.
@@ -311,7 +311,7 @@ class S3Sync:
         Args:
             line (str): The output line from AWS CLI.
             src_path (str): The source path being synced.
-            start_time (float): The start time of the sync operation.
+            start_time (float): The start time of the sync operation (must be set with time.monotonic()).
         """
         # Extract and process progress information from AWS CLI output
         line_components = line.split()
