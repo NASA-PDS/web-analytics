@@ -61,6 +61,16 @@ class TestLogstashIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up class-level configuration validation."""
+        # Check if Logstash is available
+        try:
+            result = subprocess.run(["logstash", "--version"], capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                raise FileNotFoundError("Logstash version check failed")
+            print(f"[CONFIG] Logstash version: {result.stdout.strip()}")
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            # Skip all tests if Logstash is not available
+            raise unittest.SkipTest("Logstash not available on this system. Install Logstash to run integration tests.")
+
         # Validate that all enabled configs exist
         invalid_configs = [config for config in cls.ENABLED_CONFIGS if config not in cls.INPUT_CONFIGS]
         if invalid_configs:
@@ -275,8 +285,6 @@ class TestLogstashIntegration(unittest.TestCase):
         except subprocess.TimeoutExpired:
             print("Logstash timed out after 5 minutes")
             return False, unique_output_dir
-        except FileNotFoundError:
-            self.skipTest("Logstash not found in PATH")
         finally:
             # Clean up temporary config file
             if os.path.exists(tmp_conf_path):
@@ -446,18 +454,6 @@ class TestLogstashIntegration(unittest.TestCase):
         for output_path in self.get_output_config_paths():
             with self.subTest(output_config=str(output_path)):
                 self.assertTrue(output_path.exists(), f"Output configuration file missing: {output_path}")
-
-    @unittest.skip("Skipping Logstash version check")
-    def test_logstash_available(self):
-        """Test that Logstash is available in the system PATH."""
-        try:
-            result = subprocess.run(["logstash", "--version"], capture_output=True, text=True, timeout=30)
-            self.assertEqual(result.returncode, 0, "Logstash version check failed")
-            print(f"Logstash version: {result.stdout.strip()}")
-        except FileNotFoundError:
-            self.skipTest("Logstash not found in PATH")
-        except subprocess.TimeoutExpired:
-            self.fail("Logstash version check timed out")
 
 
 if __name__ == "__main__":
