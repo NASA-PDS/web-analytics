@@ -51,8 +51,9 @@ jobs:
 
             - name: 🩺 Install Logstash
               run: |
-                  wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.0-linux-x86_64.tar.gz
-                  tar -xzf logstash-8.17.0-linux-x86_64.tar.gz
+                  wget --output-document=- \
+                  https://artifacts.elastic.co/downloads/logstash/logstash-8.17.1-linux-x86_64.tar.gz \
+                  | tar --extract --gzip --file=-
                   ln -s $(pwd)/logstash-8.17.1 $(pwd)/logstash
 
                   # Add to PATH
