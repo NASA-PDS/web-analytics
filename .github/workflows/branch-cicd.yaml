@@ -60,6 +60,9 @@ jobs:
                   echo 'export PATH="'$(pwd)'/logstash/bin:$PATH"' >> ~/.bashrc
                   source ~/.bashrc
 
+                  ls $(pwd)
+                  echo "PATH: $PATH"
+
                   # Verify installation
                   logstash --version
 
