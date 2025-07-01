@@ -6,6 +6,10 @@ from unittest.mock import patch
 
 import yaml
 
+# Constants for test patterns
+LOG_PATTERN = "*.log"
+TXT_PATTERN = "*.txt"
+
 
 def create_test_data_dir():
     """Create a test data directory for testing."""
@@ -57,9 +61,9 @@ def get_sample_config():
         "s3_bucket": "test-pds-logs-bucket",
         "s3_logdir": "logs",
         "subdirs": {
-            "atm": {"atm-apache-http": {"include": ["*.log"]}, "atm-atmos-ftp": {"include": ["*.log"]}},
-            "en": {"en-http": {"include": ["*.txt"]}},
-            "geo": {"geo-http": {"include": ["*.log", "*.txt"]}},
+            "atm": {"atm-apache-http": {"include": [LOG_PATTERN]}, "atm-atmos-ftp": {"include": [LOG_PATTERN]}},
+            "en": {"en-http": {"include": [TXT_PATTERN]}},
+            "geo": {"geo-http": {"include": [LOG_PATTERN, TXT_PATTERN]}},
         },
     }
 

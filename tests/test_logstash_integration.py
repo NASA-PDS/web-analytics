@@ -108,10 +108,10 @@ class TestLogstashIntegration(unittest.TestCase):
                         # Only clean up directories that are clearly from previous test runs
                         try:
                             shutil.rmtree(item, ignore_errors=True)
-                        except (FileNotFoundError, OSError):
+                        except OSError:
                             # Ignore errors - another test might be using it
                             pass
-            except (FileNotFoundError, OSError):
+            except OSError:
                 # Ignore errors - directory might be in use
                 pass
 
@@ -195,7 +195,7 @@ class TestLogstashIntegration(unittest.TestCase):
                 print("No existing Logstash processes found")
 
             time.sleep(3)
-        except (subprocess.TimeoutExpired, FileNotFoundError):
+        except (subprocess.TimeoutExpired, OSError):
             # pkill might not be available on all systems, ignore errors
             pass
 
@@ -267,7 +267,7 @@ class TestLogstashIntegration(unittest.TestCase):
                 print(f"Logstash failed with return code {result.returncode}")
                 return False, unique_output_dir
 
-            print(f"Logstash completed successfully")
+            print("Logstash completed successfully")
 
             # Show what files were actually created
             print(f"\nFiles created in output directory {unique_output_dir}:")
@@ -346,10 +346,10 @@ class TestLogstashIntegration(unittest.TestCase):
             print(f"{count_key}: {actual} files (expected {expected})")
 
             if actual == expected:
-                print(f"  ✅ PASS")
+                print("  ✅ PASS")
                 validation_results.append(True)
             else:
-                print(f"  ❌ FAIL")
+                print("  ❌ FAIL")
                 validation_results.append(False)
 
         print("=" * 50)
@@ -385,19 +385,24 @@ class TestLogstashIntegration(unittest.TestCase):
         for dir_name, description in categories:
             directory = output_dir / dir_name
             print(f"\n{description}:")
+            self._show_directory_contents(directory)
 
-            if directory.exists():
-                contents = self.get_directory_contents(directory)
-                if contents:
-                    print("Found files:")
-                    for content in contents[:3]:  # Show first 3 files
-                        print(f"  {content[:200]}...")  # Truncate long content
-                    if len(contents) > 3:
-                        print(f"  ... and {len(contents) - 3} more files")
-                else:
-                    print("Directory exists but no JSON files found")
-            else:
-                print("No files found")
+    def _show_directory_contents(self, directory: Path):
+        """Show contents of a specific directory."""
+        if not directory.exists():
+            print("No files found")
+            return
+
+        contents = self.get_directory_contents(directory)
+        if not contents:
+            print("Directory exists but no JSON files found")
+            return
+
+        print("Found files:")
+        for content in contents[:3]:  # Show first 3 files
+            print(f"  {content[:200]}...")  # Truncate long content
+        if len(contents) > 3:
+            print(f"  ... and {len(contents) - 3} more files")
 
     def test_https_log_processing(self):
         """Test processing of HTTPS logs."""

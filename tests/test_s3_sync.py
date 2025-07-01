@@ -190,7 +190,7 @@ class TestS3Sync(unittest.TestCase):
         with patch("boto3.client"):
             s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=True)
 
-            with patch("builtins.print") as mock_print:
+            with patch("builtins.print"):
                 s3_sync.ensure_files_are_gzipped(test_dir)
 
             # Check that plain text files were gzipped
@@ -316,7 +316,7 @@ class TestS3Sync(unittest.TestCase):
 
         s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
-        with patch("builtins.print") as mock_print:
+        with patch("builtins.print"):
             s3_sync.sync_directory(path_tuple)
 
         # Check that upload was called
@@ -338,7 +338,7 @@ class TestS3Sync(unittest.TestCase):
         with patch("boto3.client"):
             s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
-            with patch("builtins.print") as mock_print:
+            with patch("builtins.print"):
                 s3_sync.sync_directory(path_tuple)
 
             # Check that no upload was called
@@ -364,7 +364,7 @@ class TestS3Sync(unittest.TestCase):
         with patch("boto3.client"):
             s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
-            with patch("builtins.print") as mock_print:
+            with patch("builtins.print"):
                 s3_sync.sync_directory(path_tuple)
 
             # Check that the file was not gzipped
