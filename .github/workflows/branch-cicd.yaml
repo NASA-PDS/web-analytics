@@ -1,0 +1,71 @@
+# 🏃‍♀️ Continuous Integration and Delivery: Branch Testing
+# ======================================================
+
+name: 🔁 Branch integration testing
+
+# Driving Event
+# -------------
+#
+# What event starts this workflow: a push to any branch other than main
+
+on:
+    push:
+        branches:
+            - '**'
+            - '!main'
+
+# What to Do
+# ----------
+#
+# Test the software with tox
+
+jobs:
+    branch-testing:
+        name: 🪵 Branch Testing
+        runs-on: ubuntu-latest
+        if: github.actor != 'pdsen-ci'
+
+        steps:
+            - name: 💳 Checkout
+              uses: actions/checkout@v4
+              with:
+                  lfs: true
+                  fetch-depth: 0
+                  token: ${{secrets.ADMIN_GITHUB_TOKEN || github.token}}
+
+            - name: Set up Python 3
+              uses: actions/setup-python@v5
+              with:
+                  python-version: '3.9'
+
+            - name: 💵 Python Cache
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cache/pip
+                  # The "key" used to indicate a set of cached files is the operating system runner
+                  # plus "py" for Python-specific builds, plus a hash of the wheels, plus "pds" because
+                  # we pds-prefix everything with "pds" in PDS! 😅
+                  key: pds-${{runner.os}}-py-${{hashFiles('**/*.whl')}}
+                  # To restore a set of files, we only need to match a prefix of the saved key.
+                  restore-keys: pds-${{runner.os}}-py-
+
+            - name: 🩺 Install Logstash and Test Software
+              run: |
+                  wget --output-document=- \
+                  https://artifacts.elastic.co/downloads/logstash/logstash-8.17.1-linux-x86_64.tar.gz \
+                  | tar --extract --gzip --file=-
+                  ln -s $(pwd)/logstash-8.17.1 $(pwd)/logstash
+
+                  # Add to PATH
+                  export PATH="$(pwd)/logstash/bin:$PATH"
+
+                  # Verify installation
+                  logstash --version
+
+                  # Install tld opensearch plugins:
+                  logstash-plugin install logstash-filter-tld
+                  logstash-plugin install logstash-output-opensearch
+
+                  pip install --editable '.[dev]'
+                  tox
+              shell: bash

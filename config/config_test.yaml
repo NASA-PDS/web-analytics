@@ -1,0 +1,9 @@
+# Config file to test the S3 sync module and
+# load the test data to a bucket
+s3_bucket: ${S3_BUCKET}
+s3_subdir: 'test'
+subdirs:
+  data:
+    logs:
+      include:
+        - "*"

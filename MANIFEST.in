@@ -1,7 +1,11 @@
 graft src
 include versioneer.py
-include src/pds/my_pds_module/_version.py
+include src/pds/web_analytics/VERSION.txt
 global-exclude *.py[cod]
+
+# Include documentation
+recursive-include docs *
+recursive-exclude docs/_build *
 
 # Include package-level files and directories here; e.g.:
 #
