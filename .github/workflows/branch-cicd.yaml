@@ -65,7 +65,7 @@ jobs:
                   # Install tld opensearch plugins:
                   logstash-plugin install logstash-filter-tld
                   logstash-plugin install logstash-output-opensearch
-                  
+
                   pip install --editable '.[dev]'
                   tox
               shell: bash
