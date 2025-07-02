@@ -1,7 +1,12 @@
-name: pds-analytics
+name: pds-web-analytics
 channels:
   - conda-forge
+  - defaults
 dependencies:
-  - awscli
-  - python-box
-  - pyyaml
+  - python>=3.9
+  - pip
+  - pyyaml>=6.0
+  - boto3>=1.35.10
+  - pip:
+    - python-box~=7.3
+    - urllib3<1.27; python_version<"3.10"
