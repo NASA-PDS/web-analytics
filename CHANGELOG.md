@@ -1,6 +1,6 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2024-06-25)
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2025-07-02)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...«unknown»)
 
@@ -11,7 +11,6 @@
 - Dashboard: EN Search Query analytics - queries over time period [\#9](https://github.com/NASA-PDS/web-analytics/issues/9)
 - As a data scientist, I want to update and refine web metrics dashboards, to provide improved views on PDS node usage patterns over time [\#4](https://github.com/NASA-PDS/web-analytics/issues/4)
 - As a data engineer, I want to sync logs from PDS website in an automated fashion [\#2](https://github.com/NASA-PDS/web-analytics/issues/2)
-- As a Node Manager, I want to know the frequency of access of each archive artifact [\#22](https://github.com/NASA-PDS/web-analytics/issues/22)
 
 **Improvements:**
 
@@ -20,10 +19,19 @@
 
 **Defects:**
 
+- `en-web-analytics` is locked up and unable to use [\#51](https://github.com/NASA-PDS/web-analytics/issues/51) [[s.high](https://github.com/NASA-PDS/web-analytics/labels/s.high)]
+- Fix issue with parsing PPI Logs [\#45](https://github.com/NASA-PDS/web-analytics/issues/45)
 - Sync script fails silently if aws call fails [\#12](https://github.com/NASA-PDS/web-analytics/issues/12) [[s.medium](https://github.com/NASA-PDS/web-analytics/labels/s.medium)]
 
 **Other closed issues:**
 
+- Update log sync to push pre-processed logs to eliminate need for report-manager [\#56](https://github.com/NASA-PDS/web-analytics/issues/56)
+- Update s3 log sync script gzip log files prior to upload to S3 [\#55](https://github.com/NASA-PDS/web-analytics/issues/55)
+- Develop web analytics architecture diagram [\#54](https://github.com/NASA-PDS/web-analytics/issues/54)
+- Investigate issue with PPI log format introducing odd characters [\#48](https://github.com/NASA-PDS/web-analytics/issues/48)
+- Update log loader and logstash to read ATM FTP logs [\#47](https://github.com/NASA-PDS/web-analytics/issues/47)
+- Fix issue parsing IMG logs [\#46](https://github.com/NASA-PDS/web-analytics/issues/46)
+- Update report service procedures for uploading logs and running web analytics tools [\#28](https://github.com/NASA-PDS/web-analytics/issues/28)
 - Do logs need to persist in S3? [\#25](https://github.com/NASA-PDS/web-analytics/issues/25)
 - Create sync script for syncing logs from logging server to AWS and load into Athena [\#15](https://github.com/NASA-PDS/web-analytics/issues/15)
 - Dashboard: EN Search Query analytics - most used queries or search terms [\#10](https://github.com/NASA-PDS/web-analytics/issues/10)
