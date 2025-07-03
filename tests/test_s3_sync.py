@@ -191,7 +191,7 @@ class TestS3Sync(unittest.TestCase):
         with patch("boto3.client"):
             s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=True)
 
-            with patch("builtins.print"):
+            with patch("src.pds.web_analytics.s3_sync.logger"):
                 s3_sync.ensure_files_are_gzipped(test_dir)
 
             # Check that plain text files were gzipped
@@ -218,15 +218,15 @@ class TestS3Sync(unittest.TestCase):
         with patch("boto3.client"):
             s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
-            with patch("builtins.print") as mock_print:
+            with patch("src.pds.web_analytics.s3_sync.logger") as mock_logger:
                 s3_sync.ensure_files_are_gzipped(test_dir)
 
             # Check that the file was not gzipped
             self.assertTrue(os.path.exists(test_file))
             self.assertFalse(os.path.exists(test_file + ".gz"))
 
-            # Check that the correct message was printed
-            mock_print.assert_called_with("Gzip compression disabled, skipping compression for: " + test_dir)
+            # Check that the correct debug message was logged
+            mock_logger.debug.assert_called_with(f"Gzip compression disabled, skipping compression for: {test_dir}")
 
     def test_should_upload_file(self):
         """Test should_upload_file method with various patterns."""
@@ -273,10 +273,10 @@ class TestS3Sync(unittest.TestCase):
 
             s3_sync = S3Sync({}, "/test", "bucket", "logs")
 
-            with patch("builtins.print") as mock_print:
+            with patch("src.pds.web_analytics.s3_sync.logger") as mock_logger:
                 result = s3_sync.upload_file("/path/to/file.txt", "logs/file.txt")
                 self.assertFalse(result)
-                mock_print.assert_called()
+                mock_logger.error.assert_called()
 
     def test_convert_size(self):
         """Test convert_size static method."""
@@ -355,13 +355,16 @@ class TestS3Sync(unittest.TestCase):
 
         s3_sync = S3Sync({}, "/test", "test-bucket", "logs")
 
-        # Patch sys.stdout to capture print output
-        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
+        # Test that method returns False when other exception occurs
+        with patch("src.pds.web_analytics.s3_sync.logger") as mock_logger:
             result = s3_sync.file_exists_in_s3("test/file.txt")
             self.assertFalse(result)
-            output = mock_stdout.getvalue()
-            self.assertIn("Error checking if test/file.txt exists in S3", output)
-            self.assertIn("ConnectionError", output)
+
+            # Verify debug message was logged
+            mock_logger.debug.assert_called_once()
+            call_args = mock_logger.debug.call_args[0][0]
+            self.assertIn("File test/file.txt not found in S3", call_args)
+            self.assertIn("ConnectionError", call_args)
 
         # Verify head_object was called with correct parameters
         mock_s3_client.head_object.assert_called_once_with(Bucket="test-bucket", Key="test/file.txt")
@@ -390,7 +393,7 @@ class TestS3Sync(unittest.TestCase):
 
         s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
-        with patch("builtins.print"):
+        with patch("src.pds.web_analytics.s3_sync.logger"):
             s3_sync.sync_directory(path_tuple)
 
         # Check that upload was called
@@ -412,7 +415,7 @@ class TestS3Sync(unittest.TestCase):
         with patch("boto3.client"):
             s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
-            with patch("builtins.print"):
+            with patch("src.pds.web_analytics.s3_sync.logger"):
                 s3_sync.sync_directory(path_tuple)
 
             # Check that no upload was called
@@ -438,7 +441,7 @@ class TestS3Sync(unittest.TestCase):
         with patch("boto3.client"):
             s3_sync = S3Sync({}, "/test", "bucket", "logs", enable_gzip=False)
 
-            with patch("builtins.print"):
+            with patch("src.pds.web_analytics.s3_sync.logger"):
                 s3_sync.sync_directory(path_tuple)
 
             # Check that the file was not gzipped
@@ -452,10 +455,10 @@ class TestS3Sync(unittest.TestCase):
 
             # Mock time.monotonic to return a fixed value
             with patch("time.monotonic", return_value=100.0):
-                with patch("builtins.print") as mock_print:
+                with patch("src.pds.web_analytics.s3_sync.logger") as mock_logger:
                     # Use the correct format that the method expects
                     s3_sync.process_progress("upload: 1024.0 1024.0/2048.0 MiB 50% 2.5 MiB/s", "/test/path", 99.0)
-                    mock_print.assert_called_once()
+                    mock_logger.info.assert_called_once()
 
 
 class TestS3SyncIntegration(unittest.TestCase):

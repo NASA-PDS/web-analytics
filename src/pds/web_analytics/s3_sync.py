@@ -1,6 +1,7 @@
 """S3 synchronization module for PDS web analytics."""
 import argparse
 import gzip
+import logging
 import math
 import os
 import shutil
@@ -15,6 +16,9 @@ from typing import Tuple
 import boto3  # type: ignore
 import yaml  # type: ignore
 from box import Box
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class S3Sync:
@@ -109,7 +113,7 @@ class S3Sync:
             src_path (str): Path to the source directory.
         """
         if not self.enable_gzip:
-            print(f"Gzip compression disabled, skipping compression for: {src_path}")
+            logger.debug(f"Gzip compression disabled, skipping compression for: {src_path}")
             return
 
         # Process all files in the source directory
@@ -119,20 +123,20 @@ class S3Sync:
 
                 # Skip files that are already gzipped
                 if self.is_gzipped(file_path):
-                    print(f"File already gzipped: {file_path}")
+                    logger.debug(f"File already gzipped: {file_path}")
                     continue
 
                 # Skip files that already have .gz extension
                 if file.endswith(".gz"):
-                    print(f"File already has .gz extension: {file_path}")
+                    logger.debug(f"File already has .gz extension: {file_path}")
                     continue
 
                 # Gzip the file in place
                 try:
                     gzipped_path = self.gzip_file_in_place(file_path)
-                    print(f"Gzipped file in place: {file_path} -> {gzipped_path}")
+                    logger.info(f"Gzipped file in place: {file_path} -> {gzipped_path}")
                 except Exception as e:
-                    print(f"Error gzipping {file_path}: {str(e)}")
+                    logger.error(f"Error gzipping {file_path}: {str(e)}")
 
     def upload_file(self, local_path: str, s3_key: str) -> bool:
         """Upload a single file to S3.
@@ -159,7 +163,7 @@ class S3Sync:
             self.s3_client.upload_file(local_path, self.bucket_name, s3_key, ExtraArgs=extra_args)
             return True
         except Exception as e:
-            print(f"Error uploading {local_path} to s3://{self.bucket_name}/{s3_key}: {str(e)}")
+            logger.error(f"Error uploading {local_path} to s3://{self.bucket_name}/{s3_key}: {str(e)}")
             return False
 
     def should_upload_file(self, file_path: str, include_patterns: list) -> bool:
@@ -204,7 +208,7 @@ class S3Sync:
         except self.s3_client.exceptions.NoSuchKey:
             return False
         except Exception as e:
-            print(f"Error checking if {s3_key} exists in S3: {str(e)}")
+            logger.debug(f"File {s3_key} not found in S3 ({str(e)})")
             # If we can't check, assume it doesn't exist to be safe
             return False
 
@@ -223,10 +227,10 @@ class S3Sync:
 
         # Ensure all files are gzipped before sync (if enabled)
         if self.enable_gzip:
-            print(f"Ensuring files are gzipped in: {src_path}")
+            logger.info(f"Ensuring files are gzipped in: {src_path}")
             self.ensure_files_are_gzipped(src_path)
         else:
-            print(f"Gzip compression disabled, syncing files as-is: {src_path}")
+            logger.debug(f"Gzip compression disabled, syncing files as-is: {src_path}")
 
         s3_base_path = os.path.join(self.s3_subdir, os.path.relpath(src_path, self.src_logdir))
 
@@ -256,10 +260,10 @@ class S3Sync:
 
                     # Check if file already exists in S3
                     if self.file_exists_in_s3(s3_key):
-                        print(f"Skipping (already exists): {file_path} -> s3://{self.bucket_name}/{s3_key}")
+                        logger.debug(f"Skipping (already exists): {file_path} -> s3://{self.bucket_name}/{s3_key}")
                         continue
 
-                    print(f"Uploading: {file_path} -> s3://{self.bucket_name}/{s3_key}")
+                    logger.info(f"Uploading: {file_path} -> s3://{self.bucket_name}/{s3_key}")
 
                     if self.upload_file(file_path, s3_key):
                         uploaded_count += 1
@@ -268,14 +272,16 @@ class S3Sync:
                         if self.delete:
                             try:
                                 os.remove(file_path)
-                                print(f"Deleted source file: {file_path}")
+                                logger.info(f"Deleted source file: {file_path}")
                             except Exception as e:
-                                print(f"Error deleting source file {file_path}: {str(e)}")
+                                logger.error(f"Error deleting source file {file_path}: {str(e)}")
 
         if uploaded_count > 0:
-            print(f"{src_path} sync to {s3_base_path}: {uploaded_count}/{total_files} files uploaded successfully.")
+            logger.info(
+                f"{src_path} sync to {s3_base_path}: {uploaded_count}/{total_files} files uploaded successfully."
+            )
         else:
-            print(f"{src_path} sync to {s3_base_path}: no files to upload.")
+            logger.info(f"{src_path} sync to {s3_base_path}: no files to upload.")
 
     @staticmethod
     def convert_size(size: int) -> str:
@@ -349,12 +355,11 @@ class S3Sync:
         sent = self.get_bytes(sent, sent_incre)
         total_size = self.get_bytes(total_size, total_size_incre)
         progress = sent / total_size
-        print(
+        logger.info(
             f"{src_path} - "
             f"{self.convert_size(sent)} / {self.convert_size(total_size)} - "
             f"{progress:.0%} - "
-            f"{self.get_throughput(sent, start_time)}",
-            end="\r",
+            f"{self.get_throughput(sent, start_time)}"
         )
 
 
@@ -408,17 +413,17 @@ def load_config_with_env_vars(config_path: str) -> Box:
         processed_content = result.stdout
 
     except subprocess.CalledProcessError as e:
-        print(f"Error running envsubst: {e}")
-        print(f"stderr: {e.stderr}")
+        logger.error(f"Error running envsubst: {e}")
+        logger.error(f"stderr: {e.stderr}")
         raise
     except FileNotFoundError:
-        print("Error: envsubst command not found. Please install gettext package.")
-        print("On Ubuntu/Debian: sudo apt-get install gettext")
-        print("On CentOS/RHEL: sudo yum install gettext")
-        print("On macOS: brew install gettext")
+        logger.error("Error: envsubst command not found. Please install gettext package.")
+        logger.error("On Ubuntu/Debian: sudo apt-get install gettext")
+        logger.error("On CentOS/RHEL: sudo yum install gettext")
+        logger.error("On macOS: brew install gettext")
         raise
     except Exception as e:
-        print(f"Unexpected error during config processing: {str(e)}")
+        logger.error(f"Unexpected error during config processing: {str(e)}")
         raise
 
     config = yaml.safe_load(processed_content)
@@ -430,12 +435,17 @@ def load_config_with_env_vars(config_path: str) -> Box:
 
 def main():
     """Main entry point for the CLI."""
+    # Configure basic logging
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
     args = parse_args()
 
     try:
         config = load_config_with_env_vars(args.config)
     except FileNotFoundError:
-        print(f"Error: Configuration file '{args.config}' not found.")
+        logger.error(f"Error: Configuration file '{args.config}' not found.")
         sys.exit(1)
 
     local_dirs = {
