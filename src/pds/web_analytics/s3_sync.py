@@ -30,6 +30,7 @@ class S3Sync:
         workers (int): Number of worker processes to use. Default is the number of CPUs.
         s3_client: boto3 S3 client for AWS operations.
         enable_gzip (bool): Flag to enable/disable gzip compression. Default is True.
+        force (bool): Flag to force upload even if files already exist in S3. Default is False.
     """
 
     def __init__(
@@ -42,6 +43,7 @@ class S3Sync:
         delete: bool = False,
         workers: Optional[int] = None,
         enable_gzip: bool = True,
+        force: bool = False,
     ) -> None:
         """Initialize the S3Sync object with configuration for syncing."""
         self.src_paths = src_paths
@@ -52,6 +54,7 @@ class S3Sync:
         self.delete = delete
         self.workers = workers if workers else cpu_count()
         self.enable_gzip = enable_gzip
+        self.force = force
 
         # Initialize boto3 session and S3 client
         try:
@@ -186,6 +189,25 @@ class S3Sync:
 
         return False
 
+    def file_exists_in_s3(self, s3_key: str) -> bool:
+        """Check if a file already exists in S3.
+
+        Args:
+            s3_key (str): The S3 key to check.
+
+        Returns:
+            bool: True if the file exists in S3, False otherwise.
+        """
+        try:
+            self.s3_client.head_object(Bucket=self.bucket_name, Key=s3_key)
+            return True
+        except self.s3_client.exceptions.NoSuchKey:
+            return False
+        except Exception as e:
+            print(f"Error checking if {s3_key} exists in S3: {str(e)}")
+            # If we can't check, assume it doesn't exist to be safe
+            return False
+
     def run(self) -> None:
         """Execute the sync process for all configured source paths."""
         for src_path in self.src_paths.items():
@@ -231,6 +253,11 @@ class S3Sync:
                     # Calculate S3 key
                     rel_path = os.path.relpath(file_path, src_path)
                     s3_key = os.path.join(s3_base_path, rel_path).replace("\\", "/")
+
+                    # Check if file already exists in S3
+                    if self.file_exists_in_s3(s3_key):
+                        print(f"Skipping (already exists): {file_path} -> s3://{self.bucket_name}/{s3_key}")
+                        continue
 
                     print(f"Uploading: {file_path} -> s3://{self.bucket_name}/{s3_key}")
 
@@ -355,6 +382,11 @@ def parse_args():
         action="store_true",
         help="Disable gzip compression. Files will be synced as-is without compression.",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force upload even if files already exist in S3.",
+    )
 
     args = parser.parse_args()
 
@@ -419,6 +451,7 @@ def main():
         s3_subdir=config.s3_subdir,
         profile_name=args.aws_profile,
         enable_gzip=not args.no_gzip,
+        force=args.force,
     )
     s3_sync.run()
 
