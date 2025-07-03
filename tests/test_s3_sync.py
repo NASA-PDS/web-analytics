@@ -1,5 +1,6 @@
 """Unit tests for the S3Sync class."""
 import gzip
+import io
 import os
 import shutil
 import subprocess
@@ -340,21 +341,27 @@ class TestS3Sync(unittest.TestCase):
         mock_s3_client = MagicMock()
         mock_client.return_value = mock_s3_client
 
-        # Configure mock to raise a different exception
-        mock_s3_client.head_object.side_effect = Exception("ConnectionError")
+        # Define two custom exceptions for this test
+        class NoSuchKeyException(Exception):
+            pass
+
+        class CustomException(Exception):
+            pass
+
+        # Set up the NoSuchKey exception class
+        mock_s3_client.exceptions.NoSuchKey = NoSuchKeyException
+        # Set up a different exception to be raised
+        mock_s3_client.head_object.side_effect = CustomException("ConnectionError")
 
         s3_sync = S3Sync({}, "/test", "test-bucket", "logs")
 
-        # Test that method returns False when other exception occurs
-        with patch("builtins.print") as mock_print:
+        # Patch sys.stdout to capture print output
+        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             result = s3_sync.file_exists_in_s3("test/file.txt")
             self.assertFalse(result)
-
-            # Verify error message was printed
-            mock_print.assert_called_once()
-            call_args = mock_print.call_args[0][0]
-            self.assertIn("Error checking if test/file.txt exists in S3", call_args)
-            self.assertIn("ConnectionError", call_args)
+            output = mock_stdout.getvalue()
+            self.assertIn("Error checking if test/file.txt exists in S3", output)
+            self.assertIn("ConnectionError", output)
 
         # Verify head_object was called with correct parameters
         mock_s3_client.head_object.assert_called_once_with(Bucket="test-bucket", Key="test/file.txt")
