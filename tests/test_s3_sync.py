@@ -298,10 +298,77 @@ class TestS3Sync(unittest.TestCase):
         self.assertIn("1.00 MB/s", throughput)
 
     @patch("boto3.client")
+    def test_file_exists_in_s3_exists(self, mock_client):
+        """Test file_exists_in_s3 method when file exists in S3."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
+        # Configure mock to return successfully (file exists)
+        mock_s3_client.head_object.return_value = {"ContentLength": 1024}
+
+        s3_sync = S3Sync({}, "/test", "test-bucket", "logs")
+
+        # Test that method returns True when file exists
+        result = s3_sync.file_exists_in_s3("test/file.txt")
+        self.assertTrue(result)
+
+        # Verify head_object was called with correct parameters
+        mock_s3_client.head_object.assert_called_once_with(Bucket="test-bucket", Key="test/file.txt")
+
+    @patch("boto3.client")
+    def test_file_exists_in_s3_not_exists(self, mock_client):
+        """Test file_exists_in_s3 method when file doesn't exist in S3."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
+        # Configure mock to raise NoSuchKey exception (file doesn't exist)
+        mock_s3_client.exceptions.NoSuchKey = Exception
+        mock_s3_client.head_object.side_effect = Exception("NoSuchKey")
+
+        s3_sync = S3Sync({}, "/test", "test-bucket", "logs")
+
+        # Test that method returns False when file doesn't exist
+        result = s3_sync.file_exists_in_s3("test/file.txt")
+        self.assertFalse(result)
+
+        # Verify head_object was called with correct parameters
+        mock_s3_client.head_object.assert_called_once_with(Bucket="test-bucket", Key="test/file.txt")
+
+    @patch("boto3.client")
+    def test_file_exists_in_s3_other_exception(self, mock_client):
+        """Test file_exists_in_s3 method when other exception occurs."""
+        mock_s3_client = MagicMock()
+        mock_client.return_value = mock_s3_client
+
+        # Configure mock to raise a different exception
+        mock_s3_client.head_object.side_effect = Exception("ConnectionError")
+
+        s3_sync = S3Sync({}, "/test", "test-bucket", "logs")
+
+        # Test that method returns False when other exception occurs
+        with patch("builtins.print") as mock_print:
+            result = s3_sync.file_exists_in_s3("test/file.txt")
+            self.assertFalse(result)
+
+            # Verify error message was printed
+            mock_print.assert_called_once()
+            call_args = mock_print.call_args[0][0]
+            self.assertIn("Error checking if test/file.txt exists in S3", call_args)
+            self.assertIn("ConnectionError", call_args)
+
+        # Verify head_object was called with correct parameters
+        mock_s3_client.head_object.assert_called_once_with(Bucket="test-bucket", Key="test/file.txt")
+
+    @patch("boto3.client")
     def test_sync_directory_success(self, mock_client):
         """Test sync_directory method with successful uploads."""
         mock_s3_client = MagicMock()
         mock_client.return_value = mock_s3_client
+
+        # Configure the mock to raise NoSuchKey exception for head_object calls
+        # This simulates files not existing in S3, allowing uploads to proceed
+        mock_s3_client.exceptions.NoSuchKey = Exception
+        mock_s3_client.head_object.side_effect = Exception("NoSuchKey")
 
         # Create test directory and files
         test_dir = os.path.join(self.temp_dir, "test_logs")
@@ -431,6 +498,11 @@ class TestS3SyncIntegration(unittest.TestCase):
         mock_s3_client = MagicMock()
         mock_client.return_value = mock_s3_client
 
+        # Configure the mock to raise NoSuchKey exception for head_object calls
+        # This simulates files not existing in S3, allowing uploads to proceed
+        mock_s3_client.exceptions.NoSuchKey = Exception
+        mock_s3_client.head_object.side_effect = Exception("NoSuchKey")
+
         config = {
             os.path.join(self.temp_dir, "atm", "atm-apache-http"): {"include": ["*.log"]},
             os.path.join(self.temp_dir, "en", "en-http"): {"include": ["*.log"]},
@@ -465,6 +537,11 @@ class TestS3SyncIntegration(unittest.TestCase):
         """Test sync process with gzip disabled."""
         mock_s3_client = MagicMock()
         mock_client.return_value = mock_s3_client
+
+        # Configure the mock to raise NoSuchKey exception for head_object calls
+        # This simulates files not existing in S3, allowing uploads to proceed
+        mock_s3_client.exceptions.NoSuchKey = Exception
+        mock_s3_client.head_object.side_effect = Exception("NoSuchKey")
 
         config = {
             os.path.join(self.temp_dir, "atm", "atm-apache-http"): {"include": ["*.log"]},
