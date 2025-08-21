@@ -103,5 +103,3 @@ resource "aws_iam_role_policy_attachment" "attach_access_to_ec2_role" {
   role       = data.aws_iam_role.ec2_instance_role.name
   policy_arn = aws_iam_policy.ec2_web_analytics_access.arn
 }
-
-

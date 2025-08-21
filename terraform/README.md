@@ -122,4 +122,3 @@ input {
 ```
 sudo systemctl restart logstash
 ```
-
