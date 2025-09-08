@@ -29,6 +29,8 @@ PDS Nodes → S3 Bucket → Logstash Pipeline → OpenSearch → Dashboards
 
 See internal wiki for more detailed architecture.
 
+**NOTE:** The current practice is for PDS EN to gather the various PDS nodes' logs onto PDS reporting servers then sync those to S3. This will shift in FY2026 to each PDS node pushing their logs - logs in one of the acceptable formats and gzipped - to S3. This does not affect the architecture diagram just above but will affect much of the instructions in this README.
+
 ## Prerequisites
 
 ### System Requirements
