@@ -33,7 +33,7 @@ See internal wiki for more detailed architecture.
 
 ### System Requirements
 - **Operating System**: Linux/Unix (tested on CentOS 7.9, macOS)
-- **Python**: 3.9.x or higher
+- **Python**: 3.13.x or higher
 - **Java**: OpenJDK 11 or higher (required for Logstash)
 - **Memory**: Minimum 4GB RAM (8GB+ recommended for production)
 - **Storage**: 10GB+ available disk space
@@ -116,7 +116,7 @@ source ~/.bashrc
 ### 2. Set Up Python Environment
 ```bash
 # Create and activate virtual environment
-python3 -m venv venv
+python3.13 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install the package in development mode (dependencies will be installed automatically)
@@ -244,6 +244,8 @@ The configuration supports environment variable substitution using `${VARIABLE_N
 
 ### 1. S3 Log Synchronization
 
+**NOTE:** This step below is NOT required to be performed if you already have files in S3.
+
 Sync logs from PDS reporting servers to S3:
 
 ```bash
@@ -303,8 +305,8 @@ python -m pytest tests/test_s3_sync.py -v
 python -m unittest tests.test_logstash_integration
 
 # Or use the test runner script
-chmod +x tests/run_unit_tests.sh
-./tests/run_unit_tests.sh
+chmod +x tests/run_tests.sh
+./tests/run_tests.sh
 ```
 
 The test suite validates:
