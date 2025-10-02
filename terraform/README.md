@@ -32,28 +32,28 @@ This Terraform module sets up infrastructure to ingest web analytics logs into O
 
 **NOTE**: `.tfvars` does not get commited to github.
 
-Create a file named `terraform.tfvars` in the root folder as per the env configurations provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform):
+Create a file named `terraform.tfvars` in the root folder as per the env configurations provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform). Below is an EXAMPLE of what your `terraform.tfvars` should look like however the values will be different based on the which env you're deploying to. It's documented in the link above.
 
 ```hcl
 tenant               = "tenant"
 cicd                 = "cicd_value"
 venue                = "venue_name"
 component            = "Storage"
-createdBy            = "email@jpl.nasa.gov"
+createdBy            = "test-email@nasa.gov"
 vpc_id               = "vpc-12ab34dc56ef
 pds_resource_prefix  = "resournce_prefix"
 ```
 
 ## Step 2 – Edit `backend.tfvars`
 
-Edit `backend.tf` in the root folder as per the env configurations provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
+Edit `backend.tf` in the root folder as per the env configurations provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform). Below is an EXAMPLE of what your `backend.tf` should look like however the values will be different based on the which env you're deploying to. It's documented in the link above.
 
 ```hcl
 terraform {
   backend "s3" {
     bucket = "bucket-name"
     key    = "key_name/some_state.tfstate"
-    region = "us-east-1"
+    region = "us-west-2"
   }
 }
 ```
