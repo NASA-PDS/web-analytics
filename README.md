@@ -154,7 +154,7 @@ source ~/.bashrc
 ### 2. Set Up Python Environment
 ```bash
 # Create and activate virtual environment
-python3 -m venv venv
+python3.13 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install the package in development mode (dependencies will be installed automatically)
@@ -283,6 +283,8 @@ The configuration supports environment variable substitution using `${VARIABLE_N
 ### S3 Log Synchronization (deprecated)
 
 **NOTE:** This script has been deprecated from use. See Data Upload Manager for pushing logs.
+
+**NOTE:** This step below is NOT required to be performed if you already have files in S3.
 
 Sync logs from PDS reporting servers to S3:
 
