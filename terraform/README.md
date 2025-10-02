@@ -1,6 +1,6 @@
 # PDS Web Analytics Infrastructure
 
-This Terraform module sets up infrastructure to ingest web analytics logs into OpenSearch Serverless using Logstash on an EC2 instance. The architecture and Web Analytics Tools installation steps can be found [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+This Terraform module sets up infrastructure to ingest web analytics logs into OpenSearch Serverless using Logstash on an EC2 instance. The architecture and Web Analytics Tools installation steps can be found [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 
 ---
 
@@ -13,7 +13,7 @@ This Terraform module sets up infrastructure to ingest web analytics logs into O
 - S3 Bucket policy:
   - Full access for `mcp-tenantOperator`
   - Deny unencrypted (non-HTTPS) requests
-- **Note** : AOSS (OpenSearch Serverless) collection, IAM instance profile and EC2 have already been deployed. Please view the following [Document](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment) to see the name of the resources that have already been configured.
+- **Note** : AOSS (OpenSearch Serverless) collection, IAM instance profile and EC2 have already been deployed. Please view the following [Document](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) to see the name of the resources that have already been configured.
 
 ---
 
@@ -30,19 +30,34 @@ This Terraform module sets up infrastructure to ingest web analytics logs into O
 
 ## Step 1 – Create `terraform.tfvars`
 
-Create a file named `terraform.tfvars` in the root folder (this will not be committed):
+**NOTE**: `.tfvars` does not get commited to github.
+
+Create a file named `terraform.tfvars` in the root folder as per the env configurations provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform):
 
 ```hcl
-tenant               = "en"
-cicd                 = "pds-github-oidc"
-venue                = "pds-mcp-dev"
+tenant               = "tenant"
+cicd                 = "cicd_value"
+venue                = "venue_name"
 component            = "Storage"
-createdBy            = "pds-operator@jpl.nasa.gov"
+createdBy            = "email@jpl.nasa.gov"
 vpc_id               = "vpc-12ab34dc56ef
-pds_resource_prefix  = "pds-dev-gh01dc"
+pds_resource_prefix  = "resournce_prefix"
 ```
 
-## Step 2 – Deploy the Infrastructure
+## Step 2 – Edit `backend.tfvars`
+
+Edit `backend.tf` in the root folder as per the env configurations provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket = "bucket-name"
+    key    = "key_name/some_state.tfstate"
+    region = "us-east-1"
+  }
+}
+```
+## Step 3 – Deploy the Infrastructure
 
 Run the following :
 
@@ -56,12 +71,12 @@ After applying, Terraform will output key values such as:
 - S3 bucket name
 - S3 bucket ARN
 
-## Step 3 (Manual) - Verify EC2 IAM Role (Manual Check)
+## Step 4 (Manual) - Verify EC2 IAM Role (Manual Check)
 
 Ensure your EC2 instance is using the correct IAM role and instance profile:
 
-- Role Name: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
-- Instance Profile: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+- Role Name: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
+- Instance Profile: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 
 You can verify this in the EC2 Console or CLI.
 
@@ -80,27 +95,27 @@ Via Console ...
 3. Click Actions > Security > Modify IAM Role
 4. Attach the EC2 instance profile created
 
-## Step 4 (Manual) - Add IAM Intance Profile to OpenSearch Serverless
+## Step 5 (Manual) - Add IAM Intance Profile to OpenSearch Serverless
 
 1. Go to AWS Console > Amazon OpenSearch Serverless
 
-2. Select the collection: [Collection Name](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+2. Select the collection: [Collection Name](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 3. Open the Data Access Policy within the collection above
 4. Locate the correct rule where you want to add your EC2 profile permissions
 5. Add this principal:
    ```
    arn:aws:iam::<your-account-id>:role/ec2_instance_profile
    ```
-*Note*: The `ec2_instance_profile` name is documented [Instance Profile](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+*Note*: The `ec2_instance_profile` name is documented [Instance Profile](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 6. Click Save
 
-## Step 5 (Manual) - Install Web Analytics Components and Update LogStash Configuration
+## Step 6 (Manual) - Install Web Analytics Components and Update LogStash Configuration
 
 1. SSH into your EC2 instance where you have both logstash and Web Analytics Components installed.
 
-The directions to install Web Analytics Tools are provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+The directions to install Web Analytics Tools are provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 
-**Note**: For Dev and Prod environments we already have these [EC2 Instances](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment) that have both LogStash and Web Analytics Tools installed.
+**Note**: For Dev and Prod environments we already have these [EC2 Instances](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) that have both LogStash and Web Analytics Tools installed.
 
 2. Follow steps provided on how to [Load Logs to S3](https://wiki.jpl.nasa.gov/display/PDSEN/ETL+Process+for+Web+Logs#ETLProcessforWebLogs-SyncLogstoS3). Update logstash with S3 bucket name created as part of this terraform script in the input block.
 
@@ -124,7 +139,7 @@ sudo systemctl restart logstash
 ```
 # PDS Web Analytics Infrastructure
 
-This Terraform module sets up infrastructure to ingest web analytics logs into OpenSearch Serverless using Logstash on an EC2 instance. The architecture and Web Analytics Tools installation steps can be found [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+This Terraform module sets up infrastructure to ingest web analytics logs into OpenSearch Serverless using Logstash on an EC2 instance. The architecture and Web Analytics Tools installation steps can be found [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 
 ---
 
@@ -137,7 +152,7 @@ This Terraform module sets up infrastructure to ingest web analytics logs into O
 - S3 Bucket policy:
   - Full access for `mcp-tenantOperator`
   - Deny unencrypted (non-HTTPS) requests
-- **Note** : AOSS (OpenSearch Serverless) collection, IAM instance profile and EC2 have already been deployed. Please view the following [Document](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment) to see the name of the resources that have already been configured.
+- **Note** : AOSS (OpenSearch Serverless) collection, IAM instance profile and EC2 have already been deployed. Please view the following [Document](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) to see the name of the resources that have already been configured.
 
 ---
 
@@ -184,8 +199,8 @@ After applying, Terraform will output key values such as:
 
 Ensure your EC2 instance is using the correct IAM role and instance profile:
 
-- Role Name: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
-- Instance Profile: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+- Role Name: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
+- Instance Profile: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 
 You can verify this in the EC2 Console or CLI.
 
@@ -208,23 +223,23 @@ Via Console ...
 
 1. Go to AWS Console > Amazon OpenSearch Serverless
 
-2. Select the collection: [Collection Name](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+2. Select the collection: [Collection Name](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 3. Open the Data Access Policy within the collection above
 4. Locate the correct rule where you want to add your EC2 profile permissions
 5. Add this principal:
    ```
    arn:aws:iam::<your-account-id>:role/ec2_instance_profile
    ```
-*Note*: The `ec2_instance_profile` name is documented [Instance Profile](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+*Note*: The `ec2_instance_profile` name is documented [Instance Profile](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 6. Click Save
 
 ## Step 5 (Manual) - Install Web Analytics Components and Update LogStash Configuration
 
 1. SSH into your EC2 instance where you have both logstash and Web Analytics Components installed.
 
-The directions to install Web Analytics Tools are provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment)
+The directions to install Web Analytics Tools are provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
 
-**Note**: For Dev and Prod environments we already have these [EC2 Instances](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Tools+Deployment) that have both LogStash and Web Analytics Tools installed.
+**Note**: For Dev and Prod environments we already have these [EC2 Instances](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) that have both LogStash and Web Analytics Tools installed.
 
 2. Follow steps provided on how to [Load Logs to S3](https://wiki.jpl.nasa.gov/display/PDSEN/ETL+Process+for+Web+Logs#ETLProcessforWebLogs-SyncLogstoS3). Update logstash with S3 bucket name created as part of this terraform script in the input block.
 

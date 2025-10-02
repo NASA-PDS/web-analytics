@@ -1,3 +1,6 @@
+data "aws_iam_role" "ec2_instance_role" {
+  name = var.ec2_role_name
+}
 resource "aws_s3_bucket" "web_analytics" {
   bucket = local.s3_bucket_name
   tags = {
@@ -5,13 +8,13 @@ resource "aws_s3_bucket" "web_analytics" {
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "pab" {
+/* resource "aws_s3_bucket_public_access_block" "pab" {
   bucket                  = aws_s3_bucket.web_analytics.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
-}
+} */
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "sse" {
   bucket = aws_s3_bucket.web_analytics.id
@@ -53,7 +56,8 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
         Effect = "Allow",
         Principal = {
           AWS = [
-            "arn:${var.partition}:iam::${data.aws_caller_identity.current.account_id}:role/mcp-tenantOperator"
+            "arn:${var.partition}:iam::${data.aws_caller_identity.current.account_id}:role/mcp-tenantOperator",
+            "arn:${var.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_role_name}"
           ]
         },
         Action = "s3:*",
@@ -79,10 +83,6 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
       }
     ]
   })
-}
-
-data "aws_iam_role" "ec2_instance_role" {
-  name = var.ec2_role_name
 }
 
 data "aws_iam_policy_document" "ec2_web_analytics_access" {
