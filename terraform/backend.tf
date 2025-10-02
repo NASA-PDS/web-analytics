@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "pds-prod-gh01dc-infra"
-    key    = "prod/pds_web_analytics.tfstate"
-    region = "us-west-2"
+    bucket = "bucket-name"
+    key    = "key_name/some_state.tfstate"
+    region = "us-east-1"
   }
 }
