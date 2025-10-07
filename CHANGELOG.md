@@ -1,11 +1,12 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2025-08-27)
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2025-10-07)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...«unknown»)
 
 **Requirements:**
 
+- As a user, I want to automatically deploy all web analytics components [\#53](https://github.com/NASA-PDS/web-analytics/issues/53)
 - As a user, I want a mission-specific dashboard showing instrument and product type download metrics [\#24](https://github.com/NASA-PDS/web-analytics/issues/24)
 - As a user, I want year over year metrics for total egress [\#21](https://github.com/NASA-PDS/web-analytics/issues/21)
 - Dashboard: EN Search Query analytics - queries over time period [\#9](https://github.com/NASA-PDS/web-analytics/issues/9)
@@ -15,6 +16,7 @@
 
 **Improvements:**
 
+- Enable Python 3.12 compatibility [\#61](https://github.com/NASA-PDS/web-analytics/issues/61)
 - Map special characters in Athena/Presto SQL queries before dataset creation in QS. [\#13](https://github.com/NASA-PDS/web-analytics/issues/13)
 - Migrate PDS Web Analytics dashboards in PDS-managed AWS environment [\#3](https://github.com/NASA-PDS/web-analytics/issues/3)
 
