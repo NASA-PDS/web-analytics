@@ -43,6 +43,23 @@ resource "aws_s3_bucket_lifecycle_configuration" "lifecycle" {
       days = 30
     }
   }
+
+  rule {
+    id     = "transition-to-intelligent-tiering"
+    status = "Enabled"
+
+    filter {}
+
+    transition {
+      days          = 0
+      storage_class = "INTELLIGENT_TIERING"
+    }
+
+    noncurrent_version_transition {
+      noncurrent_days = 0
+      storage_class   = "INTELLIGENT_TIERING"
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "bucket_policy" {
