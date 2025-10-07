@@ -82,7 +82,7 @@ The `data/logs/` directory contains sample log files for testing:
 ## Prerequisites
 
 ### For All Tests
-- Python 3.9+
+- Python 3.12 or 3.13
 - No additional Python dependencies required
 
 ### For Integration Tests

@@ -35,7 +35,7 @@ See internal wiki for more detailed architecture.
 
 ### System Requirements
 - **Operating System**: Linux/Unix (tested on CentOS 7.9, macOS)
-- **Python**: 3.13.x or higher
+- **Python**: 3.12.x or higher
 - **Java**: OpenJDK 11 or higher (required for Logstash)
 - **Memory**: Minimum 4GB RAM (8GB+ recommended for production)
 - **Storage**: 10GB+ available disk space
@@ -117,8 +117,8 @@ source ~/.bashrc
 
 ### 2. Set Up Python Environment
 ```bash
-# Create and activate virtual environment
-python3.13 -m venv venv
+# Create and activate virtual environment (using Python 3.12 or 3.13)
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install the package in development mode (dependencies will be installed automatically)
