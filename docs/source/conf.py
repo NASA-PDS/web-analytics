@@ -37,6 +37,7 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx.ext.autosummary",
     "sphinx_rtd_theme",
+    "sphinxcontrib.googleanalytics",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -60,12 +61,27 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-# -- Read the docs config -------
+# -- Read the docs theme options -------
 
 html_logo = "_static/images/PDS_Planets.png"
 
-html_context = {
-    "css_files": [
-        "_static/theme_overrides.css",  # override wide tables in RTD theme
-    ],
+# Custom CSS files (Sphinx 8.x+ syntax)
+html_css_files = [
+    "theme_overrides.css",  # override wide tables in RTD theme
+]
+
+# Theme-specific options
+html_theme_options = {
+    "logo_only": False,
+    "prev_next_buttons_location": "bottom",
+    "style_external_links": False,
+    "collapse_navigation": True,
+    "sticky_navigation": True,
+    "navigation_depth": 4,
+    "includehidden": True,
+    "titles_only": False,
 }
+
+# Google Analytics 4 (GA4) tracking
+googleanalytics_id = "G-Q1K210DS5W"
+googleanalytics_enabled = True
