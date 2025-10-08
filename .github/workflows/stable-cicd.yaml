@@ -33,6 +33,8 @@ on:
     push:
         tags:
             - 'release/*'
+    workflow_dispatch:
+
 concurrency: roundup
 
 
