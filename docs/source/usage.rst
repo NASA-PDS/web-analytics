@@ -233,4 +233,3 @@ Monitoring
 Set up CloudWatch metrics for Logstash performance
 
 For detailed troubleshooting information, see :doc:`support/help`.
-
