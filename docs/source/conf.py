@@ -20,8 +20,6 @@ sys.path.insert(0, os.path.abspath('../../src'))
 project = "PDS Web Analytics"
 copyright = "2021 California Institute of Technology"
 author = "NASA Planetary Data System"
-release = "1.0.0"
-version = "1.0.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -64,6 +62,13 @@ html_static_path = ["_static"]
 # -- Read the docs theme options -------
 
 html_logo = "_static/images/PDS_Planets.png"
+
+html_context = {
+    'display_github': True,
+    "github_user": "nasa-pds",
+    "github_repo": "web-analytics",
+    "github_version": "main/docs/source/"
+}
 
 # Custom CSS files (Sphinx 8.x+ syntax)
 html_css_files = [
