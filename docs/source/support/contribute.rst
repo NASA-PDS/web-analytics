@@ -18,43 +18,7 @@ The PDS Web Analytics repository is hosted on GitHub:
 Development Setup
 ~~~~~~~~~~~~~~~~~
 
-Before contributing, follow the :doc:`/installation` guide to set up your environment. Then:
-
-1. Fork the repository on GitHub
-2. Clone your fork locally:
-
-   .. code-block:: bash
-
-       git clone https://github.com/YOUR-USERNAME/web-analytics.git
-       cd web-analytics
-
-3. Set up the development environment with extra dependencies:
-
-   .. code-block:: bash
-
-       python3 -m venv venv
-       source venv/bin/activate  # On Windows: venv\Scripts\activate
-       pip install --editable '.[dev]'
-
-   This installs the package in editable mode with additional tools for development, testing, and documentation.
-
-4. Configure pre-commit hooks to automatically check your code:
-
-   .. code-block:: bash
-
-       pre-commit install
-       pre-commit install -t pre-push
-       pre-commit install -t prepare-commit-msg
-       pre-commit install -t commit-msg
-
-   .. note::
-      See the `wiki entry on Secrets <https://github.com/NASA-PDS/nasa-pds.github.io/wiki/Git-and-Github-Guide#detect-secrets>`_ for one-time setup required for ``detect-secrets``.
-
-5. Create a feature branch for your changes:
-
-   .. code-block:: bash
-
-       git checkout -b feature/your-feature-name
+Before contributing, follow the :doc:`/installation` guide to set up your environment.
 
 Ways to Contribute
 ------------------
