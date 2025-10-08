@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q1K210DS5W"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Q1K210DS5W');
+    </script>
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuration &mdash; PDS Web Analytics 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=0c24fe83" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Usage" href="usage.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PDS Web Analytics
+              <img src="_static/PDS_Planets.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#environment-variables">Environment Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logstash-configuration">Logstash Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-structure">Configuration Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building-configuration">Building Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#s3-log-sync-configuration">S3 Log Sync Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opensearch-setup">OpenSearch Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#supported-log-formats">Supported Log Formats</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#apache-combined-log-format">Apache Combined Log Format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#microsoft-iis-log-format">Microsoft IIS Log Format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ftp-transfer-logs">FTP Transfer Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tomcat-access-logs">Tomcat Access Logs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pds-node-support">PDS Node Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-new-pds-nodes">Adding New PDS Nodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Support</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="support/help.html">Help &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support/contribute.html">Contributing to PDS Web Analytics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support/contact.html">Contact Us</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PDS Web Analytics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Configuration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/configuration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="configuration">
+<h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h1>
+<p>This guide covers how to configure PDS Web Analytics for your environment.</p>
+<section id="environment-variables">
+<h2>Environment Variables<a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h2>
+<p>Create a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in the repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># AWS Configuration</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_REGION</span><span class="o">=</span>us-west-2
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_BUCKET_NAME</span><span class="o">=</span>your-pds-logs-bucket
+<span class="nb">export</span><span class="w"> </span><span class="nv">AOSS_URL</span><span class="o">=</span>https://your-opensearch-domain.us-west-2.es.amazonaws.com
+<span class="nb">export</span><span class="w"> </span><span class="nv">INDEX_PREFIX</span><span class="o">=</span>pds-web-analytics
+
+<span class="c1"># Logstash Configuration</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">LS_SETTINGS_DIR</span><span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/config/logstash/config
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See internal wiki for details of how to populate this file with production values.</p>
+</div>
+</section>
+<section id="logstash-configuration">
+<h2>Logstash Configuration<a class="headerlink" href="#logstash-configuration" title="Link to this heading"></a></h2>
+<section id="configuration-structure">
+<h3>Configuration Structure<a class="headerlink" href="#configuration-structure" title="Link to this heading"></a></h3>
+<p>The Logstash configuration follows this structure:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>config/logstash/config/
+├── inputs/                    # S3 input configurations for each PDS node
+│   ├── pds-input-s3-atm.conf
+│   ├── pds-input-s3-en.conf
+│   ├── pds-input-s3-geo.conf
+│   ├── pds-input-s3-img.conf
+│   ├── pds-input-s3-naif.conf
+│   ├── pds-input-s3-ppi.conf
+│   ├── pds-input-s3-rings.conf
+│   └── pds-input-s3-sbn.conf
+├── shared/                    # Shared filter and output configurations
+│   ├── pds-filter.conf       # Main processing pipeline
+│   └── pds-output-opensearch.conf
+├── plugins/                   # Custom plugins and patterns
+│   └── regexes.yaml
+├── logstash.yml              # Logstash main configuration
+└── pipelines.yml.template    # Pipeline definitions
+</pre></div>
+</div>
+</section>
+<section id="building-configuration">
+<h3>Building Configuration<a class="headerlink" href="#building-configuration" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$WEB_ANALYTICS_HOME</span>
+
+<span class="c1"># Source your config</span>
+<span class="nb">source</span><span class="w"> </span>.env
+
+<span class="c1"># Run the configuration build script</span>
+./scripts/logstash_build_config.sh
+</pre></div>
+</div>
+<p>This script will:</p>
+<ul class="simple">
+<li><p>Copy the pipelines template and replace the env variables to <code class="docutils literal notranslate"><span class="pre">pipelines.yml</span></code></p></li>
+<li><p>Create individual pipeline configuration files for each PDS node</p></li>
+<li><p>Combine input, filter, and output configurations automatically</p></li>
+</ul>
+</section>
+</section>
+<section id="s3-log-sync-configuration">
+<h2>S3 Log Sync Configuration<a class="headerlink" href="#s3-log-sync-configuration" title="Link to this heading"></a></h2>
+<p>Create a configuration file based on <code class="docutils literal notranslate"><span class="pre">config/config_example.yaml</span></code>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">s3_bucket</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${S3_BUCKET}</span>
+<span class="nt">s3_subdir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">logs</span>
+<span class="nt">subdirs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">logs</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">include</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;*&quot;</span>
+</pre></div>
+</div>
+<p>The configuration supports environment variable substitution using <code class="docutils literal notranslate"><span class="pre">${VARIABLE_NAME}</span></code> syntax, which is processed by <code class="docutils literal notranslate"><span class="pre">envsubst</span></code>.</p>
+</section>
+<section id="opensearch-setup">
+<h2>OpenSearch Setup<a class="headerlink" href="#opensearch-setup" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Log into AWS and navigate to the OpenSearch Dashboard → Dev Tools</p></li>
+<li><p>Check if template already exists (ecs-web-template):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>GET _cat/templates
+</pre></div>
+</div>
+</li>
+<li><p>If not, create the template:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PUT _index_template/ecs-web-template
+
+# copy-paste from https://github.com/NASA-PDS/web-analytics/tree/main/config/opensearch/ecs-8.17-custom-template.json
+</pre></div>
+</div>
+</li>
+<li><p>Verify success:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>GET _cat/templates
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="supported-log-formats">
+<h2>Supported Log Formats<a class="headerlink" href="#supported-log-formats" title="Link to this heading"></a></h2>
+<p>The system supports multiple log formats:</p>
+<section id="apache-combined-log-format">
+<h3>Apache Combined Log Format<a class="headerlink" href="#apache-combined-log-format" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>192.168.1.1 - - [25/Dec/2023:10:30:45 +0000] &quot;GET /data/file.txt HTTP/1.1&quot; 200 1024 &quot;http://referrer.com&quot; &quot;Mozilla/5.0...&quot;
+</pre></div>
+</div>
+</section>
+<section id="microsoft-iis-log-format">
+<h3>Microsoft IIS Log Format<a class="headerlink" href="#microsoft-iis-log-format" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>2023-12-25 10:30:45 W3SVC1 192.168.1.1 GET /data/file.txt 80 - 192.168.1.100 Mozilla/5.0... 200 0 0 1024 0 15
+</pre></div>
+</div>
+</section>
+<section id="ftp-transfer-logs">
+<h3>FTP Transfer Logs<a class="headerlink" href="#ftp-transfer-logs" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Mon Dec 25 10:30:45 2023 1 192.168.1.1 1024 /data/file.txt a _ o r user ftp 0 * c
+</pre></div>
+</div>
+</section>
+<section id="tomcat-access-logs">
+<h3>Tomcat Access Logs<a class="headerlink" href="#tomcat-access-logs" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>192.168.1.1 - - [25/Dec/2023:10:30:45 +0000] &quot;GET /webapp/data HTTP/1.1&quot; 200 1024
+</pre></div>
+</div>
+</section>
+</section>
+<section id="pds-node-support">
+<h2>PDS Node Support<a class="headerlink" href="#pds-node-support" title="Link to this heading"></a></h2>
+<p>The system processes logs from the following PDS nodes:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 12.5%" />
+<col style="width: 37.5%" />
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Node</p></th>
+<th class="head"><p>Domain</p></th>
+<th class="head"><p>Protocol</p></th>
+<th class="head"><p>Dataset</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ATM</p></td>
+<td><p>pds-atmospheres.nmsu.edu</p></td>
+<td><p>HTTP/FTP</p></td>
+<td><p>atm.http, atm.ftp</p></td>
+</tr>
+<tr class="row-odd"><td><p>EN</p></td>
+<td><p>pds.nasa.gov</p></td>
+<td><p>HTTP</p></td>
+<td><p>en.http</p></td>
+</tr>
+<tr class="row-even"><td><p>GEO</p></td>
+<td><p>Multiple domains</p></td>
+<td><p>HTTP/FTP</p></td>
+<td><p>geo.http, geo.ftp</p></td>
+</tr>
+<tr class="row-odd"><td><p>IMG</p></td>
+<td><p>pds-imaging.jpl.nasa.gov</p></td>
+<td><p>HTTP</p></td>
+<td><p>img.http</p></td>
+</tr>
+<tr class="row-even"><td><p>NAIF</p></td>
+<td><p>naif.jpl.nasa.gov</p></td>
+<td><p>HTTP/FTP</p></td>
+<td><p>naif.http, naif.ftp</p></td>
+</tr>
+<tr class="row-odd"><td><p>PPI</p></td>
+<td><p>pds-ppi.igpp.ucla.edu</p></td>
+<td><p>HTTP</p></td>
+<td><p>ppi.http</p></td>
+</tr>
+<tr class="row-even"><td><p>RINGS</p></td>
+<td><p>pds-rings.seti.org</p></td>
+<td><p>HTTP</p></td>
+<td><p>rings.http</p></td>
+</tr>
+<tr class="row-odd"><td><p>SBN</p></td>
+<td><p>Multiple domains</p></td>
+<td><p>HTTP</p></td>
+<td><p>sbn.http</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="adding-new-pds-nodes">
+<h2>Adding New PDS Nodes<a class="headerlink" href="#adding-new-pds-nodes" title="Link to this heading"></a></h2>
+<p>To add a new PDS node:</p>
+<ol class="arabic simple">
+<li><p>Create a new input configuration in <code class="docutils literal notranslate"><span class="pre">config/logstash/config/inputs/</span></code></p></li>
+<li><p>Add the node to <code class="docutils literal notranslate"><span class="pre">config/logstash/config/pipelines.yml.template</span></code></p></li>
+<li><p>Update the S3 sync configuration</p></li>
+<li><p>Add test cases to the test framework</p></li>
+<li><p>Update the documentation with node information</p></li>
+</ol>
+</section>
+<section id="next-steps">
+<h2>Next Steps<a class="headerlink" href="#next-steps" title="Link to this heading"></a></h2>
+<p>After configuration, proceed to <a class="reference internal" href="usage.html"><span class="doc">Usage</span></a> to learn how to operate the system.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="usage.html" class="btn btn-neutral float-right" title="Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021 California Institute of Technology.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

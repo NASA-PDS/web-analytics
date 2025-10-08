@@ -1,0 +1,375 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q1K210DS5W"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Q1K210DS5W');
+    </script>
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usage &mdash; PDS Web Analytics 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=0c24fe83" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Help &amp; Troubleshooting" href="support/help.html" />
+    <link rel="prev" title="Configuration" href="configuration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PDS Web Analytics
+              <img src="_static/PDS_Planets.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#s3-log-synchronization">S3 Log Synchronization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-aws-profiles">Using AWS Profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#additional-options">Additional Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scheduled-synchronization">Scheduled Synchronization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#logstash-processing">Logstash Processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#starting-logstash">Starting Logstash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-in-background">Running in Background</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#unit-tests">Unit Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#integration-tests">Integration Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#test-runner-script">Test Runner Script</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-tox">Using Tox</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#monitoring">Monitoring</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#check-logstash-status">Check Logstash Status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#monitor-logs">Monitor Logs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#data-processing">Data Processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ecs-field-mapping">ECS Field Mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#error-handling">Error Handling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-tuning">Performance Tuning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#instance-sizing">Instance Sizing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#batch-processing">Batch Processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#queue-settings">Queue Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Monitoring</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Support</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="support/help.html">Help &amp; Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support/contribute.html">Contributing to PDS Web Analytics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support/contact.html">Contact Us</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PDS Web Analytics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h1>
+<p>This guide covers the day-to-day operation of PDS Web Analytics.</p>
+<section id="s3-log-synchronization">
+<h2>S3 Log Synchronization<a class="headerlink" href="#s3-log-synchronization" title="Link to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This step is NOT required if you already have files in S3.</p>
+</div>
+<p>Sync logs from PDS reporting servers to S3:</p>
+<section id="basic-usage">
+<h3>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$WEB_ANALYTICS_HOME</span>
+
+<span class="c1"># Using the package command (recommended)</span>
+s3-log-sync<span class="w"> </span>-c<span class="w"> </span>config/config.yaml<span class="w"> </span>-d<span class="w"> </span>/var/log/pds
+</pre></div>
+</div>
+</section>
+<section id="using-aws-profiles">
+<h3>Using AWS Profiles<a class="headerlink" href="#using-aws-profiles" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># If AWS_PROFILE environment variable is set, it will be used automatically</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_PROFILE</span><span class="o">=</span>pds-analytics
+s3-log-sync<span class="w"> </span>-c<span class="w"> </span>config/config.yaml<span class="w"> </span>-d<span class="w"> </span>/var/log/pds
+
+<span class="c1"># Or explicitly specify the AWS profile</span>
+s3-log-sync<span class="w"> </span>-c<span class="w"> </span>config/config.yaml<span class="w"> </span>-d<span class="w"> </span>/var/log/pds<span class="w"> </span>--aws-profile<span class="w"> </span>pds-analytics
+</pre></div>
+</div>
+</section>
+<section id="additional-options">
+<h3>Additional Options<a class="headerlink" href="#additional-options" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Disable gzip compression</span>
+s3-log-sync<span class="w"> </span>-c<span class="w"> </span>config/config.yaml<span class="w"> </span>-d<span class="w"> </span>/var/log/pds<span class="w"> </span>--no-gzip
+
+<span class="c1"># Force upload even if files exist in S3</span>
+s3-log-sync<span class="w"> </span>-c<span class="w"> </span>config/config.yaml<span class="w"> </span>-d<span class="w"> </span>/var/log/pds<span class="w"> </span>--force
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--aws-profile</span></code> argument defaults to the <code class="docutils literal notranslate"><span class="pre">AWS_PROFILE</span></code> environment variable if it’s set. If neither is provided, the command will fail with a helpful error message. All S3 uploads are performed using boto3 (not the AWS CLI).</p>
+</div>
+</section>
+<section id="scheduled-synchronization">
+<h3>Scheduled Synchronization<a class="headerlink" href="#scheduled-synchronization" title="Link to this heading"></a></h3>
+<p>Set up as a cron job for automatic synchronization:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example: sync every hour</span>
+<span class="m">0</span><span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/path/to/web-analytics<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>s3-log-sync<span class="w"> </span>-c<span class="w"> </span>config/config.yaml<span class="w"> </span>-d<span class="w"> </span>/var/log/pds
+</pre></div>
+</div>
+</section>
+</section>
+<section id="logstash-processing">
+<h2>Logstash Processing<a class="headerlink" href="#logstash-processing" title="Link to this heading"></a></h2>
+<section id="starting-logstash">
+<h3>Starting Logstash<a class="headerlink" href="#starting-logstash" title="Link to this heading"></a></h3>
+<p>Start Logstash with the PDS configuration:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$WEB_ANALYTICS_HOME</span>
+
+<span class="c1"># Source the environment variables</span>
+<span class="nb">source</span><span class="w"> </span>.env
+
+<span class="c1"># Pull the latest changes on the repo</span>
+git<span class="w"> </span>pull
+
+<span class="c1"># If anything changed, re-generate the pipeline configs</span>
+./scripts/logstash_build_config.sh
+
+<span class="c1"># Start Logstash</span>
+logstash<span class="w"> </span>-f<span class="w"> </span><span class="si">${</span><span class="nv">WEB_ANALYTICS_HOME</span><span class="si">}</span>/config/logstash/config/pipelines.yml
+</pre></div>
+</div>
+</section>
+<section id="running-in-background">
+<h3>Running in Background<a class="headerlink" href="#running-in-background" title="Link to this heading"></a></h3>
+<p>To run Logstash in the background:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nohup<span class="w"> </span><span class="nv">$HOME</span>/logstash/bin/logstash<span class="w"> </span>&gt;<span class="w"> </span><span class="nv">$OUTPUT_LOG</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="p">&amp;</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h2>
+<p>Run the comprehensive test suite:</p>
+<section id="unit-tests">
+<h3>Unit Tests<a class="headerlink" href="#unit-tests" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run S3 sync tests</span>
+python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/test_s3_sync.py<span class="w"> </span>-v
+</pre></div>
+</div>
+</section>
+<section id="integration-tests">
+<h3>Integration Tests<a class="headerlink" href="#integration-tests" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run integration tests</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests.test_logstash_integration
+</pre></div>
+</div>
+</section>
+<section id="test-runner-script">
+<h3>Test Runner Script<a class="headerlink" href="#test-runner-script" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>chmod<span class="w"> </span>+x<span class="w"> </span>tests/run_tests.sh
+./tests/run_tests.sh
+</pre></div>
+</div>
+<p>The test suite validates:</p>
+<ul class="simple">
+<li><p>Log parsing accuracy</p></li>
+<li><p>Error handling</p></li>
+<li><p>Bad log detection</p></li>
+<li><p>ECS field mapping</p></li>
+<li><p>Output formatting</p></li>
+<li><p>Configuration loading with environment variables</p></li>
+<li><p>AWS profile handling</p></li>
+<li><p>boto3 S3 upload logic</p></li>
+</ul>
+</section>
+<section id="using-tox">
+<h3>Using Tox<a class="headerlink" href="#using-tox" title="Link to this heading"></a></h3>
+<p>Test with multiple Python versions:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test with Python 3.12</span>
+tox<span class="w"> </span>-e<span class="w"> </span>py312
+
+<span class="c1"># Test with Python 3.13</span>
+tox<span class="w"> </span>-e<span class="w"> </span>py313
+
+<span class="c1"># Test with both versions</span>
+tox<span class="w"> </span>-e<span class="w"> </span>py312,py313
+
+<span class="c1"># Build documentation</span>
+tox<span class="w"> </span>-e<span class="w"> </span>docs
+
+<span class="c1"># Run linting</span>
+tox<span class="w"> </span>-e<span class="w"> </span>lint
+</pre></div>
+</div>
+</section>
+</section>
+<section id="monitoring">
+<h2>Monitoring<a class="headerlink" href="#monitoring" title="Link to this heading"></a></h2>
+<section id="check-logstash-status">
+<h3>Check Logstash Status<a class="headerlink" href="#check-logstash-status" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check Logstash process</span>
+ps<span class="w"> </span>aux<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>logstash
+</pre></div>
+</div>
+</section>
+<section id="monitor-logs">
+<h3>Monitor Logs<a class="headerlink" href="#monitor-logs" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Monitor nohup logs</span>
+<span class="nb">source</span><span class="w"> </span><span class="nv">$WEB_ANALYTICS_HOME</span>/.env
+tail<span class="w"> </span>-f<span class="w"> </span><span class="nv">$OUTPUT_LOG</span>
+
+<span class="c1"># Monitor logstash logs</span>
+tail<span class="w"> </span>-f<span class="w"> </span><span class="nv">$LOGSTASH_HOME</span>/logs/logstash-plain.log
+
+<span class="c1"># Monitor bad logs</span>
+tail<span class="w"> </span>-f<span class="w"> </span>/tmp/bad_logs_<span class="k">$(</span>date<span class="w"> </span>+%Y-%m<span class="k">)</span>.txt
+</pre></div>
+</div>
+</section>
+</section>
+<section id="data-processing">
+<h2>Data Processing<a class="headerlink" href="#data-processing" title="Link to this heading"></a></h2>
+<section id="ecs-field-mapping">
+<h3>ECS Field Mapping<a class="headerlink" href="#ecs-field-mapping" title="Link to this heading"></a></h3>
+<p>The system maps log data to Elastic Common Schema v8 fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">[source][address]</span></code> - Client IP address</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[url][path]</span></code> - Requested URL path</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[http][request][method]</span></code> - HTTP method (GET, POST, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[http][response][status_code]</span></code> - HTTP status code</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[http][response][body][bytes]</span></code> - Response size in bytes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[user_agent][original]</span></code> - User agent string</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[event][start]</span></code> - Request timestamp</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[organization][name]</span></code> - PDS node identifier</p></li>
+</ul>
+</section>
+<section id="error-handling">
+<h3>Error Handling<a class="headerlink" href="#error-handling" title="Link to this heading"></a></h3>
+<p>The system handles various error conditions:</p>
+<ul class="simple">
+<li><p><strong>Bad Unicode</strong>: Logs with invalid characters are tagged with <code class="docutils literal notranslate"><span class="pre">bad_log</span></code></p></li>
+<li><p><strong>Parse Failures</strong>: Unparseable logs are tagged with <code class="docutils literal notranslate"><span class="pre">_grok_parse_failure</span></code></p></li>
+<li><p><strong>Invalid HTTP Methods</strong>: Non-standard methods are tagged with <code class="docutils literal notranslate"><span class="pre">_invalid_http_method</span></code></p></li>
+<li><p><strong>Missing Fields</strong>: Logs missing required fields are tagged appropriately</p></li>
+</ul>
+<p>All error logs are stored in <code class="docutils literal notranslate"><span class="pre">/tmp/bad_logs_YYYY-MM.txt</span></code> with detailed error information.</p>
+</section>
+</section>
+<section id="performance-tuning">
+<h2>Performance Tuning<a class="headerlink" href="#performance-tuning" title="Link to this heading"></a></h2>
+<p>For production deployments, consider these optimizations:</p>
+<section id="instance-sizing">
+<h3>Instance Sizing<a class="headerlink" href="#instance-sizing" title="Link to this heading"></a></h3>
+<p>Use t3.xlarge or larger for high-volume processing</p>
+</section>
+<section id="batch-processing">
+<h3>Batch Processing<a class="headerlink" href="#batch-processing" title="Link to this heading"></a></h3>
+<p>Adjust <code class="docutils literal notranslate"><span class="pre">pipeline.batch.size</span></code> in <code class="docutils literal notranslate"><span class="pre">logstash.yml</span></code> based on memory availability</p>
+</section>
+<section id="queue-settings">
+<h3>Queue Settings<a class="headerlink" href="#queue-settings" title="Link to this heading"></a></h3>
+<p>Configure <code class="docutils literal notranslate"><span class="pre">queue.max_bytes</span></code> and <code class="docutils literal notranslate"><span class="pre">queue.max_events</span></code> in <code class="docutils literal notranslate"><span class="pre">logstash.yml</span></code></p>
+</section>
+<section id="id1">
+<h3>Monitoring<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<p>Set up CloudWatch metrics for Logstash performance</p>
+<p>For detailed troubleshooting information, see <a class="reference internal" href="support/help.html"><span class="doc">Help &amp; Troubleshooting</span></a>.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="configuration.html" class="btn btn-neutral float-left" title="Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="support/help.html" class="btn btn-neutral float-right" title="Help &amp; Troubleshooting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021 California Institute of Technology.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
