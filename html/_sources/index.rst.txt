@@ -38,9 +38,9 @@ Table of Contents
     :maxdepth: 2
     :caption: Getting Started
 
-    installation
-    configuration
-    usage
+    /installation/installation
+    /usage/configuration
+    /usage/usage
 
 ..  toctree::
     :maxdepth: 2
