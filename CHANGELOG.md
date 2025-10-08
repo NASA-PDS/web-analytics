@@ -1,8 +1,12 @@
 # Changelog
 
-## [release/1.0.0](https://github.com/NASA-PDS/web-analytics/tree/release/1.0.0) (2025-10-08)
+## [release/1.0.1](https://github.com/NASA-PDS/web-analytics/tree/release/1.0.1) (2025-10-08)
 
-[Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...release/1.0.0)
+[Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/v1.0.0...release/1.0.1)
+
+## [v1.0.0](https://github.com/NASA-PDS/web-analytics/tree/v1.0.0) (2025-10-08)
+
+[Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/d6977fda23e31e92e8229725ad26c02e0e665157...v1.0.0)
 
 **Requirements:**
 
