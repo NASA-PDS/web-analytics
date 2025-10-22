@@ -154,7 +154,7 @@ source ~/.bashrc
 ### 2. Set Up Python Environment
 ```bash
 # Create and activate virtual environment
-python3.13 -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install the package in development mode (dependencies will be installed automatically)
