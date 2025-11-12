@@ -36,11 +36,10 @@ resource "aws_s3_bucket_versioning" "versioning" {
 resource "aws_s3_bucket_lifecycle_configuration" "lifecycle" {
   bucket = aws_s3_bucket.web_analytics.id
   rule {
-    id     = "expire-logs"
+    id     = "keep-logs"
     status = "Enabled"
-    filter {}
-    expiration {
-      days = 30
+    filter {
+      prefix = "logs/"
     }
   }
 
