@@ -1,5 +1,13 @@
 # Changelog
 
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2025-11-21)
+
+[Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/v1.0.1...«unknown»)
+
+**Defects:**
+
+- Terraform mistakenly expires logs after 30 days [\#66](https://github.com/NASA-PDS/web-analytics/issues/66) [[s.high](https://github.com/NASA-PDS/web-analytics/labels/s.high)]
+
 ## [v1.0.1](https://github.com/NASA-PDS/web-analytics/tree/v1.0.1) (2025-10-08)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/v1.0.0...v1.0.1)
