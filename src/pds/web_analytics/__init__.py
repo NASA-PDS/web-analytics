@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """PDS Web Analytics package."""
-import pkg_resources
+from importlib.resources import files
 
-__version__ = pkg_resources.resource_string(__name__, "VERSION.txt").decode("utf-8").strip()
+__version__ = files(__name__).joinpath("VERSION.txt").read_text(encoding="utf-8").strip()
 
 
 # For future consideration:
