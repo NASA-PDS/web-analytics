@@ -1,6 +1,6 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2025-11-21)
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2026-01-21)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/v1.0.1...«unknown»)
 
