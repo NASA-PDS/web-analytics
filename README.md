@@ -35,19 +35,32 @@ See internal wiki for more detailed architecture.
 
 ### System Requirements
 - **Operating System**: Linux/Unix (tested on CentOS 7.9, macOS)
-- **Python**: 3.12.x or higher
+- **Python**: 3.12.x or higher (Crurrently we have 3.13 installed on MCP Dev and Prod EC2 instances)
+- **PDS User**: Ensure `pds4` user profile is installed on the EC2 instance. If not please work with SA team to get this deployed.
 - **Java**: OpenJDK 11 or higher (required for Logstash)
 - **Memory**: Minimum 4GB RAM (8GB+ recommended for production)
 - **Storage**: 10GB+ available disk space
 
 ### AWS Infrastructure Setup
 
-See internal wiki for more details.
+See [internal wiki](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)  for more details.
 
-### Required Software
+### SSH into EC2 instance using PDS4 user
+
+See [internal wiki](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) for more details.
 
 #### 1. Python Virtual Environment
-```bash
+``` bash
+# Check Python is set to right python. Must be either Python 3.12 or 3.13
+$ which python3
+/usr/local/python/3.13.7/bin/python3
+
+# If not, export right Python to PATH in startup
+$ echo "export PATH=/usr/local/python/3.13.7/bin:${PATH}" >> ~/.bash_profile
+$ source ~/.bash_profile
+$ which python3
+/usr/local/python/3.13.7/bin/python3
+
 # Create a virtual environment
 python3 -m venv venv
 
@@ -59,7 +72,6 @@ venv\Scripts\activate
 ```
 
 #### 2. AWS Credentials (boto3)
-- The S3 sync tool now uses [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html) for all S3 operations.
 - You do **not** need the AWS CLI for S3 uploads, but you must have valid AWS credentials (via `~/.aws/credentials`, environment variables, or IAM role).
 - The `--aws-profile` argument or `AWS_PROFILE` environment variable can be used to select a profile.
 
@@ -117,7 +129,7 @@ source ~/.bashrc
 
 ### 2. Set Up Python Environment
 ```bash
-# Create and activate virtual environment (using Python 3.12 or 3.13)
+# Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
