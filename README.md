@@ -279,9 +279,9 @@ The configuration supports environment variable substitution using `${VARIABLE_N
 
 ## Usage
 
-### 1. S3 Log Synchronization
+### S3 Log Synchronization (deprecated)
 
-**NOTE:** This step below is NOT required to be performed if you already have files in S3.
+**NOTE:** This script has been deprecated from use. See Data Upload Manager for pushing logs.
 
 Sync logs from PDS reporting servers to S3:
 
@@ -307,7 +307,7 @@ s3-log-sync -c config/config.yaml -d /var/log/pds --no-gzip
 
 **Note**: The `--aws-profile` argument defaults to the `AWS_PROFILE` environment variable if it's set. If neither is provided, the command will fail with a helpful error message. All S3 uploads are performed using boto3 (not the AWS CLI).
 
-### 2. Logstash Processing
+### Logstash Processing
 
 Start Logstash with the PDS configuration:
 
@@ -330,33 +330,7 @@ logstash -f ${WEB_ANALYTICS_HOME}/config/logstash/config/pipelines.yml
 nohup $HOME/logstash/bin/logstash > $OUTPUT_LOG 2>&1&
 ```
 
-### 3. Testing
-
-Run the comprehensive test suite:
-
-```bash
-# Run unit tests
-python -m pytest tests/test_s3_sync.py -v
-
-# Run integration tests
-python -m unittest tests.test_logstash_integration
-
-# Or use the test runner script
-chmod +x tests/run_tests.sh
-./tests/run_tests.sh
-```
-
-The test suite validates:
-- Log parsing accuracy
-- Error handling
-- Bad log detection
-- ECS field mapping
-- Output formatting
-- Configuration loading with environment variables
-- AWS profile handling
-- **boto3 S3 upload logic**
-
-### 4. Monitoring
+### Monitoring
 
 Check Logstash status and logs:
 
