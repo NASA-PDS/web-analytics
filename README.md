@@ -103,7 +103,7 @@ venv\Scripts\activate
 # Download Logstash 8.x
 wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.0-linux-x86_64.tar.gz
 tar -xzf logstash-8.17.0-linux-x86_64.tar.gz
-ln -s $(pwd)/logstash-8.17.1 $(pwd)/logstash
+ln -s $(pwd)/logstash-8.17.0 $(pwd)/logstash
 
 # Add to PATH
 echo 'export PATH="$(pwd)/logstash/bin:$PATH"' >> ~/.bashrc
