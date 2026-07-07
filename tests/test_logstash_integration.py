@@ -56,7 +56,7 @@ class TestLogstashIntegration(unittest.TestCase):
             "template_errors": 0,
             "empty_user_agents": 1,  # line with "-" user-agent
             "duplicate_sources": 0,
-            "processed_logs": 2,     # 200 OK + 404 (failure outcome, no special tag)
+            "processed_logs": 2,  # 200 OK + 404 (failure outcome, no special tag)
             "corrupt_logs": 0,
         },
     }
