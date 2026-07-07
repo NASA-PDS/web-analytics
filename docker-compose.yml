@@ -1,0 +1,62 @@
+# docker-compose.yml — Local development and integration testing
+#
+# Services
+# --------
+#   test   — Runs the Python integration test suite against a live Logstash
+#            pipeline inside the container. Use this to validate config changes.
+#
+#   prod   — Runs the production Logstash pipeline locally (reads from S3,
+#            writes to OpenSearch). Requires a populated .env file.
+#            Not used in CI — this mirrors the ECS Fargate deployment.
+#
+# Usage
+# -----
+#   # Run integration tests (no .env required):
+#   docker compose run --rm test
+#
+#   # Run a single test:
+#   docker compose run --rm test python3 -m unittest \
+#       tests.test_logstash_integration.TestLogstashIntegration.test_cloudfront_log_processing -v
+#
+#   # Run production pipeline locally (requires .env):
+#   cp .env.example .env   # then fill in real values
+#   docker compose --profile prod up logstash
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # test — Integration test runner
+  # Builds the 'test' stage of docker/Dockerfile.
+  # Output JSON files are written to ./output/ on the host for inspection.
+  # ---------------------------------------------------------------------------
+  test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: test
+    volumes:
+      - ./output:/app/output
+    environment:
+      OUTPUT_DIR: /app/output
+
+  # ---------------------------------------------------------------------------
+  # prod — Production Logstash pipeline (local simulation of ECS deployment)
+  # Requires a .env file with real AWS credentials and endpoint values.
+  # Mount an EFS-equivalent local volume for the persistent queue.
+  # ---------------------------------------------------------------------------
+  logstash:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: prod
+    env_file:
+      - .env
+    volumes:
+      - logstash-queue:/var/lib/logstash
+    profiles:
+      - prod
+    restart: on-failure
+
+volumes:
+  logstash-queue:
+    driver: local
