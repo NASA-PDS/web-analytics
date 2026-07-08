@@ -118,7 +118,7 @@ class TestLogstashIntegration(unittest.TestCase):
         if self.output_dir.exists():
             try:
                 for item in self.output_dir.iterdir():
-                    if item.is_dir() and (item.name.startswith("data_") or item.name.startswith("test_run_")):
+                    if item.is_dir() and (item.name.startswith("data_") or item.name.startswith("lsdata_") or item.name.startswith("test_run_")):
                         # Only clean up directories that are clearly from previous test runs
                         try:
                             shutil.rmtree(item, ignore_errors=True)
@@ -248,8 +248,8 @@ class TestLogstashIntegration(unittest.TestCase):
         unique_output_dir = self.output_dir / f"data_{uuid.uuid4().hex}"
         unique_output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create unique data directory for this test run
-        unique_data_dir = self.output_dir / f"data_{uuid.uuid4().hex}"
+        # Create unique data directory for Logstash internal state (separate prefix)
+        unique_data_dir = self.output_dir / f"lsdata_{uuid.uuid4().hex}"
         unique_data_dir.mkdir(parents=True, exist_ok=True)
 
         try:
@@ -457,19 +457,6 @@ class TestLogstashIntegration(unittest.TestCase):
 
         # Validate output counts
         self.validate_output_counts(output_dir, "cloudfront")
-
-    def test_individual_configurations(self):
-        """Test individual Logstash configurations."""
-        test_configs = self.get_enabled_configs()
-
-        for config_name, description in test_configs:
-            with self.subTest(config_name=config_name):
-                # Run Logstash pipeline
-                success, output_dir = self.run_logstash_pipeline(config_name, description)
-                self.assertTrue(success, f"Logstash pipeline failed for {config_name}")
-
-                # Validate output counts
-                self.validate_output_counts(output_dir, config_name)
 
     @unittest.skip("Skipping configuration file existence test")
     def test_configuration_files_exist(self):
