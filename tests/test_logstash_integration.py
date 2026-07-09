@@ -118,7 +118,11 @@ class TestLogstashIntegration(unittest.TestCase):
         if self.output_dir.exists():
             try:
                 for item in self.output_dir.iterdir():
-                    if item.is_dir() and (item.name.startswith("data_") or item.name.startswith("lsdata_") or item.name.startswith("test_run_")):
+                    if item.is_dir() and (
+                        item.name.startswith("data_")
+                        or item.name.startswith("lsdata_")
+                        or item.name.startswith("test_run_")
+                    ):
                         # Only clean up directories that are clearly from previous test runs
                         try:
                             shutil.rmtree(item, ignore_errors=True)
