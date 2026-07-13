@@ -25,7 +25,7 @@ class TestLogstashIntegration(unittest.TestCase):
     # ============================================================================
     # CONFIGURATION: Set which configurations to test here
     # ============================================================================
-    ENABLED_CONFIGS = ["https", "ftp"]  # Options: "https", "ftp"
+    ENABLED_CONFIGS = ["https", "ftp", "cloudfront"]  # Options: "https", "ftp", "cloudfront"
 
     # Configuration-specific test expectations
     EXPECTED_COUNTS = {
@@ -49,10 +49,24 @@ class TestLogstashIntegration(unittest.TestCase):
             "processed_logs": 16,
             "corrupt_logs": 6,
         },
+        "cloudfront": {
+            "parse_failures": 0,
+            "bad_logs": 0,
+            "invalid_methods": 0,
+            "template_errors": 0,
+            "empty_user_agents": 1,  # line with "-" user-agent
+            "duplicate_sources": 0,
+            "processed_logs": 2,  # 200 OK + 404 (failure outcome, no special tag)
+            "corrupt_logs": 0,
+        },
     }
 
     # Logstash configuration components
-    INPUT_CONFIGS = {"https": "test-input-https.conf", "ftp": "test-input-ftp.conf"}
+    INPUT_CONFIGS = {
+        "https": "test-input-https.conf",
+        "ftp": "test-input-ftp.conf",
+        "cloudfront": "test-input-cloudfront.conf",
+    }
 
     FILTER_CONFIGS = ["shared/pds-filter.conf"]
 
@@ -104,7 +118,11 @@ class TestLogstashIntegration(unittest.TestCase):
         if self.output_dir.exists():
             try:
                 for item in self.output_dir.iterdir():
-                    if item.is_dir() and (item.name.startswith("data_") or item.name.startswith("test_run_")):
+                    if item.is_dir() and (
+                        item.name.startswith("data_")
+                        or item.name.startswith("lsdata_")
+                        or item.name.startswith("test_run_")
+                    ):
                         # Only clean up directories that are clearly from previous test runs
                         try:
                             shutil.rmtree(item, ignore_errors=True)
@@ -146,7 +164,11 @@ class TestLogstashIntegration(unittest.TestCase):
 
     def get_enabled_configs(self) -> List[Tuple[str, str]]:
         """Get list of (config_name, description) tuples for enabled configurations."""
-        descriptions = {"https": "HTTPS Log Processing", "ftp": "FTP Log Processing"}
+        descriptions = {
+            "https": "HTTPS Log Processing",
+            "ftp": "FTP Log Processing",
+            "cloudfront": "CloudFront Legacy W3C Log Processing",
+        }
         return [(config, descriptions.get(config, f"{config} Processing")) for config in self.ENABLED_CONFIGS]
 
     def build_pipeline_config(self, input_config_name: str) -> str:
@@ -230,8 +252,8 @@ class TestLogstashIntegration(unittest.TestCase):
         unique_output_dir = self.output_dir / f"data_{uuid.uuid4().hex}"
         unique_output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create unique data directory for this test run
-        unique_data_dir = self.output_dir / f"data_{uuid.uuid4().hex}"
+        # Create unique data directory for Logstash internal state (separate prefix)
+        unique_data_dir = self.output_dir / f"lsdata_{uuid.uuid4().hex}"
         unique_data_dir.mkdir(parents=True, exist_ok=True)
 
         try:
@@ -428,18 +450,17 @@ class TestLogstashIntegration(unittest.TestCase):
         # Validate output counts
         self.validate_output_counts(output_dir, "ftp")
 
-    def test_individual_configurations(self):
-        """Test individual Logstash configurations."""
-        test_configs = self.get_enabled_configs()
+    def test_cloudfront_log_processing(self):
+        """Test processing of CloudFront legacy W3C tab-delimited logs."""
+        if "cloudfront" not in self.ENABLED_CONFIGS:
+            self.skipTest("CloudFront configuration not enabled")
 
-        for config_name, description in test_configs:
-            with self.subTest(config_name=config_name):
-                # Run Logstash pipeline
-                success, output_dir = self.run_logstash_pipeline(config_name, description)
-                self.assertTrue(success, f"Logstash pipeline failed for {config_name}")
+        # Run Logstash pipeline
+        success, output_dir = self.run_logstash_pipeline("cloudfront", "CloudFront Legacy W3C Log Processing")
+        self.assertTrue(success, "Logstash pipeline failed for CloudFront logs")
 
-                # Validate output counts
-                self.validate_output_counts(output_dir, config_name)
+        # Validate output counts
+        self.validate_output_counts(output_dir, "cloudfront")
 
     @unittest.skip("Skipping configuration file existence test")
     def test_configuration_files_exist(self):
