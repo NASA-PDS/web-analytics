@@ -1,12 +1,20 @@
 # Changelog
 
-## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2026-01-22)
+## [«unknown»](https://github.com/NASA-PDS/web-analytics/tree/«unknown») (2026-07-13)
 
 [Full Changelog](https://github.com/NASA-PDS/web-analytics/compare/v1.0.1...«unknown»)
+
+**Requirements:**
+
+- As a CloudOps Engineer, I want to ingest and parse CloudFront access logs in legacy W3C tab-delimited format [\#71](https://github.com/NASA-PDS/web-analytics/issues/71)
 
 **Defects:**
 
 - Terraform mistakenly expires logs after 30 days [\#66](https://github.com/NASA-PDS/web-analytics/issues/66) [[s.high](https://github.com/NASA-PDS/web-analytics/labels/s.high)]
+
+**Other closed issues:**
+
+- Test uploading web logs to S3 logs bucket via DUM [\#72](https://github.com/NASA-PDS/web-analytics/issues/72)
 
 ## [v1.0.1](https://github.com/NASA-PDS/web-analytics/tree/v1.0.1) (2025-10-08)
 
@@ -18,7 +26,6 @@
 
 **Requirements:**
 
-- As a user, I want to automatically deploy all web analytics components [\#53](https://github.com/NASA-PDS/web-analytics/issues/53)
 - As a user, I want a mission-specific dashboard showing instrument and product type download metrics [\#24](https://github.com/NASA-PDS/web-analytics/issues/24)
 - As a user, I want year over year metrics for total egress [\#21](https://github.com/NASA-PDS/web-analytics/issues/21)
 - Dashboard: EN Search Query analytics - queries over time period [\#9](https://github.com/NASA-PDS/web-analytics/issues/9)
