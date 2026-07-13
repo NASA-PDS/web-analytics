@@ -52,3 +52,11 @@ This requirement is not impacted by the current version
 
 
 This requirement is not impacted by the current version
+## As a CloudOps Engineer, I want to ingest and parse CloudFront access logs in legacy W3C tab-delimited format ([#71](https://github.com/NASA-PDS/web-analytics/issues/71)) 
+
+
+This requirement is not impacted by the current version
+## As a CloudOps Engineer, I want to ingest and parse CloudFront access logs in JSON format ([#75](https://github.com/NASA-PDS/web-analytics/issues/75)) 
+
+
+This requirement is not impacted by the current version
