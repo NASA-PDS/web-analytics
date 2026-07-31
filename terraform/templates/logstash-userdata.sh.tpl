@@ -1,9 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# Install Docker
+# Install system packages
 dnf update -y
-dnf install -y docker
+dnf install -y docker python3.13 python3.13-pip
+python3.13 -m pip install --quiet boto3
 systemctl enable docker
 systemctl start docker
 
