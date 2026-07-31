@@ -12,11 +12,10 @@ module "s3_bucket" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid    = "AllowOnlyMCPTenantOperator",
+        Sid    = "AllowEC2Role",
         Effect = "Allow",
         Principal = {
           AWS = [
-            "arn:${var.partition}:iam::${data.aws_caller_identity.current.account_id}:role/mcp-tenantOperator",
             "arn:${var.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_role_name}"
           ]
         },
