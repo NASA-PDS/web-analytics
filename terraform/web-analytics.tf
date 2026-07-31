@@ -2,7 +2,10 @@ module "s3_bucket" {
   source      = "git@github.com:NASA-PDS/pds-tf-modules.git//terraform/modules/s3/bucket"
   bucket_name = local.s3_bucket_name
   partition   = var.partition
-  versioning  = "Enabled"
+  versioning  = "Disabled"
+
+  # Disable module's own lifecycle rule — we manage all lifecycle rules in the resource below
+  abort_incomplete_multipart_upload_days = 0
 
   # MCP enforces public access blocks at the account level; enable_blocks=false avoids a redundant conflict
   enable_blocks = false
@@ -62,6 +65,17 @@ resource "aws_ssm_parameter" "s3_bucket_name" {
 
 resource "aws_s3_bucket_lifecycle_configuration" "lifecycle" {
   bucket = module.s3_bucket.bucket_name
+
+  rule {
+    id     = "abort-incomplete-multipart-upload"
+    status = "Enabled"
+
+    filter {}
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
 
   rule {
     id     = "transition-to-intelligent-tiering"
