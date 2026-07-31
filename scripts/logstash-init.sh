@@ -98,13 +98,53 @@ else
 fi
 
 # ----------------------------------------
-# 4. Update service unit with current endpoint and start Logstash
+# 4. Create or update the systemd service unit, then start Logstash
 # ----------------------------------------
-echo "--- Updating Logstash service unit ---"
-# Overwrite the OPENSEARCH_URL in the systemd unit so re-runs pick up a new
-# OpenSearch domain without needing to redeploy the EC2.
+echo "--- Configuring Logstash service unit ---"
 SERVICE_UNIT="/etc/systemd/system/logstash.service"
-if [ -f "$SERVICE_UNIT" ]; then
+
+S3_BUCKET_NAME="${S3_BUCKET_NAME:-$(aws ssm get-parameter \
+  --name /pds/web-analytics/s3/bucket_name \
+  --query Parameter.Value --output text)}"
+AWS_REGION="${AWS_REGION:-$(curl -sf \
+  http://169.254.169.254/latest/meta-data/placement/region || echo 'us-west-2')}"
+LOGSTASH_VERSION="${LOGSTASH_VERSION:-8.17.0}"
+INDEX_PREFIX="${INDEX_PREFIX:-pds-dev}"
+S3_CF_BUCKET_NAME="${S3_CF_BUCKET_NAME:-}"
+
+if [ ! -f "$SERVICE_UNIT" ]; then
+  echo "Service unit not found — creating it"
+  cat > "$SERVICE_UNIT" <<EOF
+[Unit]
+Description=Logstash web-analytics pipeline
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=on-failure
+RestartSec=30
+ExecStartPre=-/usr/bin/docker stop logstash
+ExecStartPre=-/usr/bin/docker rm logstash
+ExecStart=/usr/bin/docker run --name logstash \\
+  --env AWS_REGION=${AWS_REGION} \\
+  --env S3_BUCKET_NAME=${S3_BUCKET_NAME} \\
+  --env OPENSEARCH_URL=https://${OPENSEARCH_ENDPOINT} \\
+  --env INDEX_PREFIX=${INDEX_PREFIX} \\
+  --env S3_CF_BUCKET_NAME=${S3_CF_BUCKET_NAME} \\
+  --env LS_SETTINGS_DIR=/usr/share/logstash/config \\
+  --volume /opt/logstash/config:/usr/share/logstash/config:ro \\
+  --volume /var/lib/logstash/sincedb:/var/lib/logstash/sincedb \\
+  docker.elastic.co/logstash/logstash:${LOGSTASH_VERSION}
+ExecStop=/usr/bin/docker stop logstash
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable logstash
+  echo "Service unit created"
+else
+  # Update endpoint in existing unit
   sed -i "s|OPENSEARCH_URL=https://[^ ]*|OPENSEARCH_URL=https://${OPENSEARCH_ENDPOINT}|" \
     "$SERVICE_UNIT"
   systemctl daemon-reload
