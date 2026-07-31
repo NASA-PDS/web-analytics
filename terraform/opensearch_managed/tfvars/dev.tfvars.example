@@ -1,9 +1,10 @@
-# Copy common.tfvars.example → common.tfvars and fill in managedby before running any task.
+# OpenSearch module dev values.
+# Note: common-dev.tfvars is NOT passed to this module — all values go here.
 
 venue     = "dev"
 managedby = "your-email@jpl.nasa.gov"
 
-domain_name   = "pds-dev-web-analytics"
+domain_name   = ""
 ebs_volume_gb = 100
 
 # Cluster sizing — dev uses minimal footprint, single-AZ, no dedicated masters
@@ -16,9 +17,9 @@ zone_awareness_enabled    = false
 
 # VPC — OpenSearch deployed inside the same VPC as Logstash EC2
 vpc_enabled           = true
-vpc_id                = ""   # e.g. vpc-02f8cc4962d6f8dc6
-vpc_subnet_ids        = []   # one private subnet ID e.g. ["subnet-07833269aab07a81f"]
-ec2_security_group_id = ""   # pdsmcp-dev-ec2-sg ID e.g. sg-00a7d140227528cf3
+vpc_id                = ""
+vpc_subnet_ids        = []
+ec2_security_group_id = ""
 
 # Full path to the access policy JSON file (copy from access_policy.json.example)
 policy_json_file = "access_policy.json"

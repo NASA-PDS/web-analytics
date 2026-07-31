@@ -1,15 +1,14 @@
 # Root-module dev values — module-specific only.
-# Shared infra values (partition, s3_bucket_prefix, etc.) are in common-infra-dev.tfvars.
-# Shared global values (aws_region, tenant, etc.) are in common.tfvars.
+# Shared values (aws_region, partition, s3_bucket_prefix, etc.) are in common-dev.tfvars.
 
 venue     = "dev"
 managedby = "your-email@jpl.nasa.gov"
 
 # TODO: replace with SSM lookup under /pds/cds-infra/vpc/id once published
-vpc_id = ""  # e.g. vpc-02f8cc4962d6f8dc6
+vpc_id = ""
 
 # TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published
-ec2_security_group_name = "pdsmcp-dev-ec2-sg"
+ec2_security_group_name = ""
 
 logstash_instance_type = "t3.large"
 logstash_version       = "8.17.0"

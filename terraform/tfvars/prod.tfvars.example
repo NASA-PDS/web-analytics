@@ -1,15 +1,14 @@
 # Root-module prod values — module-specific only.
-# Shared infra values (partition, s3_bucket_prefix, etc.) are in common-infra-prod.tfvars.
-# Shared global values (aws_region, tenant, etc.) are in common.tfvars.
+# Shared values (aws_region, partition, s3_bucket_prefix, etc.) are in common-prod.tfvars.
 
 venue     = "prod"
-managedby = "pdsoperator@jpl.nasa.gov"
+managedby = "your-team-distro@jpl.nasa.gov"
 
 # TODO: replace with SSM lookup under /pds/cds-infra/vpc/id once published
 vpc_id = ""
 
 # TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published
-ec2_security_group_name = "pdsmcp-prod-ec2-sg"
+ec2_security_group_name = ""
 
 logstash_instance_type = "t3.large"
 logstash_version       = "8.17.0"
