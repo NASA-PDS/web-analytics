@@ -160,78 +160,13 @@ curl -s "https://<opensearch-endpoint>/_cat/indices?v" \
 
 ### Step 6: Smoke test
 
-SSM into the EC2 and run all checks in one pass:
+SSM into the EC2 and run:
 
 ```bash
-python3.13 - <<'EOF'
-import boto3, json, sys
-from botocore.auth import SigV4Auth
-from botocore.awsrequest import AWSRequest
-import urllib.request, urllib.error
-
-REGION = 'us-west-2'
-session = boto3.Session(region_name=REGION)
-ssm = boto3.client('ssm', region_name=REGION)
-ok = True
-
-def check(label, fn):
-    global ok
-    try:
-        result = fn()
-        print(f'  PASS  {label}: {result}')
-    except Exception as e:
-        print(f'  FAIL  {label}: {e}')
-        ok = False
-
-# 1. S3 access
-S3_BUCKET = ssm.get_parameter(Name='/pds/web-analytics/s3/bucket_name')['Parameter']['Value']
-check('S3 bucket accessible',
-    lambda: boto3.client('s3', region_name=REGION).head_bucket(Bucket=S3_BUCKET) or S3_BUCKET)
-
-# 2. OpenSearch reachable (unsigned — expect 403, not a connection error)
-ENDPOINT = ssm.get_parameter(Name='/pds/web-analytics/opensearch_managed/opensearch_endpoint')['Parameter']['Value']
-def os_reachable():
-    try:
-        urllib.request.urlopen(f'https://{ENDPOINT}/_cluster/health', timeout=5)
-    except urllib.error.HTTPError as e:
-        if e.code == 403:
-            return f'reachable (403 unsigned, expected)'
-        raise
-check('OpenSearch reachable', os_reachable)
-
-# 3. OpenSearch auth (signed request)
-def os_auth():
-    creds = session.get_credentials().get_frozen_credentials()
-    url = f'https://{ENDPOINT}/_cluster/health'
-    req = AWSRequest(method='GET', url=url)
-    SigV4Auth(creds, 'es', REGION).add_auth(req)
-    r = urllib.request.urlopen(urllib.request.Request(url, headers=dict(req.headers)))
-    data = json.loads(r.read())
-    return f'status={data["status"]} nodes={data["number_of_nodes"]}'
-check('OpenSearch auth (SigV4)', os_auth)
-
-print()
-print('All checks passed.' if ok else 'One or more checks FAILED — see above.')
-sys.exit(0 if ok else 1)
-EOF
+bash /opt/web-analytics/scripts/smoke-test.sh
 ```
 
-**Expected output:**
-```
-  PASS  S3 bucket accessible: pds-dev-gh01dc-web-analytics
-  PASS  OpenSearch reachable: reachable (403 unsigned, expected)
-  PASS  OpenSearch auth (SigV4): status=yellow nodes=1
-
-All checks passed.
-```
-
-OpenSearch status `yellow` is normal for a single-node cluster (no replicas). `green` expected in prod.
-
-**Logstash service:**
-```bash
-systemctl is-active logstash
-journalctl -u logstash --no-pager -n 30
-```
+Checks S3 access, OpenSearch network reachability, OpenSearch SigV4 auth, and Logstash service status. OpenSearch `status=green` is expected; `yellow` is acceptable on a single-node dev cluster (no replicas).
 
 ---
 
