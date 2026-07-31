@@ -56,7 +56,7 @@ USER logstash
 #
 # Required env vars (set in ECS task definition, not baked in):
 #   S3_BUCKET_NAME   — S3 bucket containing log files
-#   AOSS_URL         — AWS OpenSearch Service endpoint
+#   OPENSEARCH_URL   — AWS OpenSearch Service endpoint
 #   INDEX_PREFIX     — OpenSearch index name prefix
 #   AWS_REGION       — AWS region (e.g. us-west-2)
 # -----------------------------------------------------------------------------

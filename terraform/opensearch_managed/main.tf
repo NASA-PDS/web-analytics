@@ -3,7 +3,7 @@ data "aws_caller_identity" "current" {}
 locals {
   access_policies      = jsondecode(file(var.policy_json_file))
   module_relative_path = replace(abspath(path.module), "/^.*\\/terraform\\//", "")
-  ssm_prefix           = "/pds/web-analytics/${local.module_relative_path}"
+  ssm_prefix           = "/pds/observability/${local.module_relative_path}"
 }
 
 # Security group for the OpenSearch domain VPC endpoint.

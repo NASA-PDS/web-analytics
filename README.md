@@ -57,86 +57,23 @@ See internal wiki for more detailed architecture.
 
 ## Prerequisites
 
-### System Requirements
-- **Operating System**: Linux/Unix (tested on CentOS 7.9, macOS)
-- **Python**: 3.12.x or higher (Crurrently we have 3.13 installed on MCP Dev and Prod EC2 instances)
-- **PDS User**: Ensure `pds4` user profile is installed on the EC2 instance. If not please work with SA team to get this deployed.
-- **Java**: OpenJDK 11 or higher (required for Logstash)
-- **Memory**: Minimum 4GB RAM (8GB+ recommended for production)
-- **Storage**: 10GB+ available disk space
+### Production deployment on AWS
 
-### AWS Infrastructure Setup
+See [`terraform/README.md`](terraform/README.md) for the full step-by-step deployment guide. Infrastructure runs on an MCP Amazon Linux 2023 EC2 with Logstash running in Docker via systemd. Access is via AWS Systems Manager (SSM) — no SSH keys or special EC2 users required.
 
-See [internal wiki](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)  for more details.
+### Local development and testing
 
-### SSH into EC2 instance using PDS4 user
+- **Python 3.13+** — for the s3-sync tool and unit tests
+- **Docker** — for running integration tests without a local Logstash install
+- **AWS credentials** — via `~/.aws/credentials`, environment variables, or IAM role
+- **envsubst** — for generating Logstash pipeline configs locally (part of `gettext`)
 
-See [internal wiki](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) for more details.
-
-#### 1. Python Virtual Environment
-``` bash
-# Check Python is set to right python. Must be either Python 3.12 or 3.13
-$ which python3
-/usr/local/python/3.13.7/bin/python3
-
-# If not, export right Python to PATH in startup
-$ echo "export PATH=/usr/local/python/3.13.7/bin:${PATH}" >> ~/.bash_profile
-$ source ~/.bash_profile
-$ which python3
-/usr/local/python/3.13.7/bin/python3
-
-# Create a virtual environment
-python3 -m venv venv
-
-# Activate the virtual environment
-# On Linux/macOS:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
-```
-
-#### 2. AWS Credentials (boto3)
-- You do **not** need the AWS CLI for S3 uploads, but you must have valid AWS credentials (via `~/.aws/credentials`, environment variables, or IAM role).
-- The `--aws-profile` argument or `AWS_PROFILE` environment variable can be used to select a profile.
-
-#### 3. Logstash
 ```bash
-# Download Logstash 8.x
-wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.0-linux-x86_64.tar.gz
-tar -xzf logstash-8.17.0-linux-x86_64.tar.gz
-ln -s $(pwd)/logstash-8.17.0 $(pwd)/logstash
-
-# Add to PATH
-echo 'export PATH="$(pwd)/logstash/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-
-# Verify installation
-logstash --version
-```
-
-We also need to install additional logstash plugins:
-```bash
-# Install tld opensearch plugins:
-
-logstash-plugin install logstash-filter-tld
-logstash-plugin install logstash-output-opensearch
-```
-
-#### 4. envsubst (for environment variable substitution)
-```bash
-# Verify if this is already installed
-envsubst --help
-
-# If note, install
-
-# On Ubuntu/Debian:
-sudo apt-get install gettext-base
-
-# On CentOS/RHEL:
-sudo yum install gettext
-
-# On macOS:
+# macOS
 brew install gettext
+
+# Amazon Linux / RHEL / CentOS
+sudo dnf install gettext
 ```
 
 ## Installation
@@ -164,50 +101,46 @@ pip install -e .
 **Note**: A legacy `environment.yml` file is provided for users who prefer conda, but the recommended approach is to use Python virtual environments with the package's setup.cfg configuration.
 
 ### 3. Configure Environment Variables
-Create a `.env` file in the repository root:
+
+Copy `.env.example` to `.env` and fill in values:
+
 ```bash
-# AWS Configuration
-export AWS_REGION=us-west-2
-export S3_BUCKET_NAME=your-pds-logs-bucket
-export AOSS_URL=https://your-opensearch-domain.us-west-2.es.amazonaws.com
-export INDEX_PREFIX=pds-web-analytics
-
-# Logstash Configuration
-export LS_SETTINGS_DIR=$(pwd)/config/logstash/config
-```
-*See internal wiki for details of how to populate this file*
-
-### 4. Set Up Logstash Configuration
-```bash
-cd $WEB_ANALYTICS_HOME
-
-# Source your config
-source .env
-
-# Run the configuration build script
-./scripts/logstash_build_config.sh
+cp .env.example .env
 ```
 
-This script will:
-- Copy the pipelines template and replace the env variables to `pipelines.yml`
-- Create individual pipeline configuration files for each PDS node
-- Combine input, filter, and output configurations automatically
+```ini
+S3_BUCKET_NAME=your-pds-logs-bucket
+S3_CF_BUCKET_NAME=               # CloudFront logs bucket (EN only); leave empty to skip
+OPENSEARCH_URL=https://your-opensearch-domain.us-west-2.es.amazonaws.com
+INDEX_PREFIX=pds-web-analytics
+AWS_REGION=us-west-2
+```
 
-#### 5. Set Up OpenSearch
+Then source it before running scripts locally:
 
-1. Log into AWS and navigate to the OpenSearch Dashboard → Dev Tools
-2. Check if template already exists (ecs-web-template):
+```bash
+set -a; source .env; set +a
+```
+
+### 4. Build Logstash Pipeline Configs (local only)
+
+On the EC2, `logstash-init.sh` does this automatically. For local dev:
+
+```bash
+set -a; source .env; set +a
+LS_SETTINGS_DIR=$(pwd)/config/logstash/config ./scripts/logstash_build_config.sh
+```
+
+This generates `config/logstash/config/pipelines.yml` and one `.conf` file per PDS node under `config/logstash/config/pipelines/`.
+
+#### 5. Apply the OpenSearch Index Template (manual/one-time)
+
+On the EC2, `logstash-init.sh` applies this automatically via the AWS CLI. To apply manually from the OpenSearch Dev Console:
+
 ```
 GET _cat/templates
-```
-3. If not, create the template:
-```
-PUT _index_template/ecs-web-template
-
-# copy-paste from https://github.com/NASA-PDS/web-analytics/tree/main/config/opensearch/ecs-8.17-custom-template.json
-```
-4. Verify success
-```
+PUT _index_template/pds-web-analytics
+# paste config/opensearch/ecs-8.17-custom-template.json
 GET _cat/templates
 ```
 
@@ -474,21 +407,27 @@ If a count is wrong, inspect the JSON files in `./output/` to understand which e
 
 ### Monitoring
 
-Check Logstash status and logs:
+**On the EC2 (via SSM):**
 
 ```bash
-# Check Logstash process
-ps aux | grep logstash
+# Logstash systemd service status
+sudo systemctl status logstash
 
-# Monitor nohup logs
-source $WEB_ANALYTICS_HOME/.env
-tail -f $OUTPUT_LOG
+# Live logs
+sudo journalctl -u logstash -f
 
-# Monitor logstash logs
-tail -f $LOGSTASH_HOME/logs/logstash-plain.log
+# Bad / unparseable logs written by the Logstash pipeline
+sudo tail -f /tmp/bad_logs_$(date +%Y-%m).txt
 
-# Monitor bad logs
-tail -f /tmp/bad_logs_$(date +%Y-%m).txt
+# Logstash init log (first-boot setup)
+sudo tail -f /var/log/logstash-init.log
+```
+
+**Verify data is flowing into OpenSearch:**
+
+```bash
+# From the EC2 — uses instance role credentials automatically
+bash /opt/web-analytics/scripts/smoke-test.sh
 ```
 
 ## Data Processing Overview
@@ -615,31 +554,33 @@ These hooks then will check for any future commits that might contain secrets. T
 
 ### Common Issues
 
-1. **Logstash won't start**
-   - Check Java installation: `java -version`
-   - Verify configuration syntax: `logstash -t -f config_file.conf`
-   - Check file permissions
+1. **Logstash container won't start**
+   - Check service status: `sudo systemctl status logstash`
+   - Check Docker logs: `sudo docker logs logstash`
+   - Check permissions on `/opt/logstash/config/`: container runs as UID 1000 and needs read access
+   - Verify pipeline configs were generated: `ls /opt/logstash/config/pipelines/`
+   - Re-run init if needed: `sudo REPO_BRANCH=main bash /opt/web-analytics/scripts/logstash-init.sh`
 
 2. **No data in OpenSearch**
-   - Verify AWS credentials and permissions
-   - Check S3 bucket access
-   - Review Logstash logs for errors
+   - Run smoke test: `bash /opt/web-analytics/scripts/smoke-test.sh`
+   - Check S3 sincedb is not stuck: `ls -la /var/lib/logstash/sincedb/`
+   - Check Logstash logs for S3 read errors: `sudo journalctl -u logstash -n 100`
 
 3. **High memory usage**
-   - Adjust `pipeline.batch.size` in `logstash.yml`
-   - Reduce `pipeline.workers` if needed
-   - Monitor system resources
+   - Adjust `pipeline.batch.size` in `config/logstash/config/logstash.yml`
+   - Reduce `pipeline.workers` if needed (default: 1)
 
 4. **Parse failures**
    - Check log format matches expected patterns
-   - Review bad logs file for specific issues
-   - Update grok patterns if needed
+   - Inspect bad logs: `sudo tail -f /tmp/bad_logs_$(date +%Y-%m).txt`
+   - Update grok patterns in `config/logstash/config/shared/pds-filter.conf`
 
 ### Log Locations
 
-- **Logstash logs**: `/var/log/logstash/`
-- **Bad logs**: `/tmp/bad_logs_YYYY-MM.txt`
-- **Test output**: `target/test/`
+- **Logstash service logs**: `sudo journalctl -u logstash`
+- **Logstash init log**: `/var/log/logstash-init.log`
+- **Bad / unparseable logs**: `/tmp/bad_logs_YYYY-MM.txt` (inside the EC2)
+- **Test output**: `./output/` (Docker integration tests)
 
 ### Performance Tuning
 

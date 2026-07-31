@@ -79,3 +79,9 @@ variable "logstash_version" {
   type        = string
   default     = "8.17.0"
 }
+
+variable "s3_cf_bucket_name" {
+  description = "Name of the S3 bucket containing CloudFront access logs (EN node only). Leave empty to skip CloudFront log ingestion."
+  type        = string
+  default     = ""
+}

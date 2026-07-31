@@ -33,8 +33,9 @@ ExecStartPre=-/usr/bin/docker rm logstash
 ExecStart=/usr/bin/docker run --name logstash \
   --env AWS_REGION=${aws_region} \
   --env S3_BUCKET_NAME=${s3_bucket_name} \
-  --env AOSS_URL=${opensearch_endpoint} \
+  --env OPENSEARCH_URL=https://${opensearch_endpoint} \
   --env INDEX_PREFIX=${index_prefix} \
+  --env S3_CF_BUCKET_NAME=${s3_cf_bucket_name} \
   --env LS_SETTINGS_DIR=/usr/share/logstash/config \
   --volume /opt/logstash/config:/usr/share/logstash/config:ro \
   --volume /var/lib/logstash/sincedb:/var/lib/logstash/sincedb \

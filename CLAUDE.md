@@ -120,7 +120,7 @@ The Logstash configuration uses a **modular template system**:
 
 **Environment Variables** (defined in `.env` file):
 - `S3_BUCKET_NAME`: S3 bucket for log storage
-- `AOSS_URL`: OpenSearch endpoint URL
+- `OPENSEARCH_URL`: OpenSearch endpoint URL
 - `INDEX_PREFIX`: Prefix for OpenSearch indices
 - `LS_SETTINGS_DIR`: Path to Logstash config directory
 - `AWS_REGION`, `AWS_PROFILE`: AWS configuration

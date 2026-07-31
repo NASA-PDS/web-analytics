@@ -124,7 +124,7 @@ task ec2:deploy VENUE=dev
 
 On **new EC2 deployments**, the userdata script runs `logstash-init.sh` automatically at first boot.
 
-For an **already-running EC2**, SSM in and run the init script manually:
+For an **already-running EC2** (e.g., after recreating the OpenSearch domain), SSM in and re-run the init script:
 
 ```bash
 # SSM into the EC2
@@ -133,27 +133,31 @@ aws ssm start-session \
     --name /pds/web-analytics/ec2/logstash_instance_id \
     --query Parameter.Value --output text)
 
-# On the EC2
-sudo REPO_BRANCH=main bash /opt/web-analytics/scripts/logstash-init.sh
+# On the EC2 — fetch the latest init script directly from GitHub and run it.
+# The script clones (or updates) the full repo itself.
+sudo bash <(curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh)
 ```
 
 The script will:
 1. Clone/update the web-analytics repo to `/opt/web-analytics`
 2. Copy Logstash pipeline config to `/opt/logstash/config`
-3. Apply the OpenSearch ECS index template
-4. Start the Logstash systemd service
+3. Build `pipelines.yml` and `pipelines/*.conf` from templates
+4. Apply the OpenSearch ECS index template to the new domain
+5. Update `/etc/systemd/system/logstash.service` with the current OpenSearch endpoint from SSM
+6. Restart the Logstash systemd service
+
+> **Sincedb (S3 read position):** If you are re-pointing to a brand-new OpenSearch index and want to re-ingest all S3 logs from scratch, reset the sincedb before restarting:
+> ```bash
+> sudo systemctl stop logstash
+> sudo rm -f /var/lib/logstash/sincedb/*
+> # then re-run init.sh, or just restart if init already ran:
+> sudo systemctl restart logstash
+> ```
+> Leave sincedb intact if you only want to process new S3 objects going forward.
 
 **Tail logs:**
 ```bash
 sudo journalctl -u logstash -f
-```
-
-**Verify data is flowing:**
-```bash
-eval $(aws configure export-credentials --format env)
-curl -s "https://<opensearch-endpoint>/_cat/indices?v" \
-  --aws-sigv4 "aws:amz:us-west-2:es" \
-  --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}"
 ```
 
 ---

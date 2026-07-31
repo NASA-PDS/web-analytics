@@ -21,7 +21,7 @@ REPO_BRANCH="${REPO_BRANCH:-main}"
 REPO_DIR="/opt/web-analytics"
 LOGSTASH_CONFIG_DIR="/opt/logstash/config"
 OPENSEARCH_ENDPOINT="${OPENSEARCH_ENDPOINT:-$(aws ssm get-parameter \
-  --name /pds/web-analytics/opensearch_managed/opensearch_endpoint \
+  --name /pds/observability/opensearch_managed/opensearch_endpoint \
   --query Parameter.Value --output text)}"
 
 echo "=== web-analytics Logstash init ==="
@@ -33,7 +33,7 @@ echo ""
 # 1. Clone or update the repo
 # ----------------------------------------
 echo "--- Cloning web-analytics repo ---"
-dnf install -y git --quiet
+dnf install -y git gettext --quiet
 
 if [ -d "$REPO_DIR/.git" ]; then
   echo "Repo already exists — pulling latest $REPO_BRANCH"
@@ -53,6 +53,26 @@ echo "--- Deploying Logstash pipeline config ---"
 mkdir -p "$LOGSTASH_CONFIG_DIR"
 cp -r "$REPO_DIR/config/logstash/config/"* "$LOGSTASH_CONFIG_DIR/"
 echo "Config deployed to $LOGSTASH_CONFIG_DIR"
+
+# ----------------------------------------
+# 2b. Build Logstash pipeline configs
+# ----------------------------------------
+echo "--- Building Logstash pipeline configs ---"
+
+# Generate pipeline .conf files by concatenating input + filter + output per node.
+# Use the host path for file I/O, then overwrite pipelines.yml with the container-internal
+# path so Logstash can find them at /usr/share/logstash/config/pipelines/*.conf.
+LS_SETTINGS_DIR="$LOGSTASH_CONFIG_DIR" \
+  bash "$REPO_DIR/scripts/logstash_build_config.sh"
+
+LS_SETTINGS_DIR="/usr/share/logstash/config" \
+  envsubst < "$LOGSTASH_CONFIG_DIR/pipelines.yml.template" \
+  > "$LOGSTASH_CONFIG_DIR/pipelines.yml"
+echo "pipelines.yml generated with container path /usr/share/logstash/config"
+
+# Make all config files readable by the Logstash container (UID 1000)
+chmod -R a+rX "$LOGSTASH_CONFIG_DIR"
+echo "Permissions set on $LOGSTASH_CONFIG_DIR"
 
 # ----------------------------------------
 # 3. Apply OpenSearch index template
@@ -78,10 +98,21 @@ else
 fi
 
 # ----------------------------------------
-# 4. Start Logstash
+# 4. Update service unit with current endpoint and start Logstash
 # ----------------------------------------
+echo "--- Updating Logstash service unit ---"
+# Overwrite the OPENSEARCH_URL in the systemd unit so re-runs pick up a new
+# OpenSearch domain without needing to redeploy the EC2.
+SERVICE_UNIT="/etc/systemd/system/logstash.service"
+if [ -f "$SERVICE_UNIT" ]; then
+  sed -i "s|OPENSEARCH_URL=https://[^ ]*|OPENSEARCH_URL=https://${OPENSEARCH_ENDPOINT}|" \
+    "$SERVICE_UNIT"
+  systemctl daemon-reload
+  echo "Service unit updated with endpoint: $OPENSEARCH_ENDPOINT"
+fi
+
 echo "--- Starting Logstash ---"
-systemctl start logstash
+systemctl restart logstash
 systemctl status logstash --no-pager
 
 echo ""

@@ -49,11 +49,11 @@ data "aws_subnets" "private" {
 }
 
 data "aws_ssm_parameter" "opensearch_endpoint" {
-  name = "/pds/web-analytics/opensearch_managed/opensearch_endpoint"
+  name = "/pds/observability/opensearch_managed/opensearch_endpoint"
 }
 
 locals {
-  ec2_name = "${local.resource_prefix}-web-analytics-logstash"
+  ec2_name = "${local.resource_prefix}-observability"
   logstash_tags = {
     tenant    = var.tenant
     venue     = var.venue
@@ -95,6 +95,7 @@ resource "aws_launch_template" "logstash" {
     s3_bucket_name      = local.s3_bucket_name
     opensearch_endpoint = data.aws_ssm_parameter.opensearch_endpoint.value
     index_prefix        = local.resource_prefix
+    s3_cf_bucket_name   = var.s3_cf_bucket_name
   }))
 
   tag_specifications {
