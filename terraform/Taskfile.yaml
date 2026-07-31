@@ -80,6 +80,7 @@ tasks:
             - terraform plan -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
               -target=module.s3_bucket
               -target=aws_s3_bucket_lifecycle_configuration.lifecycle
+              -target=aws_ssm_parameter.s3_bucket_name
               {{.CLI_ARGS}}
 
     s3:deploy:
@@ -95,6 +96,7 @@ tasks:
             - terraform apply -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
               -target=module.s3_bucket
               -target=aws_s3_bucket_lifecycle_configuration.lifecycle
+              -target=aws_ssm_parameter.s3_bucket_name
               {{.CLI_ARGS}}
 
     # ------------------------------------------------------------------
