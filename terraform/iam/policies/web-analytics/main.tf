@@ -1,7 +1,7 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  s3_bucket_name = "${var.pds_resource_prefix}-web-analytics"
+  s3_bucket_name = "${var.s3_bucket_prefix}-web-analytics"
 }
 
 data "aws_iam_policy_document" "ec2_web_analytics_access" {
@@ -33,7 +33,7 @@ data "aws_iam_policy_document" "ec2_web_analytics_access" {
 }
 
 resource "aws_iam_policy" "ec2_web_analytics_access" {
-  name        = "${local.s3_bucket_name}-access-policy"
+  name        = "${var.resource_prefix}-web-analytics-access-policy"
   description = "Allow EC2 role to read from ${local.s3_bucket_name} and write to OpenSearch domain ${var.opensearch_domain_name}"
   policy      = data.aws_iam_policy_document.ec2_web_analytics_access.json
   tags        = var.common_tags

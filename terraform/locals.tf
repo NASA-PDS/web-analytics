@@ -1,4 +1,4 @@
 locals {
-  s3_bucket_name  = "${var.pds_resource_prefix}-web-analytics"
-  ec2_name_prefix = var.ec2_name_prefix != "" ? var.ec2_name_prefix : "pds-${var.venue}"
+  s3_bucket_name  = "${var.s3_bucket_prefix}-web-analytics"
+  resource_prefix = var.resource_prefix != "" ? var.resource_prefix : "pds-${var.venue}"
 }

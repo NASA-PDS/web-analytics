@@ -53,7 +53,7 @@ data "aws_ssm_parameter" "opensearch_endpoint" {
 }
 
 locals {
-  ec2_name = "${local.ec2_name_prefix}-web-analytics-logstash"
+  ec2_name = "${local.resource_prefix}-web-analytics-logstash"
   logstash_tags = {
     tenant    = var.tenant
     venue     = var.venue
@@ -94,7 +94,7 @@ resource "aws_launch_template" "logstash" {
     aws_region          = var.aws_region
     s3_bucket_name      = local.s3_bucket_name
     opensearch_endpoint = data.aws_ssm_parameter.opensearch_endpoint.value
-    index_prefix        = var.pds_resource_prefix
+    index_prefix        = local.resource_prefix
   }))
 
   tag_specifications {

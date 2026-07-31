@@ -1,0 +1,33 @@
+domain_name   = "pds-dev-web-analytics"
+ebs_volume_gb = 100
+
+# Cluster sizing - dev uses minimal footprint, single-AZ, no dedicated masters
+data_node_instance_type   = "t3.medium.search"
+data_node_count           = 1
+master_node_instance_type = "t3.medium.search"
+master_node_count         = 3
+dedicated_master_enabled  = false
+zone_awareness_enabled    = false
+
+# VPC - OpenSearch deployed inside the same VPC as Logstash EC2
+vpc_enabled           = true
+vpc_id                = ""   # e.g. vpc-02f8cc4962d6f8dc6
+vpc_subnet_ids        = []   # one private subnet ID e.g. ["subnet-07833269aab07a81f"]
+ec2_security_group_id = ""   # pdsmcp-dev-ec2-sg ID e.g. sg-00a7d140227528cf3
+
+# Tags
+venue     = "dev"
+tenant    = "en"
+component = "web-analytics"
+cicd      = "terraform"
+managedby = "your-email@jpl.nasa.gov"
+
+# Full path to the access policy JSON file (copy from access_policy.json.example)
+policy_json_file = "access_policy.json"
+
+# IAM role ARN for OpenSearch FGAC master user (SSO Power-User role ARN)
+# Run: aws iam list-roles --query "Roles[?contains(RoleName,'Power-User')].Arn"
+opensearch_master_user_arn = ""
+
+# OpenSearch engine version
+engine_version = "OpenSearch_2.19"

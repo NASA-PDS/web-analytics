@@ -15,7 +15,8 @@ module "web_analytics" {
 
   aws_region             = var.aws_region
   partition              = var.partition
-  pds_resource_prefix    = var.pds_resource_prefix
+  s3_bucket_prefix       = var.s3_bucket_prefix
+  resource_prefix        = var.resource_prefix
   ec2_role_name          = var.ec2_role_name
   opensearch_domain_name = var.opensearch_domain_name
   common_tags            = local.common_tags

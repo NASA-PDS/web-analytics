@@ -8,9 +8,14 @@ variable "partition" {
   default = "aws"
 }
 
-variable "pds_resource_prefix" {
+variable "s3_bucket_prefix" {
   type        = string
-  description = "PDS resource prefix (e.g. pds-dev-gh01dc)"
+  description = "Prefix for the S3 bucket name (e.g. pds-dev-gh01dc). Must match deployed bucket."
+}
+
+variable "resource_prefix" {
+  type        = string
+  description = "Prefix for IAM policy names and all non-S3 resources (e.g. pds-dev)."
 }
 
 variable "ec2_role_name" {

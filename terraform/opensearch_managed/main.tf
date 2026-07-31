@@ -113,19 +113,19 @@ data "aws_iam_policy_document" "domain_access_policy" {
       actions = statement.value.Action
       resources = [
         for resource in statement.value.Resource :
+        replace(
           replace(
-            replace(
-              replace(resource, "{account_id}", data.aws_caller_identity.current.account_id),
-              "{region}", var.aws_region
-            ),
-            "{domain_name}", var.domain_name
-          )
+            replace(resource, "{account_id}", data.aws_caller_identity.current.account_id),
+            "{region}", var.aws_region
+          ),
+          "{domain_name}", var.domain_name
+        )
       ]
       principals {
         type = "AWS"
         identifiers = [
           for principal in statement.value.Principal :
-            replace(principal, "{account_id}", data.aws_caller_identity.current.account_id)
+          replace(principal, "{account_id}", data.aws_caller_identity.current.account_id)
         ]
       }
     }

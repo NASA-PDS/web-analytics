@@ -1,0 +1,22 @@
+aws_region             = "us-west-2"
+s3_bucket_prefix       = "pds-dev-gh01dc"  # S3 bucket name only — may include CI/CD identifiers for existing buckets
+resource_prefix        = "pds-dev"         # prefix for all non-S3 resources (EC2, launch template, IAM policy)
+ec2_role_name          = "pds-mcp-ec2-instance-role"
+opensearch_domain_name = "pds-dev-web-analytics"
+partition              = "aws"
+
+# TODO: replace with SSM lookup under /pds/cds-infra/vpc/id once published
+vpc_id                  = ""  # e.g. vpc-02f8cc4962d6f8dc6
+
+# TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published
+ec2_security_group_name = "pdsmcp-dev-ec2-sg"
+
+logstash_instance_type = "t3.large"
+logstash_version       = "8.17.0"
+
+# Tags
+tenant    = "en"
+venue     = "dev"
+component = "web-analytics"
+cicd      = "terraform"
+managedby = "your-email@jpl.nasa.gov"

@@ -35,8 +35,8 @@ variable "partition" {
   default     = "aws"
 }
 
-variable "pds_resource_prefix" {
-  description = "PDS Resource prefix for Terrafrom Resources"
+variable "s3_bucket_prefix" {
+  description = "Prefix for the S3 bucket name only (e.g. pds-dev-gh01dc). May include CI/CD pipeline identifiers for existing buckets."
   type        = string
 }
 
@@ -62,8 +62,8 @@ variable "ec2_security_group_name" {
   default     = "pdsmcp-dev-ec2-sg"
 }
 
-variable "ec2_name_prefix" {
-  description = "Name prefix for the Logstash EC2 and launch template. Excludes CI/CD pipeline identifiers like gh01dc."
+variable "resource_prefix" {
+  description = "Prefix for all resources except S3 (e.g. pds-dev). No CI/CD pipeline identifiers."
   type        = string
   default     = ""
 }
@@ -79,4 +79,3 @@ variable "logstash_version" {
   type        = string
   default     = "8.17.0"
 }
-

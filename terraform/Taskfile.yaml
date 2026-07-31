@@ -84,7 +84,7 @@ tasks:
 
     s3:deploy:
         desc: "Deploy S3 bucket and lifecycle policy"
-        aliases: [s3:apply]
+        aliases: ["s3:apply"]
         deps: [validate]
         dir: '{{.USER_WORKING_DIR}}'
         requires:
@@ -120,7 +120,7 @@ tasks:
 
     ec2:deploy:
         desc: "Deploy Logstash EC2 instance (requires admin — iam:PassRole)"
-        aliases: [ec2:apply]
+        aliases: ["ec2:apply"]
         deps: [validate]
         dir: '{{.USER_WORKING_DIR}}'
         requires:
@@ -210,7 +210,7 @@ tasks:
 
     iam:plan:
         desc: "Plan IAM policy changes (requires iam:CreatePolicy permissions)"
-        deps: [iam:init]
+        deps: ["iam:init"]
         dir: iam/policies
         requires:
             vars:
@@ -221,8 +221,8 @@ tasks:
 
     iam:deploy:
         desc: "Deploy IAM policies and role attachments (requires admin role)"
-        aliases: [iam:apply]
-        deps: [iam:validate]
+        aliases: ["iam:apply"]
+        deps: ["iam:validate"]
         dir: iam/policies
         requires:
             vars:
@@ -267,7 +267,7 @@ tasks:
 
     opensearch:plan:
         desc: "Plan OpenSearch domain changes"
-        deps: [opensearch:init]
+        deps: ["opensearch:init"]
         dir: opensearch_managed
         requires:
             vars:
@@ -282,8 +282,8 @@ tasks:
             Applies the opensearch_managed module. Domain creation takes ~15-20 minutes.
             After apply, the endpoint is published to SSM at
             /pds/web-analytics/opensearch_managed/opensearch_endpoint.
-        deps: [opensearch:validate]
-        aliases: [opensearch:apply]
+        deps: ["opensearch:validate"]
+        aliases: ["opensearch:apply"]
         dir: opensearch_managed
         requires:
             vars:
@@ -304,7 +304,7 @@ tasks:
 
     opensearch:show:
         desc: "Show OpenSearch domain Terraform state"
-        deps: [opensearch:init]
+        deps: ["opensearch:init"]
         dir: opensearch_managed
         requires:
             vars:
