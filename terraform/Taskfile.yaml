@@ -325,7 +325,7 @@ tasks:
         cmds:
             - |
               aws ssm get-parameter \
-                --name /pds/web-analytics/opensearch_managed/opensearch_endpoint \
+                --name /pds/observability/opensearch_managed/opensearch_endpoint \
                 --query Parameter.Value \
                 --output text
 
