@@ -3,6 +3,7 @@
 venue     = "dev"
 managedby = "your-email@jpl.nasa.gov"
 
+partition              = "aws"
 s3_bucket_prefix       = "pds-dev-gh01dc"  # S3 bucket name only — may include CI/CD identifiers for existing buckets
 resource_prefix        = "pds-dev"         # prefix for all non-S3 resources (EC2, launch template, IAM policy)
 ec2_role_name          = "pds-mcp-ec2-instance-role"

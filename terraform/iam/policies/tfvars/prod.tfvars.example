@@ -3,6 +3,7 @@
 venue     = "prod"
 managedby = "pdsoperator@jpl.nasa.gov"
 
+partition              = "aws"
 s3_bucket_prefix       = "pds-prod-gh01dc"
 resource_prefix        = "pds-prod"
 ec2_role_name          = "pdsmcp-cds-prod-deploy-instance-profile"
