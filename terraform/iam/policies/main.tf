@@ -1,0 +1,22 @@
+data "aws_caller_identity" "current" {}
+
+locals {
+  common_tags = {
+    venue     = var.venue
+    tenant    = var.tenant
+    component = var.component
+    managedby = var.managedby
+    cicd      = var.cicd
+  }
+}
+
+module "web_analytics" {
+  source = "./web-analytics"
+
+  aws_region             = var.aws_region
+  partition              = var.partition
+  pds_resource_prefix    = var.pds_resource_prefix
+  ec2_role_name          = var.ec2_role_name
+  opensearch_domain_name = var.opensearch_domain_name
+  common_tags            = local.common_tags
+}

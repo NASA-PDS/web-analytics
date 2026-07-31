@@ -4,12 +4,6 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "vpc_id" {
-  description = "VPC ID"
-  type        = string
-  sensitive   = true
-}
-
 variable "tenant" {
   description = "Tag value for Tenant"
   type        = string
@@ -30,7 +24,7 @@ variable "component" {
   type        = string
 }
 
-variable "createdBy" {
+variable "managedby" {
   description = "Tag value for owner managing the resource (E.g. for PDS Team we have PDS Team Email Distro)"
   type        = string
 }
@@ -51,11 +45,38 @@ variable "ec2_role_name" {
   type        = string
 }
 
-variable "aoss_collection_name" {
-  description = "Exiting PDS OpenSearch Serverless collection name"
+variable "opensearch_domain_name" {
+  description = "Name of the managed OpenSearch domain"
   type        = string
 }
 
-locals {
-  s3_bucket_name = "${var.pds_resource_prefix}-web-analytics"
+variable "vpc_id" {
+  description = "VPC ID for the Logstash EC2 and security group lookup. TODO: replace with SSM data source under /pds/cds-infra/vpc/id once published."
+  type        = string
+  sensitive   = true
 }
+
+variable "ec2_security_group_name" {
+  description = "Name of the existing MCP EC2 security group to attach to the Logstash instance. TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published."
+  type        = string
+  default     = "pdsmcp-dev-ec2-sg"
+}
+
+variable "ec2_name_prefix" {
+  description = "Name prefix for the Logstash EC2 and launch template. Excludes CI/CD pipeline identifiers like gh01dc."
+  type        = string
+  default     = ""
+}
+
+variable "logstash_instance_type" {
+  description = "EC2 instance type for the Logstash instance. t3.large provides 8GB RAM, sufficient for a 4GB JVM heap."
+  type        = string
+  default     = "t3.large"
+}
+
+variable "logstash_version" {
+  description = "Logstash Docker image version tag"
+  type        = string
+  default     = "8.17.0"
+}
+

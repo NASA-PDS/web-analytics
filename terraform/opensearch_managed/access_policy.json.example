@@ -1,0 +1,26 @@
+[
+  {
+    "Sid": "AllowEC2RoleAndTenantOperator",
+    "Effect": "Allow",
+    "Principal": [
+      "arn:aws:iam::{account_id}:role/mcp-tenantOperator",
+      "arn:aws:iam::{account_id}:role/<your-ec2-instance-role-name>"
+    ],
+    "Action": ["es:*"],
+    "Resource": [
+      "arn:aws:es:{region}:{account_id}:domain/{domain_name}",
+      "arn:aws:es:{region}:{account_id}:domain/{domain_name}/*"
+    ]
+  },
+  {
+    "Sid": "AllowLogstashSigV4",
+    "Effect": "Allow",
+    "Principal": [
+      "arn:aws:iam::{account_id}:role/<your-ec2-instance-role-name>"
+    ],
+    "Action": ["es:ESHttp*"],
+    "Resource": [
+      "arn:aws:es:{region}:{account_id}:domain/{domain_name}/*"
+    ]
+  }
+]

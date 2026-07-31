@@ -1,134 +1,234 @@
-# PDS Web Analytics Infrastructure
+# PDS Web Analytics — Terraform
 
-This Terraform module sets up infrastructure to ingest web analytics logs into OpenSearch Serverless using Logstash on an EC2 instance. The architecture and Web Analytics Tools installation steps can be found [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
+Deploys the infrastructure for the PDS Web Analytics pipeline:
 
----
+- **S3 bucket** — log storage with versioning, SSE, and Intelligent-Tiering
+- **IAM policy** — grants the Logstash EC2 role read access to S3 and write access to OpenSearch (admin-only)
+- **Logstash EC2** — MCP Amazon Linux 2023 instance running Logstash in Docker via systemd
+- **Managed OpenSearch domain** — stores and indexes log data; deployed inside the VPC, accessible via OpenSearch UI (AWS-hosted) with IAM Identity Center
+- **OpenSearch index templates** — ECS v8 field mappings applied to the domain from within the VPC
 
-## 📦 What This Deploys
+Modules must be applied in order. IAM requires elevated permissions and is managed separately.
 
-- S3 bucket with:
-  - Versioning
-  - 30-day expiration lifecycle
-  - Secure bucket policy
-- S3 Bucket policy:
-  - Full access for `mcp-tenantOperator`
-  - Deny unencrypted (non-HTTPS) requests
-- **Note** : AOSS (OpenSearch Serverless) collection, IAM instance profile and EC2 have already been deployed. Please view the following [Document](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) to see the name of the resources that have already been configured.
+```
+terraform/
+  ├── iam/
+  │     └── policies/
+  │           └── web-analytics/  # IAM policy definition (submodule)
+  │           role_attachments.tf # Role → policy attachment     → admin only
+  ├── opensearch_managed/         # OpenSearch domain            → Step 1 (~15-20 min)
+  └── (root)                      # S3 (Step 2) + EC2 (Step 4, admin only)
+```
+> Index templates are applied via curl from the Logstash EC2 — see Step 5.
 
 ---
 
 ## Prerequisites
 
-- [Terraform](https://developer.hashicorp.com/terraform/downloads)
-- AWS CLI configured
-- Access to:
-  - EC2 instance running Logstash
-  - OpenSearch Serverless Console
-  - IAM permissions to attach roles and update policies
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
+- [Task](https://taskfile.dev) — `brew install go-task/tap/go-task`
+- AWS CLI configured with a profile that has permissions to create EC2, S3, OpenSearch, IAM, and SSM resources
+- `access_policy.json` created from `opensearch_managed/access_policy.json.example` with real role names filled in (see Chunk 2 below)
 
 ---
 
-## Step 1 – Create `terraform.tfvars`
+## Setup
 
-**NOTE**: `.tfvars` does not get commited to github.
+### 1. Configure AWS credentials
 
-Create a file named `terraform.tfvars` in the root folder as per the env configurations provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform). Below is an EXAMPLE of what your `terraform.tfvars` should look like however the values will be different based on the which env you're deploying to. It's documented in the link above.
-
-```hcl
-tenant               = "tenant"
-cicd                 = "cicd_value"
-venue                = "venue_name"
-component            = "Storage"
-createdBy            = "test-email@nasa.gov"
-vpc_id               = "vpc-12ab34dc56ef
-pds_resource_prefix  = "resournce_prefix"
+```bash
+export AWS_PROFILE=<your-profile>
+export AWS_DEFAULT_REGION=us-west-2
+task aws    # confirms credentials are working
 ```
 
-## Step 2 – Edit `backend.tfvars`
+### 2. Review and fill in tfvars
 
-Edit `backend.tf` in the root folder as per the env configurations provided [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform). Below is an EXAMPLE of what your `backend.tf` should look like however the values will be different based on the which env you're deploying to. It's documented in the link above.
-
-```hcl
-terraform {
-  backend "s3" {
-    bucket = "bucket-name"
-    key    = "key_name/some_state.tfstate"
-    region = "us-west-2"
-  }
-}
-```
-## Step 3 – Deploy the Infrastructure
-
-Run the following :
+Each module has a `tfvars/` directory. The files are gitignored — never commit real values.
 
 ```
-terraform init
-terraform validate
-terraform plan -var-file=terraform.tfvars
-terraform apply -var-file=terraform.tfvars
-```
-After applying, Terraform will output key values such as:
-- S3 bucket name
-- S3 bucket ARN
-
-## Step 4 (Manual) - Verify EC2 IAM Role (Manual Check)
-
-Ensure your EC2 instance is using the correct IAM role and instance profile:
-
-- Role Name: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
-- Instance Profile: [HERE](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
-
-You can verify this in the EC2 Console or CLI.
-
-To attach manually using AWS CLI(if needed):
-
-```
-aws ec2 associate-iam-instance-profile \
-  --instance-id <your-instance-id> \
-  --iam-instance-profile Name=<ec2_instance_profile>
+terraform/iam/policies/tfvars/dev.tfvars
+terraform/tfvars/dev.tfvars
+terraform/opensearch_managed/tfvars/dev.tfvars
 ```
 
-Via Console ...
+Sensitive values that must be filled in before deploying:
 
-1. Go to EC2 Console
-2. Select your instance
-3. Click Actions > Security > Modify IAM Role
-4. Attach the EC2 instance profile created
+| File | Variable | Notes |
+|---|---|---|
+| `opensearch_managed/tfvars/dev.tfvars` | `opensearch_master_user_arn` | IAM role ARN for OpenSearch FGAC master (SSO Power-User role ARN) |
+| `opensearch_managed/tfvars/dev.tfvars` | `engine_version` | Defaults to `OpenSearch_2.19` |
+| `opensearch_managed/tfvars/dev.tfvars` | `policy_json_file` | Path to your filled-in `access_policy.json` |
+| `pdc-cds-infra` cloudfront tfvars | `web_analytics_ec2_role_arn` | ARN of the Logstash EC2 IAM role |
 
-## Step 5 (Manual) - Add IAM Intance Profile to OpenSearch Serverless
+---
 
-1. Go to AWS Console > Amazon OpenSearch Serverless
+## Deployment — step by step
 
-2. Select the collection: [Collection Name](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
-3. Open the Data Access Policy within the collection above
-4. Locate the correct rule where you want to add your EC2 profile permissions
-5. Add this principal:
-   ```
-   arn:aws:iam::<your-account-id>:role/ec2_instance_profile
-   ```
-*Note*: The `ec2_instance_profile` name is documented [Instance Profile](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)
-6. Click Save
+> **Permission requirements:**
+> - `Project-Power-User`: can run S3 and OpenSearch steps
+> - **System administrator required** for: `iam:deploy` and `ec2:deploy` (needs `iam:CreatePolicy` and `iam:PassRole`)
 
-## Step 6 (Manual) - Install Web Analytics Components and Update LogStash Configuration
+---
 
-1. SSH into your EC2 instance where you have both logstash and Web Analytics Components installed.
+### Step 1: OpenSearch domain — Power-User (~15-20 min)
 
-The directions to install Web Analytics Tools and Logstash are provided [HERE](https://github.com/NASA-PDS/web-analytics/blob/main/README.md)
+```bash
+cd terraform/
 
-**Note**: For Dev and Prod environments we already have these [EC2 Instances](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) that have both LogStash and Web Analytics Tools installed.
+# Create your access policy file from the example
+cp opensearch_managed/access_policy.json.example opensearch_managed/access_policy.json
+# Edit access_policy.json — replace <your-ec2-instance-role-name> with the real role name
 
-2. Follow steps provided on how to [Load Logs to S3 from PDS Reports](https://wiki.jpl.nasa.gov/display/PDSEN/ETL+Process+for+Web+Logs#ETLProcessforWebLogs-SyncLogstoS3).
-
-*Restart LogStash*
-
-```
-sudo systemctl restart logstash
+task opensearch:init   VENUE=dev
+task opensearch:plan   VENUE=dev
+task opensearch:deploy VENUE=dev   # ~15-20 min
+task opensearch:endpoint VENUE=dev  # confirm endpoint in SSM
 ```
 
-## Step 7 (Manual) - Web Analytics Dashboard Validation
+---
 
-Once Logs have been updated to PDS Web Analytics S3 bucket and Logstash has been restarted, you should now we able to access the **Web Analytics Dashboard** in Amazon OpenSearch Collection.
+### Step 2: S3 bucket — Power-User
 
-Access OpenSearch Collection > Dashboards > Web Analytics Dashboard
+```bash
+task s3:plan   VENUE=dev
+task s3:deploy VENUE=dev
+```
 
-You should see log data being populated successfully.
+---
+
+### Step 3: IAM policies — admin only
+
+> Requires `iam:CreatePolicy` and `iam:AttachRolePolicy`. Must be run by a system administrator.
+
+```bash
+task iam:plan   VENUE=dev
+task iam:deploy VENUE=dev
+```
+
+---
+
+### Step 4: EC2 Logstash instance — admin only
+
+> Requires `iam:PassRole`. Must be run by a system administrator.
+> Depends on Step 1 (OpenSearch endpoint in SSM) and Step 3 (IAM policy attached).
+
+```bash
+task ec2:plan   VENUE=dev
+task ec2:deploy VENUE=dev
+```
+
+---
+
+### Step 5: Index template — run from Logstash EC2
+
+The OpenSearch domain is VPC-only — the template must be applied from inside the VPC.
+SSM into the EC2 after Step 4, then:
+
+```bash
+aws ssm start-session \
+  --target $(aws ssm get-parameter \
+    --name /pds/web-analytics/ec2/logstash_instance_id \
+    --query Parameter.Value --output text)
+
+# On the EC2:
+curl -X PUT "https://<opensearch-endpoint>/_index_template/pds-web-analytics" \
+  -H 'Content-Type: application/json' \
+  --aws-sigv4 "aws:amz:us-west-2:es" \
+  --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+  -d @/opt/logstash/config/opensearch/ecs-8.17-custom-template.json
+```
+
+> **Visualization:** Use the AWS-hosted [OpenSearch UI](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/application.html)
+> with IAM Identity Center. OpenSearch Dashboards is not used — the domain has no public endpoint.
+>
+> TODO: document OpenSearch UI application setup.
+
+---
+
+### pdc-cds-infra: grant Logstash read access to the CloudFront logs bucket
+
+This must be applied in the `pdc-cds-infra` repo before the EC2 can read CloudFront logs.
+
+```bash
+cd pdc-cds-infra/terraform/cloudfront/pds-main/
+
+# Fill in tfvars/dev.tfvars:
+#   web_analytics_ec2_role_arn = "arn:aws:iam::<account>:role/<role-name>"
+
+task init   VENUE=dev
+task plan   VENUE=dev   # verify only the pds-logs bucket policy changes
+task deploy VENUE=dev
+```
+
+---
+
+### Chunk 1: S3 bucket, IAM policy, and Logstash EC2 (run last)
+
+Depends on the OpenSearch endpoint SSM parameter from Chunk 2.
+
+```bash
+cd terraform/
+
+task init    VENUE=dev
+task plan    VENUE=dev   # review: S3 bucket, IAM policy update (es:ESHttp*), EC2 instance
+task deploy  VENUE=dev
+```
+
+After apply, the EC2 instance ID is published to SSM at:
+- `/pds/web-analytics/ec2/logstash_instance_id`
+
+---
+
+## Post-deploy: start Logstash
+
+The EC2 bootstrap installs Docker and the Logstash systemd service, but does **not**
+auto-start it — the pipeline config must be deployed first.
+
+```bash
+# Connect via Systems Manager Session Manager (no SSH key needed)
+aws ssm start-session \
+  --target $(aws ssm get-parameter \
+    --name /pds/web-analytics/ec2/logstash_instance_id \
+    --query Parameter.Value --output text)
+
+# On the EC2 — deploy the pipeline config from this repo
+sudo cp -r /path/to/web-analytics/config/logstash/config/* /opt/logstash/config/
+
+# Start Logstash
+sudo systemctl start logstash
+sudo systemctl status logstash
+sudo journalctl -u logstash -f   # tail logs
+```
+
+Verify a document reached OpenSearch:
+```bash
+curl -X GET "https://<endpoint>/_cat/indices?v" \
+  -u "<master_user>:<master_password>"
+```
+
+---
+
+## Teardown order
+
+Reverse of deployment — destroy Chunk 1 first, then templates, then the domain last
+(domain destruction also removes all indexed data).
+
+```bash
+task destroy           VENUE=dev   # Chunk 1: EC2 + IAM + S3
+task templates:destroy VENUE=dev   # Chunk 3: index templates
+task opensearch:destroy VENUE=dev  # Chunk 2: domain (destroys all data)
+```
+
+---
+
+## Architecture notes
+
+- **State files** are stored in `pds-<venue>-infra` S3 bucket, one per module:
+  - `web-analytics/terraform.tfstate`
+  - `web-analytics/opensearch.tfstate`
+  - `web-analytics/opensearch-index-templates.tfstate`
+- **VPC/SG values** are currently in tfvars. TODO: move to SSM under `/pds/cds-infra/vpc/` once published, matching the pattern at `/pds/cds-infra/vpc/security_groups/`.
+- **OpenSearch** is deployed inside the VPC with no public endpoint. FGAC is enabled with an IAM role as master user (`AWSReservedSSO_Project-Power-User`). Visualization is via AWS-hosted OpenSearch UI with IAM Identity Center — OpenSearch Dashboards is not used.
+- **TODO:** Document OpenSearch UI application setup (create application in AWS console, connect domain as data source, assign IAM Identity Center users/groups).
+- **Logstash sincedb** files persist to `/var/lib/logstash/sincedb` on the EC2 EBS volume (`delete_on_termination = false`) — S3 read position is preserved across restarts and redeployments.
