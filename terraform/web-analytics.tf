@@ -2,7 +2,7 @@ module "s3_bucket" {
   source      = "git@github.com:NASA-PDS/pds-tf-modules.git//terraform/modules/s3/bucket"
   bucket_name = local.s3_bucket_name
   partition   = var.partition
-  versioning  = "Disabled"
+  versioning  = "Suspended"
 
   # Disable module's own lifecycle rule — we manage all lifecycle rules in the resource below
   abort_incomplete_multipart_upload_days = 0
