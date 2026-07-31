@@ -62,6 +62,7 @@ TEMPLATE_FILE="$REPO_DIR/config/opensearch/ecs-8.17-custom-template.json"
 RESPONSE=$(curl -s -o /tmp/template-response.json -w "%{http_code}" \
   -X PUT "https://${OPENSEARCH_ENDPOINT}/_index_template/pds-web-analytics" \
   -H 'Content-Type: application/json' \
+  -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
   --aws-sigv4 "aws:amz:us-west-2:es" \
   --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
   -d @"$TEMPLATE_FILE")
