@@ -12,3 +12,19 @@
     ]
   }
 ]
+
+NOTE: For test/prod, add a second statement to allow platform engineers to
+use the OpenSearch UI Dev Console. Only include this if the role exists in
+the account — AWS will reject the policy if the principal does not exist.
+
+  {
+    "Sid": "AllowPlatformEngineer",
+    "Effect": "Allow",
+    "Principal": [
+      "arn:aws:iam::{account_id}:role/{venue}-en-platform-engineer"
+    ],
+    "Action": ["es:ESHttp*"],
+    "Resource": [
+      "arn:aws:es:{region}:{account_id}:domain/{domain_name}/*"
+    ]
+  }
