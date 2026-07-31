@@ -274,7 +274,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -var-file=../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform plan -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     opensearch:deploy:
         desc: "Deploy the OpenSearch domain (slow - allow ~15-20 min for domain creation)"
@@ -290,7 +290,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -var-file=../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     opensearch:destroy:
         desc: "Destroy the OpenSearch domain"
@@ -300,7 +300,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -destroy -var-file=../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -destroy -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     opensearch:show:
         desc: "Show OpenSearch domain Terraform state"
