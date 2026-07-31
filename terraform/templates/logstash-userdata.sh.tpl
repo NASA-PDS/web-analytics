@@ -3,61 +3,65 @@ set -euo pipefail
 
 # Install system packages
 dnf update -y
-dnf install -y docker python3.13 python3.13-pip
+dnf install -y git python3.13 python3.13-pip --quiet
 python3.13 -m pip install --quiet --break-system-packages boto3
-systemctl enable docker
-systemctl start docker
 
-# Add ec2-user to docker group so logstash can be managed without sudo
-usermod -aG docker ec2-user
+# Install Logstash from Elastic RPM repo
+rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+cat > /etc/yum.repos.d/elastic.repo <<'REPO'
+[elasticsearch]
+name=Elasticsearch repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+REPO
+dnf install -y logstash-${logstash_version}
 
-# Pull Logstash image
-docker pull docker.elastic.co/logstash/logstash:${logstash_version}
-
-# Create directory for sincedb files (persists S3 read position across restarts)
+# sincedb: persists S3 read position across restarts
 mkdir -p /var/lib/logstash/sincedb
-chown -R ec2-user:ec2-user /var/lib/logstash
+chown -R logstash:logstash /var/lib/logstash
 
-# Create systemd service for Logstash container
-cat > /etc/systemd/system/logstash.service <<'EOF'
+# Write environment file — sourced by the systemd service
+cat > /etc/logstash/env <<'ENV'
+AWS_REGION=${aws_region}
+S3_BUCKET_NAME=${s3_bucket_name}
+OPENSEARCH_URL=https://${opensearch_endpoint}
+INDEX_PREFIX=${index_prefix}
+S3_CF_BUCKET_NAME=${s3_cf_bucket_name}
+ENV
+chown root:logstash /etc/logstash/env
+chmod 640 /etc/logstash/env
+
+# Systemd service unit
+cat > /etc/systemd/system/logstash.service <<'SERVICE'
 [Unit]
 Description=Logstash web-analytics pipeline
-After=docker.service
-Requires=docker.service
+After=network.target
 
 [Service]
+Type=simple
+User=logstash
+Group=logstash
+EnvironmentFile=/etc/logstash/env
+ExecStart=/usr/share/logstash/bin/logstash --path.settings /etc/logstash
 Restart=on-failure
 RestartSec=30
-ExecStartPre=-/usr/bin/docker stop logstash
-ExecStartPre=-/usr/bin/docker rm logstash
-ExecStart=/usr/bin/docker run --name logstash \
-  --env AWS_REGION=${aws_region} \
-  --env S3_BUCKET_NAME=${s3_bucket_name} \
-  --env OPENSEARCH_URL=https://${opensearch_endpoint} \
-  --env INDEX_PREFIX=${index_prefix} \
-  --env S3_CF_BUCKET_NAME=${s3_cf_bucket_name} \
-  --env LS_SETTINGS_DIR=/usr/share/logstash/config \
-  --volume /opt/logstash/config:/usr/share/logstash/config:ro \
-  --volume /var/lib/logstash/sincedb:/var/lib/logstash/sincedb \
-  docker.elastic.co/logstash/logstash:${logstash_version}
-ExecStop=/usr/bin/docker stop logstash
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
-EOF
+SERVICE
 
 systemctl daemon-reload
 systemctl enable logstash
 
-mkdir -p /opt/logstash/config
-
-# ----------------------------------------
 # Clone repo and run init script on first boot
-# ----------------------------------------
 REPO_DIR="/opt/web-analytics"
 REPO_BRANCH="main"
 
-dnf install -y git --quiet
 git clone --branch "$REPO_BRANCH" https://github.com/NASA-PDS/web-analytics.git "$REPO_DIR"
 
 OPENSEARCH_ENDPOINT="${opensearch_endpoint}" \

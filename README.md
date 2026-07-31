@@ -554,11 +554,11 @@ These hooks then will check for any future commits that might contain secrets. T
 
 ### Common Issues
 
-1. **Logstash container won't start**
+1. **Logstash won't start**
    - Check service status: `sudo systemctl status logstash`
-   - Check Docker logs: `sudo docker logs logstash`
-   - Check permissions on `/opt/logstash/config/`: container runs as UID 1000 and needs read access
-   - Verify pipeline configs were generated: `ls /opt/logstash/config/pipelines/`
+   - Check logs: `sudo journalctl -u logstash -n 50`
+   - Check env file: `sudo cat /etc/logstash/env`
+   - Verify pipeline configs were generated: `ls /etc/logstash/pipelines/`
    - Re-run init if needed: `sudo REPO_BRANCH=main bash /opt/web-analytics/scripts/logstash-init.sh`
 
 2. **No data in OpenSearch**

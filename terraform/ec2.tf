@@ -1,8 +1,9 @@
 # ---------------------------------------------------------------------------
 # Logstash EC2 instance
 # ---------------------------------------------------------------------------
-# AMI: MCP-managed Amazon Linux 2 (owner 794625662971), consistent with
+# AMI: MCP-managed Amazon Linux 2023 (owner 794625662971), consistent with
 # the pattern used in pds-tf-modules/terraform/modules/ec2/main.tf.
+# Logstash is installed directly via RPM (not Docker).
 #
 # Access: AWS Systems Manager (MCP-SSM-CloudWatch instance profile).
 # No SSH key or inbound security group rules needed.
