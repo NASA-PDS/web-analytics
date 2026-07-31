@@ -46,7 +46,18 @@ EOF
 
 systemctl daemon-reload
 systemctl enable logstash
-# Note: logstash does not auto-start here — config must be deployed to
-# /opt/logstash/config before starting. Run: systemctl start logstash
 
 mkdir -p /opt/logstash/config
+
+# ----------------------------------------
+# Clone repo and run init script on first boot
+# ----------------------------------------
+REPO_DIR="/opt/web-analytics"
+REPO_BRANCH="main"
+
+dnf install -y git --quiet
+git clone --branch "$REPO_BRANCH" https://github.com/NASA-PDS/web-analytics.git "$REPO_DIR"
+
+OPENSEARCH_ENDPOINT="${opensearch_endpoint}" \
+REPO_BRANCH="$REPO_BRANCH" \
+  bash "$REPO_DIR/scripts/logstash-init.sh" >> /var/log/logstash-init.log 2>&1
