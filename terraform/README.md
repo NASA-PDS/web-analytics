@@ -34,20 +34,26 @@ terraform/
 
 ### 1. Create tfvars files
 
-Each module has a `tfvars/` directory (gitignored). Copy the examples and fill in values:
+All tfvars are gitignored. Copy the examples and fill in values:
 
 ```bash
 cd terraform/
 
+# Shared values used by all modules (aws_region, partition, tenant, component, cicd)
+cp tfvars/common.tfvars.example              tfvars/common.tfvars
+# Edit common.tfvars: set managedby to your email
+
+# Module-specific venue values
+cp tfvars/dev.tfvars.example                 tfvars/dev.tfvars
+cp iam/policies/tfvars/dev.tfvars.example    iam/policies/tfvars/dev.tfvars
 cp opensearch_managed/tfvars/dev.tfvars.example  opensearch_managed/tfvars/dev.tfvars
-cp iam/policies/tfvars/dev.tfvars.example        iam/policies/tfvars/dev.tfvars
-cp tfvars/dev.tfvars.example                     tfvars/dev.tfvars
 ```
 
 Key values to fill in:
 
 | File | Variable | Notes |
 |---|---|---|
+| `tfvars/common.tfvars` | `managedby` | Your email address |
 | `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_id` | VPC values for the domain |
 | `opensearch_managed/tfvars/dev.tfvars` | `policy_json_file` | Path to filled-in `access_policy.json` (copy from `access_policy.json.example`) |
 | `tfvars/dev.tfvars` | `vpc_id` | VPC ID for the EC2 |

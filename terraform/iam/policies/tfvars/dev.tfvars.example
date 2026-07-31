@@ -1,12 +1,9 @@
-aws_region             = "us-west-2"
-partition              = "aws"
+# Copy common.tfvars.example → common.tfvars and fill in managedby before running any task.
+
+venue     = "dev"
+managedby = "your-email@jpl.nasa.gov"
+
 s3_bucket_prefix       = "pds-dev-gh01dc"  # S3 bucket name only — must match deployed bucket
 resource_prefix        = "pds-dev"         # prefix for IAM policy names and all non-S3 resources
 ec2_role_name          = "pds-mcp-ec2-instance-role"
 opensearch_domain_name = "pds-dev-web-analytics"
-
-venue     = "dev"
-tenant    = "en"
-component = "web-analytics"
-cicd      = "terraform"
-managedby = "your-email@jpl.nasa.gov"

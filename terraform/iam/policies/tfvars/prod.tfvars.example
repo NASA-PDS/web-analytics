@@ -1,0 +1,9 @@
+# Copy common.tfvars.example → common.tfvars and fill in managedby before running any task.
+
+venue     = "prod"
+managedby = "pdsoperator@jpl.nasa.gov"
+
+s3_bucket_prefix       = "pds-prod-gh01dc"
+resource_prefix        = "pds-prod"
+ec2_role_name          = "pdsmcp-cds-prod-deploy-instance-profile"
+opensearch_domain_name = "pds-prod-web-analytics"

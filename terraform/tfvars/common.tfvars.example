@@ -1,0 +1,9 @@
+# Shared values used by all Terraform modules.
+# Copy to common.tfvars and set managedby before running any task.
+
+aws_region = "us-west-2"
+partition  = "aws"
+tenant     = "en"
+component  = "web-analytics"
+cicd       = "terraform"
+managedby  = "your-email@jpl.nasa.gov"

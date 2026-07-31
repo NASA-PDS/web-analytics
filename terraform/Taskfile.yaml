@@ -77,7 +77,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -var-file=tfvars/{{.VENUE}}.tfvars
+            - terraform plan -var-file=tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
               -target=module.s3_bucket
               -target=aws_s3_bucket_lifecycle_configuration.lifecycle
               {{.CLI_ARGS}}
@@ -92,7 +92,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -var-file=tfvars/{{.VENUE}}.tfvars
+            - terraform apply -var-file=tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
               -target=module.s3_bucket
               -target=aws_s3_bucket_lifecycle_configuration.lifecycle
               {{.CLI_ARGS}}
@@ -112,7 +112,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -var-file=tfvars/{{.VENUE}}.tfvars
+            - terraform plan -var-file=tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
               -target=aws_launch_template.logstash
               -target=aws_instance.logstash
               -target=aws_ssm_parameter.logstash_instance_id
@@ -128,7 +128,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -var-file=tfvars/{{.VENUE}}.tfvars
+            - terraform apply -var-file=tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
               -target=aws_launch_template.logstash
               -target=aws_instance.logstash
               -target=aws_ssm_parameter.logstash_instance_id
@@ -142,7 +142,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -destroy -var-file=tfvars/{{.VENUE}}.tfvars
+            - terraform apply -destroy -var-file=tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
               -target=aws_instance.logstash
               -target=aws_launch_template.logstash
               -target=aws_ssm_parameter.logstash_instance_id
@@ -161,7 +161,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform plan -var-file=tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     deploy:
         desc: "Deploy full root module (S3 + EC2) — requires admin for EC2"
@@ -173,7 +173,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -var-file=tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     destroy:
         desc: "Destroy root module resources"
@@ -183,7 +183,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -destroy -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -destroy -var-file=tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     # ------------------------------------------------------------------
     # IAM: EC2 policy + role attachment (requires admin/elevated role)
@@ -217,7 +217,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform plan -var-file=../../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     iam:deploy:
         desc: "Deploy IAM policies and role attachments (requires admin role)"
@@ -229,7 +229,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -var-file=../../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     iam:destroy:
         desc: "Destroy IAM policies and role attachments"
@@ -239,7 +239,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -destroy -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -destroy -var-file=../../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     # ------------------------------------------------------------------
     # Chunk 2: OpenSearch domain
@@ -274,7 +274,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform plan -var-file=../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     opensearch:deploy:
         desc: "Deploy the OpenSearch domain (slow - allow ~15-20 min for domain creation)"
@@ -290,7 +290,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -var-file=../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     opensearch:destroy:
         desc: "Destroy the OpenSearch domain"
@@ -300,7 +300,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -destroy -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -destroy -var-file=../tfvars/common.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     opensearch:show:
         desc: "Show OpenSearch domain Terraform state"

@@ -14,12 +14,11 @@ These steps require elevated IAM permissions (`iam:CreatePolicy`, `iam:AttachRol
 ```bash
 cd terraform/
 
-cp iam/policies/tfvars/dev.tfvars.example iam/policies/tfvars/dev.tfvars
+cp tfvars/common.tfvars.example              tfvars/common.tfvars
 # edit managedby to your email
 
-cp tfvars/dev.tfvars.example tfvars/dev.tfvars
-# edit managedby to your email
-# fill in vpc_id: vpc-02f8cc4962d6f8dc6
+cp tfvars/dev.tfvars.example                 tfvars/dev.tfvars
+cp iam/policies/tfvars/dev.tfvars.example    iam/policies/tfvars/dev.tfvars
 ```
 
 ## Step 2 — Export AWS credentials
