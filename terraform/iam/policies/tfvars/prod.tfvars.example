@@ -1,10 +1,6 @@
-# Copy common.tfvars.example → common.tfvars and fill in managedby before running any task.
+# IAM-module prod values — module-specific only.
+# Shared infra values (partition, s3_bucket_prefix, etc.) are in common-infra-prod.tfvars.
+# Shared global values (aws_region, tenant, etc.) are in common.tfvars.
 
 venue     = "prod"
 managedby = "pdsoperator@jpl.nasa.gov"
-
-partition              = "aws"
-s3_bucket_prefix       = "pds-prod-gh01dc"
-resource_prefix        = "pds-prod"
-ec2_role_name          = "pdsmcp-cds-prod-deploy-instance-profile"
-opensearch_domain_name = "pds-prod-web-analytics"

@@ -1,13 +1,9 @@
-# Copy common.tfvars.example → common.tfvars and fill in managedby before running any task.
+# Root-module dev values — module-specific only.
+# Shared infra values (partition, s3_bucket_prefix, etc.) are in common-infra-dev.tfvars.
+# Shared global values (aws_region, tenant, etc.) are in common.tfvars.
 
 venue     = "dev"
 managedby = "your-email@jpl.nasa.gov"
-
-partition              = "aws"
-s3_bucket_prefix       = "pds-dev-gh01dc"  # S3 bucket name only — may include CI/CD identifiers for existing buckets
-resource_prefix        = "pds-dev"         # prefix for all non-S3 resources (EC2, launch template, IAM policy)
-ec2_role_name          = "pds-mcp-ec2-instance-role"
-opensearch_domain_name = "pds-dev-web-analytics"
 
 # TODO: replace with SSM lookup under /pds/cds-infra/vpc/id once published
 vpc_id = ""  # e.g. vpc-02f8cc4962d6f8dc6

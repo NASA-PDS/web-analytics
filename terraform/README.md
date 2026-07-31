@@ -42,11 +42,16 @@ All tfvars are gitignored. Copy the examples and fill in values:
 ```bash
 cd terraform/
 
-# Shared values used by all modules
+# 1. Global values used by all modules (aws_region, tenant, managedby, etc.)
 cp tfvars/common.tfvars.example             tfvars/common.tfvars
 # Edit common.tfvars: set managedby to your email
 
-# Module-specific venue values
+# 2. Shared infra values used by root + IAM modules (partition, s3_bucket_prefix, etc.)
+#    These are venue-specific — copy for each venue you use
+cp tfvars/common-infra.tfvars.example       tfvars/common-infra-dev.tfvars
+# Edit common-infra-dev.tfvars with your dev values
+
+# 3. Module-specific venue values
 cp tfvars/dev.tfvars.example                tfvars/dev.tfvars
 cp iam/policies/tfvars/dev.tfvars.example   iam/policies/tfvars/dev.tfvars
 cp opensearch_managed/tfvars/dev.tfvars.example opensearch_managed/tfvars/dev.tfvars
@@ -57,6 +62,7 @@ Key values to fill in:
 | File | Variable | Notes |
 |---|---|---|
 | `tfvars/common.tfvars` | `managedby` | Your email address |
+| `tfvars/common-infra-dev.tfvars` | `s3_bucket_prefix`, `resource_prefix`, `ec2_role_name`, `opensearch_domain_name` | Shared infra identifiers for dev venue |
 | `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_id` | VPC values for the OpenSearch domain |
 | `opensearch_managed/tfvars/dev.tfvars` | `policy_json_file` | Path to filled-in `access_policy.json` (copy from `access_policy.json.example`) |
 | `tfvars/dev.tfvars` | `vpc_id` | VPC ID for the EC2 |
