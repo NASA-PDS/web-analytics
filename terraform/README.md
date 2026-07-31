@@ -3,17 +3,21 @@
 Deploys the infrastructure for the PDS Web Analytics pipeline:
 
 - **S3 bucket** — log storage with versioning, SSE, and Intelligent-Tiering
-- **IAM policy** — grants the Logstash EC2 role read access to S3 and write access to OpenSearch (admin-only)
+- **IAM policy** — grants the Logstash EC2 role read access to S3 and write access to OpenSearch
 - **Logstash EC2** — MCP Amazon Linux 2023 instance running Logstash in Docker via systemd
 - **Managed OpenSearch domain** — VPC-only, no public endpoint, IAM resource-based access control
-- **Visualization** — AWS-hosted [OpenSearch UI](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/application.html) with IAM Identity Center (OpenSearch Dashboards not used)
+- **Visualization** — AWS-hosted [OpenSearch UI](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/application.html) with IAM Identity Center
 
 ```
 terraform/
-  ├── iam/policies/             # IAM policy + role attachment  — admin only
-  ├── opensearch_managed/       # OpenSearch domain             — Step 1
-  └── (root)                    # S3 (Step 2) + EC2 (Step 4)   — EC2 is admin only
+  ├── iam/policies/             # IAM policy + role attachment  — 🔐 admin only
+  ├── opensearch_managed/       # OpenSearch domain
+  └── (root)                    # S3 + EC2                      — 🔐 EC2 is admin only
 ```
+
+> **Permission requirements:**
+> - `Project-Power-User` — Steps 1, 2, 5
+> - 🔐 **System administrator** (`iam:CreatePolicy`, `iam:PassRole`) — Steps 3, 4
 
 ---
 
@@ -22,11 +26,10 @@ terraform/
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
 - [Task](https://taskfile.dev) — `brew install go-task/tap/go-task`
 - AWS CLI + [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) — `brew install --cask session-manager-plugin`
-- AWS credentials exported: `eval $(aws configure export-credentials --profile <profile> --format env)`
-
-> **Permission requirements:**
-> - `Project-Power-User` — Steps 1, 2
-> - **System administrator** (`iam:CreatePolicy`, `iam:PassRole`) — Steps 3, 4. See [ADMIN_DEPLOY.md](ADMIN_DEPLOY.md).
+- AWS credentials exported:
+  ```bash
+  eval $(aws configure export-credentials --profile <your-profile> --format env)
+  ```
 
 ---
 
@@ -39,14 +42,14 @@ All tfvars are gitignored. Copy the examples and fill in values:
 ```bash
 cd terraform/
 
-# Shared values used by all modules (aws_region, partition, tenant, component, cicd)
-cp tfvars/common.tfvars.example              tfvars/common.tfvars
+# Shared values used by all modules
+cp tfvars/common.tfvars.example             tfvars/common.tfvars
 # Edit common.tfvars: set managedby to your email
 
 # Module-specific venue values
-cp tfvars/dev.tfvars.example                 tfvars/dev.tfvars
-cp iam/policies/tfvars/dev.tfvars.example    iam/policies/tfvars/dev.tfvars
-cp opensearch_managed/tfvars/dev.tfvars.example  opensearch_managed/tfvars/dev.tfvars
+cp tfvars/dev.tfvars.example                tfvars/dev.tfvars
+cp iam/policies/tfvars/dev.tfvars.example   iam/policies/tfvars/dev.tfvars
+cp opensearch_managed/tfvars/dev.tfvars.example opensearch_managed/tfvars/dev.tfvars
 ```
 
 Key values to fill in:
@@ -54,7 +57,7 @@ Key values to fill in:
 | File | Variable | Notes |
 |---|---|---|
 | `tfvars/common.tfvars` | `managedby` | Your email address |
-| `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_id` | VPC values for the domain |
+| `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_id` | VPC values for the OpenSearch domain |
 | `opensearch_managed/tfvars/dev.tfvars` | `policy_json_file` | Path to filled-in `access_policy.json` (copy from `access_policy.json.example`) |
 | `tfvars/dev.tfvars` | `vpc_id` | VPC ID for the EC2 |
 
@@ -62,6 +65,7 @@ Key values to fill in:
 
 ```bash
 eval $(aws configure export-credentials --profile <your-profile> --format env)
+unset AWS_PROFILE  # required for Terraform S3 backend compatibility
 ```
 
 ---
@@ -79,7 +83,7 @@ cp opensearch_managed/access_policy.json.example opensearch_managed/access_polic
 task opensearch:init   VENUE=dev
 task opensearch:plan   VENUE=dev
 task opensearch:deploy VENUE=dev
-task opensearch:endpoint VENUE=dev  # confirm endpoint in SSM
+task opensearch:endpoint VENUE=dev  # confirm endpoint stored in SSM
 ```
 
 ---
@@ -93,9 +97,25 @@ task s3:deploy VENUE=dev
 
 ---
 
-### Step 3 & 4: IAM + EC2 — admin only
+### 🔐 Step 3: IAM policy — admin only
 
-See [ADMIN_DEPLOY.md](ADMIN_DEPLOY.md) for instructions to hand to a system administrator.
+Requires `iam:CreatePolicy` and `iam:AttachRolePolicy`. Must be run by a system administrator.
+
+```bash
+task iam:plan   VENUE=dev
+task iam:deploy VENUE=dev
+```
+
+---
+
+### 🔐 Step 4: EC2 — admin only
+
+Requires `iam:PassRole`. Must be run by a system administrator. Run after Steps 1–3.
+
+```bash
+task ec2:plan   VENUE=dev
+task ec2:deploy VENUE=dev
+```
 
 ---
 
@@ -110,16 +130,14 @@ For an **already-running EC2**, SSM in and run the init script manually:
 aws ssm start-session \
   --target $(aws ssm get-parameter \
     --name /pds/web-analytics/ec2/logstash_instance_id \
-    --query Parameter.Value --output text) \
-  --profile <your-profile>
+    --query Parameter.Value --output text)
 
-# On the EC2 — run the init script
-curl -O https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh
-bash logstash-init.sh
+# On the EC2
+sudo REPO_BRANCH=main bash /opt/web-analytics/scripts/logstash-init.sh
 ```
 
 The script will:
-1. Clone the web-analytics repo to `/opt/web-analytics`
+1. Clone/update the web-analytics repo to `/opt/web-analytics`
 2. Copy Logstash pipeline config to `/opt/logstash/config`
 3. Apply the OpenSearch ECS index template
 4. Start the Logstash systemd service
@@ -155,9 +173,9 @@ task deploy VENUE=dev
 ## Teardown
 
 ```bash
-task ec2:destroy        VENUE=dev   # EC2 + launch template
+task ec2:destroy        VENUE=dev   # EC2 + launch template        🔐 admin
+task iam:destroy        VENUE=dev   # IAM policy + role attachment  🔐 admin
 task s3:destroy         VENUE=dev   # S3 bucket (does not delete objects)
-task iam:destroy        VENUE=dev   # IAM policy + role attachment
 task opensearch:destroy VENUE=dev   # OpenSearch domain (destroys all indexed data)
 ```
 
@@ -169,7 +187,8 @@ task opensearch:destroy VENUE=dev   # OpenSearch domain (destroys all indexed da
   - `web-analytics/terraform.tfstate` — S3 + EC2
   - `web-analytics/iam-policies.tfstate` — IAM
   - `web-analytics/opensearch.tfstate` — OpenSearch domain
-- **Variable naming** — `s3_bucket_prefix` is used only for the S3 bucket name (may include CI/CD identifiers like `gh01dc`). `resource_prefix` is used for all other resources (EC2, IAM policy, etc.) and should not include CI/CD identifiers.
+- **Variable naming** — `s3_bucket_prefix` is for the S3 bucket name only (may include CI/CD identifiers like `gh01dc`). `resource_prefix` is for all other resources and should not include CI/CD identifiers.
 - **VPC/SG values** are in tfvars. TODO: source from SSM under `/pds/cds-infra/vpc/` once published.
 - **Logstash sincedb** persists to `/var/lib/logstash/sincedb` on the EC2 EBS volume (`delete_on_termination = false`) — S3 read position survives restarts and redeployments.
+- **OpenSearch access** — IAM resource-based policy controls access (no FGAC). The `{venue}-en-platform-engineer` role can be added to `access_policy.json` for Dev Console access where that role exists (test/prod only).
 - **TODO:** Document OpenSearch UI application setup (create in AWS console, connect domain, assign IAM Identity Center users/groups).
