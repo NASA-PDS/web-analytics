@@ -26,14 +26,16 @@ LOGSTASH_VERSION="${LOGSTASH_VERSION:-8.17.0}"
 INDEX_PREFIX="${INDEX_PREFIX:-pds-dev}"
 S3_CF_BUCKET_NAME="${S3_CF_BUCKET_NAME:-}"
 
+AWS_REGION="${AWS_REGION:-$(curl -sf \
+  http://169.254.169.254/latest/meta-data/placement/region || echo 'us-west-2')}"
 OPENSEARCH_ENDPOINT="${OPENSEARCH_ENDPOINT:-$(aws ssm get-parameter \
   --name /pds/observability/opensearch_managed/opensearch_endpoint \
+  --region "$AWS_REGION" \
   --query Parameter.Value --output text)}"
 S3_BUCKET_NAME="${S3_BUCKET_NAME:-$(aws ssm get-parameter \
   --name /pds/web-analytics/s3/bucket_name \
+  --region "$AWS_REGION" \
   --query Parameter.Value --output text)}"
-AWS_REGION="${AWS_REGION:-$(curl -sf \
-  http://169.254.169.254/latest/meta-data/placement/region || echo 'us-west-2')}"
 
 echo "=== web-analytics Logstash init ==="
 echo "Repo:     $REPO_URL ($REPO_BRANCH)"
