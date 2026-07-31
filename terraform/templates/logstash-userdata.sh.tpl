@@ -4,7 +4,7 @@ set -euo pipefail
 # Install system packages
 dnf update -y
 dnf install -y docker python3.13 python3.13-pip
-python3.13 -m pip install --quiet boto3
+python3.13 -m pip install --quiet --break-system-packages boto3
 systemctl enable docker
 systemctl start docker
 
