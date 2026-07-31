@@ -44,6 +44,8 @@ else
   git clone --branch "$REPO_BRANCH" "$REPO_URL" "$REPO_DIR"
 fi
 
+chmod -R o+rX "$REPO_DIR"
+
 # ----------------------------------------
 # 2. Copy Logstash config into place
 # ----------------------------------------
