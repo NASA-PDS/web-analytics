@@ -1,8 +1,14 @@
-# Shared values used by all Terraform modules.
-# Copy to common.tfvars and set managedby before running any task.
+# Shared values for root + IAM modules — copy to common-<venue>.tfvars and fill in values.
+# NOT passed to opensearch_managed (which has its own per-venue tfvars).
 
 aws_region = "us-west-2"
 tenant     = "en"
 component  = "web-analytics"
 cicd       = "terraform"
 managedby  = "your-email@jpl.nasa.gov"
+
+partition              = "aws"
+s3_bucket_prefix       = ""  # e.g. pds-dev-gh01dc — S3 bucket name, may include CI/CD identifiers
+resource_prefix        = ""  # e.g. pds-dev — prefix for IAM policy names and non-S3 resources
+ec2_role_name          = ""  # e.g. pds-mcp-ec2-instance-role
+opensearch_domain_name = ""  # e.g. pds-dev-web-analytics
