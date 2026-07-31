@@ -80,13 +80,7 @@ resource "aws_opensearch_domain" "pds_opensearch_domain" {
   }
 
   advanced_security_options {
-    enabled                        = true
-    anonymous_auth_enabled         = false
-    internal_user_database_enabled = false
-
-    master_user_options {
-      master_user_arn = var.opensearch_master_user_arn
-    }
+    enabled = false
   }
 
   dynamic "vpc_options" {

@@ -5,7 +5,7 @@ Deploys the infrastructure for the PDS Web Analytics pipeline:
 - **S3 bucket** — log storage with versioning, SSE, and Intelligent-Tiering
 - **IAM policy** — grants the Logstash EC2 role read access to S3 and write access to OpenSearch (admin-only)
 - **Logstash EC2** — MCP Amazon Linux 2023 instance running Logstash in Docker via systemd
-- **Managed OpenSearch domain** — VPC-only, no public endpoint, FGAC via IAM role
+- **Managed OpenSearch domain** — VPC-only, no public endpoint, IAM resource-based access control
 - **Visualization** — AWS-hosted [OpenSearch UI](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/application.html) with IAM Identity Center (OpenSearch Dashboards not used)
 
 ```
@@ -48,7 +48,6 @@ Key values to fill in:
 
 | File | Variable | Notes |
 |---|---|---|
-| `opensearch_managed/tfvars/dev.tfvars` | `opensearch_master_user_arn` | SSO Power-User role ARN — run `aws iam list-roles --query "Roles[?contains(RoleName,'Power-User')].Arn"` |
 | `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_id` | VPC values for the domain |
 | `opensearch_managed/tfvars/dev.tfvars` | `policy_json_file` | Path to filled-in `access_policy.json` (copy from `access_policy.json.example`) |
 | `tfvars/dev.tfvars` | `vpc_id` | VPC ID for the EC2 |

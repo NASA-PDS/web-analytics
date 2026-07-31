@@ -132,11 +132,6 @@ variable "managedby" {
   default     = "pdsoperator@jpl.nasa.gov"
 }
 
-variable "opensearch_master_user_arn" {
-  type        = string
-  description = "IAM role ARN to use as the OpenSearch FGAC master user. Typically the SSO Power-User role ARN for the account."
-}
-
 variable "engine_version" {
   type        = string
   description = "OpenSearch engine version (e.g. OpenSearch_2.17). Pin to the deployed version to prevent unintended upgrades."
