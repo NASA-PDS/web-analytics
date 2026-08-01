@@ -251,6 +251,20 @@ Common files to edit:
 | `config/logstash/config/shared/pds-output-opensearch.conf` | OpenSearch index/routing settings |
 | `config/logstash/config/inputs/pds-input-s3-<node>.conf` | Per-node S3 prefix and metadata |
 | `config/logstash/config/logstash.yml` | JVM, queue, pipeline settings |
+| `config/logstash/config/plugins/regexes.yaml` | User-agent regex patterns (see below) |
+
+#### Updating `regexes.yaml`
+
+The `regexes.yaml` file is sourced from [ua-parser/uap-core](https://github.com/ua-parser/uap-core/blob/master/regexes.yaml) and provides the regex patterns used by the `logstash-filter-useragent` plugin to detect browsers, bots, and operating systems.
+
+This file should be updated periodically (a few times per year) to pick up new browser and bot signatures:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml \
+  -o config/logstash/config/plugins/regexes.yaml
+```
+
+Then test, commit, and redeploy via the standard config-update workflow above.
 
 ---
 

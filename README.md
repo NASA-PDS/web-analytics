@@ -190,7 +190,7 @@ config/logstash/config/
 │   ├── pds-filter.conf       # Main processing pipeline
 │   └── pds-output-opensearch.conf
 ├── plugins/                   # Custom plugins and patterns
-│   └── regexes.yaml
+│   └── regexes.yaml           # User-agent regex patterns from https://github.com/ua-parser/uap-core — update periodically
 ├── logstash.yml              # Logstash main configuration
 └── pipelines.yml.template    # Pipeline definitions
 ```
