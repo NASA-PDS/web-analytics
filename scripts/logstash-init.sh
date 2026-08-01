@@ -64,6 +64,13 @@ else
 fi
 
 # ----------------------------------------
+# 0b. Install required Logstash plugins
+# ----------------------------------------
+echo "--- Installing Logstash plugins ---"
+/usr/share/logstash/bin/logstash-plugin install logstash-filter-tld logstash-output-opensearch
+echo "Plugins installed"
+
+# ----------------------------------------
 # 1. Install tools and clone or update the repo
 # ----------------------------------------
 echo "--- Cloning web-analytics repo ---"
