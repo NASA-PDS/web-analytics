@@ -2,9 +2,9 @@
 
 Deploys the infrastructure for the PDS Web Analytics pipeline:
 
-- **S3 bucket** — log storage with versioning, SSE, and Intelligent-Tiering
+- **S3 bucket** — log storage (versioning suspended), SSE, and Intelligent-Tiering
 - **IAM policy** — grants the Logstash EC2 role read access to S3 and write access to OpenSearch
-- **Logstash EC2** — MCP Amazon Linux 2023 instance running Logstash in Docker via systemd
+- **Logstash EC2** — MCP Amazon Linux 2023 instance running Logstash directly via RPM + systemd
 - **Managed OpenSearch domain** — VPC-only, no public endpoint, IAM resource-based access control
 - **Visualization** — AWS-hosted [OpenSearch UI](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/application.html) with IAM Identity Center
 

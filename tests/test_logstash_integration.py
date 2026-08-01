@@ -261,6 +261,9 @@ class TestLogstashIntegration(unittest.TestCase):
             env = os.environ.copy()
             env["LS_SETTINGS_DIR"] = str(self.ls_settings_dir)
             env["OUTPUT_DIR"] = str(unique_output_dir)
+            env.setdefault("S3_BUCKET_NAME", "test-bucket")
+            env.setdefault("OPENSEARCH_URL", "https://localhost:9200")
+            env.setdefault("INDEX_PREFIX", "pds-test")
 
             # Run Logstash with unique data directory
             cmd = ["logstash", "-f", tmp_conf_path, "--log.level=debug", "--path.data", str(unique_data_dir)]
