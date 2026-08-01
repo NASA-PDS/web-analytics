@@ -155,6 +155,9 @@ The Logstash filter configuration handles multiple formats via conditional grok 
 All log data is mapped to ECS v8 schema fields. Key mappings:
 - `[source][address]` ← client IP
 - `[url][path]` ← request path
+- `[url][path_parts]` ← array of path segments split on `/` (e.g. `["pds", "data", "LUCY", "kernels"]`) — filter by mission/instrument anywhere in the path
+- `[url][query_params]` ← key-value object parsed from the query string (e.g. `{"target": "lucy"}`) — filter on a specific param with `url.query_params.target: "lucy"`
+- `[url][query_parts]` ← array of `"key=value"` strings (e.g. `["target=lucy", "version=2"]`) — wildcard search across all params with `url.query_parts: "*lucy*"`
 - `[http][request][method]` ← HTTP method
 - `[http][response][status_code]` ← status code
 - `[organization][name]` ← PDS node identifier (set in input config)
