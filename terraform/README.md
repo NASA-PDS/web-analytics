@@ -155,9 +155,40 @@ The script will:
 > ```
 > Leave sincedb intact if you only want to process new S3 objects going forward.
 
-**Tail logs:**
+**Tail logs and verify startup:**
 ```bash
 sudo journalctl -u logstash -f
+```
+
+A healthy startup looks like this (in order):
+```
+Starting Logstash ...
+Log4j configuration path used is: /etc/logstash/log4j2.properties
+Pipelines running {:count=>8, :running_pipelines=>[:atm, :en, :geo, ...]}
+```
+
+Once running, you should see S3 polling activity within a minute or two:
+```
+[logstash.inputs.s3] Providing file ... {:key=>"path/to/logfile.gz"}
+```
+
+To confirm events are landing in OpenSearch, run a quick count from the EC2:
+```bash
+# Get credentials and endpoint
+eval $(aws configure export-credentials --format env)
+ENDPOINT=$(aws ssm get-parameter --name /pds/observability/opensearch_managed/opensearch_endpoint \
+  --region us-west-2 --query Parameter.Value --output text)
+
+# Count documents indexed today
+curl -s -X GET "https://${ENDPOINT}/pds-*/_count" \
+  --aws-sigv4 "aws:amz:us-west-2:es" \
+  --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+  -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" | python3 -m json.tool
+```
+
+**Bad logs** (failed grok parsing) are written to `/tmp/bad_logs_YYYY-MM.txt` on the EC2:
+```bash
+tail -f /tmp/bad_logs-$(date +%Y-%m).txt
 ```
 
 ---
@@ -184,6 +215,42 @@ cd pdc-cds-infra/terraform/cloudfront/pds-main/
 task plan   VENUE=dev
 task deploy VENUE=dev
 ```
+
+---
+
+## Updating Logstash configuration
+
+The init script is idempotent — re-running it pulls the latest repo, redeploys config, rebuilds pipelines, and restarts Logstash. This is the standard workflow for config changes:
+
+1. Edit files under `config/logstash/config/` locally
+2. Test locally: `docker compose run --rm test`
+3. Push to your branch
+4. SSM into the EC2 and re-run the init script:
+
+```bash
+aws ssm start-session \
+  --target $(aws ssm get-parameter \
+    --name /pds/web-analytics/ec2/logstash_instance_id \
+    --query Parameter.Value --output text)
+
+# On the EC2:
+sudo curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh \
+  -o /tmp/logstash-init.sh
+sudo bash /tmp/logstash-init.sh
+```
+
+> If deploying from a non-`main` branch during active development:
+> ```bash
+> sudo REPO_BRANCH=terraform bash /tmp/logstash-init.sh
+> ```
+
+Common files to edit:
+| File | Purpose |
+|---|---|
+| `config/logstash/config/shared/pds-filter.conf` | Log parsing, field mapping, enrichment |
+| `config/logstash/config/shared/pds-output-opensearch.conf` | OpenSearch index/routing settings |
+| `config/logstash/config/inputs/pds-input-s3-<node>.conf` | Per-node S3 prefix and metadata |
+| `config/logstash/config/logstash.yml` | JVM, queue, pipeline settings |
 
 ---
 
