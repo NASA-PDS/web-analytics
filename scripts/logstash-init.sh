@@ -11,7 +11,7 @@
 #   OPENSEARCH_ENDPOINT  — OpenSearch domain endpoint (without https://)
 #   S3_BUCKET_NAME       — S3 bucket for log ingestion
 #   AWS_REGION           — AWS region (default: from instance metadata)
-#   INDEX_PREFIX         — OpenSearch index prefix (default: pds-dev)
+#   INDEX_PREFIX         — OpenSearch index prefix (default: pds-weblogs)
 #   S3_CF_BUCKET_NAME    — CloudFront logs bucket (EN only; default: empty)
 #   LOGSTASH_VERSION     — Logstash version to install if missing (default: 8.17.0)
 #   REPO_BRANCH          — git branch to clone (default: main)
@@ -23,7 +23,7 @@ REPO_BRANCH="${REPO_BRANCH:-main}"
 REPO_DIR="/opt/web-analytics"
 LOGSTASH_CONFIG_DIR="/etc/logstash"
 LOGSTASH_VERSION="${LOGSTASH_VERSION:-8.17.0}"
-INDEX_PREFIX="${INDEX_PREFIX:-pds-dev}"
+INDEX_PREFIX="${INDEX_PREFIX:-pds-weblogs}"
 S3_CF_BUCKET_NAME="${S3_CF_BUCKET_NAME:-}"
 
 AWS_REGION="${AWS_REGION:-us-west-2}"

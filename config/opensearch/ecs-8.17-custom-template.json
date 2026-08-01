@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "en-web-analytics-*"
+    "pds-weblogs-*"
   ],
   "priority": 500,
   "template": {
