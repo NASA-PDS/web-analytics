@@ -146,13 +146,22 @@ The script will:
 5. Update `/etc/systemd/system/logstash.service` with the current OpenSearch endpoint from SSM
 6. Restart the Logstash systemd service
 
-> **Sincedb (S3 read position):** If you are re-pointing to a brand-new OpenSearch index and want to re-ingest all S3 logs from scratch, reset the sincedb before restarting:
+> **Sincedb (S3 read position):** Each S3 input has a named sincedb file in `/var/lib/logstash/plugins/inputs/s3/` that tracks which objects have been read. Files are named after the input ID (e.g., `sincedb_file_input_naif1`).
+>
+> Reset all nodes to re-ingest everything from scratch:
 > ```bash
 > sudo systemctl stop logstash
 > sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_*
-> # then re-run init.sh, or just restart if init already ran:
-> sudo systemctl restart logstash
+> sudo systemctl start logstash
 > ```
+>
+> Reset a single node (e.g., NAIF only):
+> ```bash
+> sudo systemctl stop logstash
+> sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_file_input_naif*
+> sudo systemctl start logstash
+> ```
+>
 > Leave sincedb intact if you only want to process new S3 objects going forward.
 
 **Tail logs and verify startup:**
