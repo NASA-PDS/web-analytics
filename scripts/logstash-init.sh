@@ -68,6 +68,7 @@ fi
 # ----------------------------------------
 echo "--- Installing Logstash plugins ---"
 /usr/share/logstash/bin/logstash-plugin install logstash-filter-tld logstash-output-opensearch
+chown -R logstash:logstash /usr/share/logstash/vendor
 echo "Plugins installed"
 
 # ----------------------------------------
