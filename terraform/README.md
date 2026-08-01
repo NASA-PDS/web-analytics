@@ -149,7 +149,7 @@ The script will:
 > **Sincedb (S3 read position):** If you are re-pointing to a brand-new OpenSearch index and want to re-ingest all S3 logs from scratch, reset the sincedb before restarting:
 > ```bash
 > sudo systemctl stop logstash
-> sudo rm -f /var/lib/logstash/sincedb/*
+> sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_*
 > # then re-run init.sh, or just restart if init already ran:
 > sudo systemctl restart logstash
 > ```
@@ -287,6 +287,6 @@ task opensearch:destroy VENUE=dev   # OpenSearch domain (destroys all indexed da
   - `web-analytics/opensearch.tfstate` — OpenSearch domain
 - **Variable naming** — `s3_bucket_prefix` is for the S3 bucket name only (may include CI/CD identifiers like `gh01dc`). `resource_prefix` is for all other resources and should not include CI/CD identifiers.
 - **VPC/SG values** are in tfvars. TODO: source from SSM under `/pds/cds-infra/vpc/` once published.
-- **Logstash sincedb** persists to `/var/lib/logstash/sincedb` on the EC2 EBS volume (`delete_on_termination = false`) — S3 read position survives restarts and redeployments.
+- **Logstash sincedb** persists to `/var/lib/logstash/plugins/inputs/s3/` on the EC2 EBS volume (`delete_on_termination = false`) — S3 read position survives restarts and redeployments.
 - **OpenSearch access** — IAM resource-based policy controls access (no FGAC). The `{venue}-en-platform-engineer` role can be added to `access_policy.json` for Dev Console access where that role exists (test/prod only).
 - **TODO:** Document OpenSearch UI application setup (create in AWS console, connect domain, assign IAM Identity Center users/groups).
