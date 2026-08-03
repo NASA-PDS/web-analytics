@@ -22,6 +22,6 @@ vpc_subnet_ids        = []
 ec2_security_group_id = ""
 
 ec2_role_name      = "<your-ec2-instance-role-name>"
-firehose_role_name = "service-role/<your-firehose-role-name>"
+firehose_pds_main_cf_role_name = "service-role/<your-firehose-role-name>"
 
 engine_version = "OpenSearch_2.19"

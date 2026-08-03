@@ -4,14 +4,14 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "ec2_role_name" {
+variable "ec2_analytics_role_name" {
   type        = string
-  description = "Name of the EC2 instance role granted es:* access (e.g. pds-mcp-ec2-instance-role)."
+  description = "Name of the web-analytics EC2 instance role granted es:* access (e.g. pds-mcp-ec2-instance-role)."
 }
 
-variable "firehose_role_name" {
+variable "firehose_pds_main_cf_role_name" {
   type        = string
-  description = "Name (including path) of the Firehose delivery role granted es:* access (e.g. service-role/pds-cloudfront-realtime-firehose-role)."
+  description = "Name (including path) of the CloudFront Firehose delivery role granted es:* access (e.g. service-role/pds-cloudfront-realtime-firehose-role)."
 }
 
 variable "domain_name" {

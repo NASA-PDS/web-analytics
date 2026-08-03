@@ -106,8 +106,8 @@ resource "aws_opensearch_domain_policy" "domain_access_policy" {
         Effect = "Allow"
         Principal = {
           AWS = [
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_role_name}",
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.firehose_role_name}",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_analytics_role_name}",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.firehose_pds_main_cf_role_name}",
           ]
         }
         Action = "es:*"
