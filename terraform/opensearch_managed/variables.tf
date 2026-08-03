@@ -4,9 +4,14 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "principal_arns" {
-  type        = list(string)
-  description = "IAM role ARNs granted es:* access to the OpenSearch domain (e.g. Logstash EC2 role, Firehose delivery role)."
+variable "ec2_role_name" {
+  type        = string
+  description = "Name of the EC2 instance role granted es:* access (e.g. pds-mcp-ec2-instance-role)."
+}
+
+variable "firehose_role_name" {
+  type        = string
+  description = "Name (including path) of the Firehose delivery role granted es:* access (e.g. service-role/pds-cloudfront-realtime-firehose-role)."
 }
 
 variable "domain_name" {

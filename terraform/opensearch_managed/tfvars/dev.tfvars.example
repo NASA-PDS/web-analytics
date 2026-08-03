@@ -21,9 +21,7 @@ vpc_id                = ""
 vpc_subnet_ids        = []
 ec2_security_group_id = ""
 
-principal_arns = [
-  "arn:aws:iam::<account-id>:role/<ec2-instance-role-name>",
-  "arn:aws:iam::<account-id>:role/service-role/<firehose-role-name>",
-]
+ec2_role_name      = "<your-ec2-instance-role-name>"
+firehose_role_name = "service-role/<your-firehose-role-name>"
 
 engine_version = "OpenSearch_2.19"

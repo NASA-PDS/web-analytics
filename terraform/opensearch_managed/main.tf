@@ -3,7 +3,6 @@ data "aws_caller_identity" "current" {}
 locals {
   module_relative_path = replace(abspath(path.module), "/^.*\\/terraform\\//", "")
   ssm_prefix           = "/pds/observability/${local.module_relative_path}"
-  domain_arn           = "arn:aws:es:${var.aws_region}:${data.aws_caller_identity.current.account_id}:domain/${var.domain_name}"
 }
 
 # Security group for the OpenSearch domain VPC endpoint.
@@ -97,25 +96,28 @@ resource "aws_opensearch_domain" "pds_opensearch_domain" {
 }
 
 
-data "aws_iam_policy_document" "domain_access_policy" {
-  statement {
-    sid     = "AllowPrincipalAccess"
-    effect  = "Allow"
-    actions = ["es:*"]
-    resources = [
-      local.domain_arn,
-      "${local.domain_arn}/*",
-    ]
-    principals {
-      type        = "AWS"
-      identifiers = var.principal_arns
-    }
-  }
-}
-
 resource "aws_opensearch_domain_policy" "domain_access_policy" {
-  domain_name     = var.domain_name
-  access_policies = data.aws_iam_policy_document.domain_access_policy.json
+  domain_name = var.domain_name
+  access_policies = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowEC2AndFirehose"
+        Effect = "Allow"
+        Principal = {
+          AWS = [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_role_name}",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.firehose_role_name}",
+          ]
+        }
+        Action = "es:*"
+        Resource = [
+          "arn:aws:es:${var.aws_region}:${data.aws_caller_identity.current.account_id}:domain/${var.domain_name}",
+          "arn:aws:es:${var.aws_region}:${data.aws_caller_identity.current.account_id}:domain/${var.domain_name}/*",
+        ]
+      }
+    ]
+  })
 
   depends_on = [aws_opensearch_domain.pds_opensearch_domain]
 }
