@@ -1,9 +1,9 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  access_policies      = jsondecode(file(var.policy_json_file))
   module_relative_path = replace(abspath(path.module), "/^.*\\/terraform\\//", "")
   ssm_prefix           = "/pds/observability/${local.module_relative_path}"
+  domain_arn           = "arn:aws:es:${var.aws_region}:${data.aws_caller_identity.current.account_id}:domain/${var.domain_name}"
 }
 
 # Security group for the OpenSearch domain VPC endpoint.
@@ -98,30 +98,17 @@ resource "aws_opensearch_domain" "pds_opensearch_domain" {
 
 
 data "aws_iam_policy_document" "domain_access_policy" {
-  dynamic "statement" {
-    for_each = local.access_policies
-
-    content {
-      sid     = statement.value.Sid
-      effect  = statement.value.Effect
-      actions = statement.value.Action
-      resources = [
-        for resource in statement.value.Resource :
-        replace(
-          replace(
-            replace(resource, "{account_id}", data.aws_caller_identity.current.account_id),
-            "{region}", var.aws_region
-          ),
-          "{domain_name}", var.domain_name
-        )
-      ]
-      principals {
-        type = "AWS"
-        identifiers = [
-          for principal in statement.value.Principal :
-          replace(principal, "{account_id}", data.aws_caller_identity.current.account_id)
-        ]
-      }
+  statement {
+    sid     = "AllowPrincipalAccess"
+    effect  = "Allow"
+    actions = ["es:*"]
+    resources = [
+      local.domain_arn,
+      "${local.domain_arn}/*",
+    ]
+    principals {
+      type        = "AWS"
+      identifiers = var.principal_arns
     }
   }
 }

@@ -21,7 +21,9 @@ vpc_id                = ""
 vpc_subnet_ids        = []
 ec2_security_group_id = ""
 
-# Full path to the access policy JSON file (copy from access_policy.json.example)
-policy_json_file = "access_policy.json"
+principal_arns = [
+  "arn:aws:iam::<account-id>:role/<ec2-instance-role-name>",
+  "arn:aws:iam::<account-id>:role/service-role/<firehose-role-name>",
+]
 
 engine_version = "OpenSearch_2.19"

@@ -132,10 +132,6 @@ crash.*.log
 *.tfvars
 *.tfvars.json
 
-# Terraform access policy files contain environment-specific role ARNs.
-# Use access_policy.json.example as the template.
-terraform/**/access_policy.json
-
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
 override.tf

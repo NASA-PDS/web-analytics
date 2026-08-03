@@ -4,9 +4,9 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "policy_json_file" {
-  type        = string
-  description = "Full path to the domain access policy JSON file. Use access_policy.json.example as a template."
+variable "principal_arns" {
+  type        = list(string)
+  description = "IAM role ARNs granted es:* access to the OpenSearch domain (e.g. Logstash EC2 role, Firehose delivery role)."
 }
 
 variable "domain_name" {
