@@ -1,9 +1,5 @@
 data "aws_caller_identity" "current" {}
 
-locals {
-  s3_bucket_name = "${var.s3_bucket_prefix}-web-analytics"
-}
-
 data "aws_iam_policy_document" "ec2_web_analytics_access" {
   statement {
     effect = "Allow"
@@ -13,8 +9,8 @@ data "aws_iam_policy_document" "ec2_web_analytics_access" {
       "s3:Bucket*"
     ]
     resources = [
-      "arn:${var.partition}:s3:::${local.s3_bucket_name}",
-      "arn:${var.partition}:s3:::${local.s3_bucket_name}/*"
+      "arn:${var.partition}:s3:::${var.logs_s3_bucket_name}",
+      "arn:${var.partition}:s3:::${var.logs_s3_bucket_name}/*"
     ]
   }
 
@@ -34,7 +30,7 @@ data "aws_iam_policy_document" "ec2_web_analytics_access" {
 
 resource "aws_iam_policy" "ec2_web_analytics_access" {
   name        = "${var.resource_prefix}-web-analytics-access-policy"
-  description = "Allow EC2 role to read from ${local.s3_bucket_name} and write to OpenSearch domain ${var.opensearch_domain_name}"
+  description = "Allow EC2 role to read from ${var.logs_s3_bucket_name} and write to OpenSearch domain ${var.opensearch_domain_name}"
   policy      = data.aws_iam_policy_document.ec2_web_analytics_access.json
   tags        = var.common_tags
 }

@@ -1,20 +1,17 @@
 # Taskfile for web-analytics Terraform
 # =====================================
 #
-# Covers two independent root modules that must be applied in order:
-#   1. opensearch_managed/   - the OpenSearch domain (slow, ~15-20 min, run once at init)
+# Root modules and their deployment order:
+#   1. opensearch_managed/   - OpenSearch domain (slow, ~15-20 min, run once at init)
+#   2. iam/policies/         - IAM policy + role attachment (admin required)
+#   3. . (root)              - S3 log bucket (Project-Power-User)
+#   4. logstash/             - Logstash EC2 instance (admin required — iam:PassRole)
 #
 # Prerequisites:
 #   brew install go-task/tap/go-task
 #   export AWS_ACCESS_KEY_ID=...
 #   export AWS_SECRET_ACCESS_KEY=...
 #   export AWS_DEFAULT_REGION=...
-#
-# Typical first-time setup:
-#   task opensearch:init VENUE=dev
-#   task opensearch:plan VENUE=dev
-#   task opensearch:deploy VENUE=dev        # ~15-20 min
-#   Index templates are applied manually via curl from the Logstash EC2 — see README.
 
 ---
 
@@ -52,7 +49,7 @@ tasks:
     # ------------------------------------------------------------------
 
     init:
-        desc: "Initialize root module Terraform"
+        desc: "Initialize S3 root module Terraform"
         deps: [aws]
         dir: '{{.USER_WORKING_DIR}}'
         requires:
@@ -63,7 +60,7 @@ tasks:
             - terraform init -no-color -reconfigure -backend-config=backend-{{.VENUE}}.hcl {{.CLI_ARGS}}
 
     validate:
-        desc: "Validate root module Terraform files"
+        desc: "Validate S3 root module Terraform files"
         dir: '{{.USER_WORKING_DIR}}'
         cmds:
             - terraform validate -no-color
@@ -77,11 +74,7 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
-              -target=module.s3_bucket
-              -target=aws_s3_bucket_lifecycle_configuration.lifecycle
-              -target=aws_ssm_parameter.s3_bucket_name
-              {{.CLI_ARGS}}
+            - terraform plan -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     s3:deploy:
         desc: "Deploy S3 bucket and lifecycle policy"
@@ -93,92 +86,10 @@ tasks:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
-              -target=module.s3_bucket
-              -target=aws_s3_bucket_lifecycle_configuration.lifecycle
-              -target=aws_ssm_parameter.s3_bucket_name
-              {{.CLI_ARGS}}
-
-    # ------------------------------------------------------------------
-    # EC2: Logstash instance
-    # Requires iam:PassRole — must be run by a system administrator.
-    # Run after opensearch:deploy (reads endpoint from SSM) and iam:deploy.
-    # ------------------------------------------------------------------
-
-    ec2:plan:
-        desc: "Plan EC2 Logstash instance changes (requires admin — iam:PassRole)"
-        deps: [init]
-        dir: '{{.USER_WORKING_DIR}}'
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform plan -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
-              -target=aws_launch_template.logstash
-              -target=aws_instance.logstash
-              -target=aws_ssm_parameter.logstash_instance_id
-              {{.CLI_ARGS}}
-
-    ec2:deploy:
-        desc: "Deploy Logstash EC2 instance (requires admin — iam:PassRole)"
-        aliases: ["ec2:apply"]
-        deps: [validate]
-        dir: '{{.USER_WORKING_DIR}}'
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform apply -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
-              -target=aws_launch_template.logstash
-              -target=aws_instance.logstash
-              -target=aws_ssm_parameter.logstash_instance_id
-              {{.CLI_ARGS}}
-
-    ec2:destroy:
-        desc: "Destroy Logstash EC2 instance"
-        dir: '{{.USER_WORKING_DIR}}'
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform apply -destroy -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars
-              -target=aws_instance.logstash
-              -target=aws_launch_template.logstash
-              -target=aws_ssm_parameter.logstash_instance_id
-              {{.CLI_ARGS}}
-
-    # ------------------------------------------------------------------
-    # Full root module (S3 + EC2 together) — admin only
-    # ------------------------------------------------------------------
-
-    plan:
-        desc: "Plan full root module (S3 + EC2) — requires admin for EC2"
-        deps: [init]
-        dir: '{{.USER_WORKING_DIR}}'
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform plan -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
-
-    deploy:
-        desc: "Deploy full root module (S3 + EC2) — requires admin for EC2"
-        aliases: [apply]
-        deps: [validate]
-        dir: '{{.USER_WORKING_DIR}}'
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
             - terraform apply -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
-    destroy:
-        desc: "Destroy root module resources"
+    s3:destroy:
+        desc: "Destroy S3 bucket resources"
         dir: '{{.USER_WORKING_DIR}}'
         requires:
             vars:
@@ -187,10 +98,110 @@ tasks:
         cmds:
             - terraform apply -destroy -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
+    s3:refresh:
+        desc: "Refresh S3 root module Terraform state"
+        deps: [init]
+        dir: '{{.USER_WORKING_DIR}}'
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform plan -refresh-only -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    s3:sync:
+        desc: "Apply refresh-only to sync S3 state without changing infrastructure"
+        deps: [init]
+        dir: '{{.USER_WORKING_DIR}}'
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform apply -refresh-only -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    # ------------------------------------------------------------------
+    # Logstash: EC2 instance
+    # Requires iam:PassRole — must be run by a system administrator.
+    # Run after opensearch:deploy (reads endpoint from SSM) and iam:deploy.
+    # ------------------------------------------------------------------
+
+    logstash:init:
+        desc: "Initialize Logstash EC2 module Terraform (requires admin — iam:PassRole)"
+        deps: [aws]
+        dir: logstash
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform init -no-color -reconfigure -backend-config=backend-{{.VENUE}}.hcl {{.CLI_ARGS}}
+
+    logstash:validate:
+        desc: "Validate Logstash EC2 module Terraform files"
+        dir: logstash
+        cmds:
+            - terraform validate -no-color
+
+    logstash:plan:
+        desc: "Plan Logstash EC2 instance changes (requires admin — iam:PassRole)"
+        deps: ["logstash:init"]
+        dir: logstash
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform plan -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    logstash:deploy:
+        desc: "Deploy Logstash EC2 instance (requires admin — iam:PassRole)"
+        aliases: ["logstash:apply"]
+        deps: ["logstash:validate"]
+        dir: logstash
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform apply -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    logstash:destroy:
+        desc: "Destroy Logstash EC2 instance"
+        dir: logstash
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform apply -destroy -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    logstash:refresh:
+        desc: "Refresh Logstash module Terraform state"
+        deps: ["logstash:init"]
+        dir: logstash
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform plan -refresh-only -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    logstash:sync:
+        desc: "Apply refresh-only to sync Logstash state without changing infrastructure"
+        deps: ["logstash:init"]
+        dir: logstash
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform apply -refresh-only -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
     # ------------------------------------------------------------------
     # IAM: EC2 policy + role attachment (requires admin/elevated role)
     # Run by a system administrator — Project-Power-User lacks iam:CreatePolicy.
-    # Must be applied before Chunk 1 (EC2 needs the policy attached at launch).
+    # Must be applied before logstash:deploy (EC2 needs the policy attached at launch).
     # ------------------------------------------------------------------
 
     iam:init:
@@ -243,8 +254,30 @@ tasks:
         cmds:
             - terraform apply -destroy -var-file=../../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
+    iam:refresh:
+        desc: "Refresh IAM policies module Terraform state"
+        deps: ["iam:init"]
+        dir: iam/policies
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform plan -refresh-only -var-file=../../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    iam:sync:
+        desc: "Apply refresh-only to sync IAM state without changing infrastructure"
+        deps: ["iam:init"]
+        dir: iam/policies
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform apply -refresh-only -var-file=../../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
     # ------------------------------------------------------------------
-    # Chunk 2: OpenSearch domain
+    # OpenSearch domain
     # ------------------------------------------------------------------
 
     opensearch:init:
@@ -303,6 +336,28 @@ tasks:
                   enum: [dev, test, prod]
         cmds:
             - terraform apply -destroy -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    opensearch:refresh:
+        desc: "Refresh OpenSearch module Terraform state"
+        deps: ["opensearch:init"]
+        dir: opensearch_managed
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform plan -refresh-only -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+
+    opensearch:sync:
+        desc: "Apply refresh-only to sync OpenSearch state without changing infrastructure"
+        deps: ["opensearch:init"]
+        dir: opensearch_managed
+        requires:
+            vars:
+                - name: VENUE
+                  enum: [dev, test, prod]
+        cmds:
+            - terraform apply -refresh-only -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     opensearch:show:
         desc: "Show OpenSearch domain Terraform state"

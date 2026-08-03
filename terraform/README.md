@@ -220,7 +220,7 @@ Required only if ingesting CloudFront logs. Apply in the `pdc-cds-infra` repo:
 
 ```bash
 cd pdc-cds-infra/terraform/cloudfront/pds-main/
-# Fill in tfvars/dev.tfvars: web_analytics_ec2_role_arn = "arn:aws:iam::<account>:role/<role>"
+# Fill in tfvars/dev.tfvars: web_analytics_ec2_role_name, firehose_pds_main_cf_role_name
 task plan   VENUE=dev
 task deploy VENUE=dev
 ```

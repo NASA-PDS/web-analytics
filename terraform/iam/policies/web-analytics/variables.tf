@@ -8,9 +8,9 @@ variable "partition" {
   default = "aws"
 }
 
-variable "s3_bucket_prefix" {
+variable "logs_s3_bucket_name" {
   type        = string
-  description = "Prefix for the S3 bucket name (e.g. pds-dev-gh01dc). Must match deployed bucket."
+  description = "Full name of the S3 logs bucket (e.g. pds-logs-dev)"
 }
 
 variable "resource_prefix" {

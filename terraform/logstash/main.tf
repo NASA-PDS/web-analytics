@@ -8,9 +8,20 @@
 # Access: AWS Systems Manager (MCP-SSM-CloudWatch instance profile).
 # No SSH key or inbound security group rules needed.
 #
+# Reads s3_bucket_name from SSM (/pds/web-analytics/s3/bucket_name) so this
+# module can be applied independently of the S3 root module.
+#
 # TODO: vpc_id and ec2_security_group_name should be sourced from SSM once
 # parameters are published under /pds/cds-infra/vpc/ — matching the pattern
 # at /pds/cds-infra/vpc/security_groups/registry_api_ecs_app_sg_id etc.
+
+data "aws_ssm_parameter" "s3_bucket_name" {
+  name = "/pds/web-analytics/s3/bucket_name"
+}
+
+data "aws_ssm_parameter" "opensearch_endpoint" {
+  name = "/pds/observability/opensearch_managed/opensearch_endpoint"
+}
 
 data "aws_ami" "mcp_amazon_linux" {
   most_recent = true
@@ -36,8 +47,6 @@ data "aws_security_group" "mcp_ec2" {
   vpc_id = var.vpc_id
 }
 
-# Auto-select a private subnet — filters by map-public-ip-on-launch=false.
-# No hardcoded subnet IDs required.
 data "aws_subnets" "private" {
   filter {
     name   = "vpc-id"
@@ -49,12 +58,8 @@ data "aws_subnets" "private" {
   }
 }
 
-data "aws_ssm_parameter" "opensearch_endpoint" {
-  name = "/pds/observability/opensearch_managed/opensearch_endpoint"
-}
-
 locals {
-  ec2_name = "${local.resource_prefix}-observability"
+  ec2_name = "${var.resource_prefix}-observability"
   logstash_tags = {
     tenant    = var.tenant
     venue     = var.venue
@@ -90,12 +95,12 @@ resource "aws_launch_template" "logstash" {
     }
   }
 
-  user_data = base64encode(templatefile("${path.module}/templates/logstash-userdata.sh.tpl", {
+  user_data = base64encode(templatefile("${path.module}/../templates/logstash-userdata.sh.tpl", {
     logstash_version    = var.logstash_version
     aws_region          = var.aws_region
-    s3_bucket_name      = local.s3_bucket_name
+    s3_bucket_name      = data.aws_ssm_parameter.s3_bucket_name.value
     opensearch_endpoint = data.aws_ssm_parameter.opensearch_endpoint.value
-    index_prefix        = local.resource_prefix
+    index_prefix        = var.resource_prefix
     s3_cf_bucket_name   = var.s3_cf_bucket_name
   }))
 

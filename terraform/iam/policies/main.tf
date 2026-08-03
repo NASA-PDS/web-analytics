@@ -15,7 +15,7 @@ module "web_analytics" {
 
   aws_region             = var.aws_region
   partition              = var.partition
-  s3_bucket_prefix       = var.s3_bucket_prefix
+  logs_s3_bucket_name    = var.logs_s3_bucket_name
   resource_prefix        = var.resource_prefix
   ec2_role_name          = var.ec2_role_name
   opensearch_domain_name = var.opensearch_domain_name
