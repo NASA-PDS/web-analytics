@@ -25,19 +25,19 @@ class TestLogstashIntegration(unittest.TestCase):
     # ============================================================================
     # CONFIGURATION: Set which configurations to test here
     # ============================================================================
-    ENABLED_CONFIGS = ["https", "ftp", "cloudfront"]  # Options: "https", "ftp", "cloudfront"
+    ENABLED_CONFIGS = ["https", "ftp", "cloudfront", "cloudfront-json"]  # Options: "https", "ftp", "cloudfront", "cloudfront-json"
 
     # Configuration-specific test expectations
     EXPECTED_COUNTS = {
         "https": {
             "parse_failures": 0,
             "bad_logs": 0,
-            "invalid_methods": 1,
+            "invalid_methods": 0,  # filter drops _invalid_http_method events before output
             "template_errors": 0,
             "empty_user_agents": 1,
             "duplicate_sources": 0,
             "processed_logs": 25,  # +2 for url-field-parsing test lines (10.99.1.1, 10.99.1.2)
-            "corrupt_logs": 4,
+            "corrupt_logs": 3,
         },
         "ftp": {
             "parse_failures": 0,
@@ -59,6 +59,16 @@ class TestLogstashIntegration(unittest.TestCase):
             "processed_logs": 2,  # 200 OK + 404 (failure outcome, no special tag)
             "corrupt_logs": 0,
         },
+        "cloudfront-json": {
+            "parse_failures": 0,
+            "bad_logs": 0,
+            "invalid_methods": 0,
+            "template_errors": 0,
+            "empty_user_agents": 1,  # 403 record with cs(User-Agent) = "-"
+            "duplicate_sources": 0,
+            "processed_logs": 2,  # 200 GET /portal/ + 302 GET with query string
+            "corrupt_logs": 0,
+        },
     }
 
     # Logstash configuration components
@@ -66,6 +76,7 @@ class TestLogstashIntegration(unittest.TestCase):
         "https": "test-input-https.conf",
         "ftp": "test-input-ftp.conf",
         "cloudfront": "test-input-cloudfront.conf",
+        "cloudfront-json": "test-input-cloudfront-json.conf",
     }
 
     FILTER_CONFIGS = ["shared/pds-filter.conf"]
@@ -168,6 +179,7 @@ class TestLogstashIntegration(unittest.TestCase):
             "https": "HTTPS Log Processing",
             "ftp": "FTP Log Processing",
             "cloudfront": "CloudFront Legacy W3C Log Processing",
+            "cloudfront-json": "CloudFront JSON Standard Logging v2 Processing",
         }
         return [(config, descriptions.get(config, f"{config} Processing")) for config in self.ENABLED_CONFIGS]
 
@@ -528,6 +540,16 @@ class TestLogstashIntegration(unittest.TestCase):
 
         # Validate output counts
         self.validate_output_counts(output_dir, "cloudfront")
+
+    def test_cloudfront_json_log_processing(self):
+        """Test processing of CloudFront JSON Standard Logging v2 logs."""
+        if "cloudfront-json" not in self.ENABLED_CONFIGS:
+            self.skipTest("CloudFront JSON configuration not enabled")
+
+        success, output_dir = self.run_logstash_pipeline("cloudfront-json", "CloudFront JSON Standard Logging v2 Processing")
+        self.assertTrue(success, "Logstash pipeline failed for CloudFront JSON logs")
+
+        self.validate_output_counts(output_dir, "cloudfront-json")
 
     @unittest.skip("Skipping configuration file existence test")
     def test_configuration_files_exist(self):
