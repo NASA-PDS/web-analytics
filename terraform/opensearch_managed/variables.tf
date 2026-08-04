@@ -108,6 +108,12 @@ variable "ec2_security_group_id" {
   default     = ""
 }
 
+variable "firehose_security_group_id" {
+  type        = string
+  description = "Security group ID of the Kinesis Firehose delivery stream. When set, allows HTTPS inbound to OpenSearch from Firehose. Required when ingesting CloudFront real-time logs via Firehose into a VPC-deployed OpenSearch domain."
+  default     = ""
+}
+
 variable "venue" {
   type        = string
   description = "Tag value for venue (dev, test, prod)"
