@@ -15,6 +15,8 @@
 # MCP publishes them under /pds/cds-infra/vpc/ — the pattern exists for other
 # SGs at /pds/cds-infra/vpc/security_groups/registry_api_ecs_app_sg_id etc.
 
+data "aws_caller_identity" "current" {}
+
 data "aws_ssm_parameter" "s3_bucket_name" {
   name = "/pds/web-analytics/s3/bucket_name"
 }
@@ -124,6 +126,14 @@ resource "aws_instance" "logstash" {
   }
 
   tags = local.logstash_tags
+}
+
+resource "aws_ssm_parameter" "ec2_role_arn" {
+  name        = "/pds/web-analytics/iam/ec2_role_arn"
+  type        = "String"
+  value       = "arn:${var.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_role_name}"
+  description = "ARN of the EC2 role used by the Logstash instance — currently the shared MCP instance profile, update when a dedicated role exists"
+  overwrite   = true
 }
 
 resource "aws_ssm_parameter" "logstash_instance_id" {

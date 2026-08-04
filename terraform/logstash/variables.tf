@@ -4,6 +4,12 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
+variable "partition" {
+  description = "AWS partition (aws, aws-us-gov, aws-cn)"
+  type        = string
+  default     = "aws"
+}
+
 variable "tenant" {
   description = "Tag value for Tenant"
   type        = string
