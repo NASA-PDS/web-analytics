@@ -1,5 +1,13 @@
 data "aws_caller_identity" "current" {}
 
+data "aws_ssm_parameter" "ec2_role_arn" {
+  name = "/pds/web-analytics/iam/ec2_role_arn"
+}
+
+data "aws_ssm_parameter" "cloudfront_realtime_firehose_role_arn" {
+  name = "/pds/monitor/firehose/firehose-role-arn"
+}
+
 data "aws_security_group" "mcp_ec2" {
   count  = var.vpc_enabled ? 1 : 0
   name   = var.ec2_security_group_name
@@ -124,8 +132,8 @@ resource "aws_opensearch_domain_policy" "domain_access_policy" {
         Effect = "Allow"
         Principal = {
           AWS = [
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_analytics_role_name}",
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.firehose_pds_main_cf_role_name}",
+            data.aws_ssm_parameter.ec2_role_arn.value,
+            data.aws_ssm_parameter.cloudfront_realtime_firehose_role_arn.value,
           ]
         }
         Action = "es:*"
