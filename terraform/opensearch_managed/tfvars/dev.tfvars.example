@@ -20,7 +20,7 @@ vpc_enabled           = true
 vpc_id                = ""
 vpc_subnet_ids        = []
 ec2_security_group_id      = ""   # SG ID of the Logstash EC2
-firehose_security_group_id = ""   # optional: SG ID of Kinesis Firehose delivery stream (required for CF real-time log ingestion)
+firehose_security_group_id = ""   # SG ID of the Kinesis Firehose delivery stream
 
 ec2_role_name      = "<your-ec2-instance-role-name>"
 firehose_pds_main_cf_role_name = "service-role/<your-firehose-role-name>"

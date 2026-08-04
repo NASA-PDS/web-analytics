@@ -22,15 +22,12 @@ resource "aws_security_group" "opensearch" {
     security_groups = [var.ec2_security_group_id]
   }
 
-  dynamic "ingress" {
-    for_each = var.firehose_security_group_id != "" ? [1] : []
-    content {
-      description     = "Allow HTTPS from the CloudFront real-time logging Firehose security group."
-      from_port       = 443
-      to_port         = 443
-      protocol        = "tcp"
-      security_groups = [var.firehose_security_group_id]
-    }
+  ingress {
+    description     = "Allow HTTPS from the CloudFront real-time logging Firehose security group."
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [var.firehose_security_group_id]
   }
 
   egress {
