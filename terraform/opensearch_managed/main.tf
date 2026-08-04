@@ -44,6 +44,10 @@ resource "aws_security_group" "opensearch" {
     component = var.component
     managedby = var.managedby
   }
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
 }
 
 resource "aws_opensearch_domain" "pds_opensearch_domain" {
