@@ -10,14 +10,42 @@ Deploys the infrastructure for the PDS Web Analytics pipeline:
 
 ```
 terraform/
-  ├── iam/policies/             # IAM policy + role attachment  — 🔐 admin only
-  ├── opensearch_managed/       # OpenSearch domain
-  └── (root)                    # S3 + EC2                      — 🔐 EC2 is admin only
+  ├── opensearch_managed/   # OpenSearch domain
+  ├── iam/policies/         # IAM policy + role attachment  — 🔐 admin (iam:CreatePolicy, iam:AttachRolePolicy)
+  ├── (root)                # S3 log bucket
+  └── logstash/             # Logstash EC2                   — 🔐 admin (iam:PassRole)
 ```
 
-> **Permission requirements:**
-> - `Project-Power-User` — Steps 1, 2, 5
-> - 🔐 **System administrator** (`iam:CreatePolicy`, `iam:PassRole`) — Steps 3, 4
+---
+
+## Deployment flow
+
+Each module has its own Terraform state. Deploy in the order shown — `logstash/` depends on all three others completing first.
+
+```mermaid
+flowchart TD
+    subgraph phase1["① Start first — slow (~15–20 min)"]
+        OS["opensearch_managed/\nOpenSearch domain\n🔑 Power-User"]
+    end
+
+    subgraph phase2["② Run while OpenSearch provisions (parallel OK)"]
+        IAM["iam/policies/\nIAM policy + role attachment\n🔐 Admin\niam:CreatePolicy · iam:AttachRolePolicy"]
+        S3["(root)\nS3 log bucket\n🔑 Power-User"]
+    end
+
+    subgraph phase3["③ After all above complete"]
+        LS["logstash/\nLogstash EC2\n🔐 Admin\niam:PassRole"]
+    end
+
+    OS -->|"endpoint → SSM"| LS
+    IAM -->|"policy attached to EC2 role"| LS
+    S3 -->|"bucket name → SSM"| LS
+```
+
+| Role | Modules |
+|---|---|
+| `Project-Power-User` | `opensearch_managed/`, `(root)` S3, Step 5 onward |
+| 🔐 System administrator | `iam/policies/` (`iam:CreatePolicy`, `iam:AttachRolePolicy`), `logstash/` (`iam:PassRole`) |
 
 ---
 
@@ -47,9 +75,10 @@ cp tfvars/common.tfvars.example             tfvars/common-dev.tfvars
 # Edit common-dev.tfvars: set managedby, s3_bucket_prefix, resource_prefix, ec2_role_name, opensearch_domain_name
 
 # Module-specific venue values
-cp tfvars/dev.tfvars.example                tfvars/dev.tfvars
-cp iam/policies/tfvars/dev.tfvars.example   iam/policies/tfvars/dev.tfvars
-cp opensearch_managed/tfvars/dev.tfvars.example opensearch_managed/tfvars/dev.tfvars
+cp tfvars/dev.tfvars.example                        tfvars/dev.tfvars
+cp iam/policies/tfvars/dev.tfvars.example           iam/policies/tfvars/dev.tfvars
+cp opensearch_managed/tfvars/dev.tfvars.example     opensearch_managed/tfvars/dev.tfvars
+cp logstash/tfvars/dev.tfvars.example               logstash/tfvars/dev.tfvars
 ```
 
 Key values to fill in:
@@ -58,9 +87,8 @@ Key values to fill in:
 |---|---|---|
 | `tfvars/common-dev.tfvars` | `managedby` | Your email address |
 | `tfvars/common-dev.tfvars` | `s3_bucket_prefix`, `resource_prefix`, `ec2_role_name`, `opensearch_domain_name` | Venue-specific infra identifiers |
-| `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_id` | VPC values for the OpenSearch domain |
-| `opensearch_managed/tfvars/dev.tfvars` | `policy_json_file` | Path to filled-in `access_policy.json` (copy from `access_policy.json.example`) |
-| `tfvars/dev.tfvars` | `vpc_id` | VPC ID for the EC2 |
+| `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_id`, `firehose_security_group_id` | VPC values for the OpenSearch domain |
+| `logstash/tfvars/dev.tfvars` | `vpc_id`, `ec2_security_group_name`, `s3_cf_bucket_name` | VPC and CloudFront bucket for the EC2 |
 
 ### 2. Configure credentials
 
@@ -73,13 +101,10 @@ unset AWS_PROFILE  # required for Terraform S3 backend compatibility
 
 ## Deployment — step by step
 
-### Step 1: OpenSearch domain — Power-User (~15-20 min)
+### Step 1: OpenSearch domain — 🔑 Power-User (~15-20 min)
 
 ```bash
 cd terraform/
-
-cp opensearch_managed/access_policy.json.example opensearch_managed/access_policy.json
-# Edit access_policy.json — fill in your EC2 role name
 
 task opensearch:init   VENUE=dev
 task opensearch:plan   VENUE=dev
@@ -89,7 +114,7 @@ task opensearch:endpoint VENUE=dev  # confirm endpoint stored in SSM
 
 ---
 
-### Step 2: S3 bucket — Power-User
+### Step 2: S3 bucket — 🔑 Power-User
 
 ```bash
 task s3:plan   VENUE=dev
@@ -109,13 +134,13 @@ task iam:deploy VENUE=dev
 
 ---
 
-### 🔐 Step 4: EC2 — admin only
+### 🔐 Step 4: Logstash EC2 — admin only
 
 Requires `iam:PassRole`. Must be run by a system administrator. Run after Steps 1–3.
 
 ```bash
-task ec2:plan   VENUE=dev
-task ec2:deploy VENUE=dev
+task logstash:plan   VENUE=dev
+task logstash:deploy VENUE=dev
 ```
 
 ---
@@ -280,8 +305,8 @@ Then test, commit, and redeploy via the standard config-update workflow above.
 ## Teardown
 
 ```bash
-task ec2:destroy        VENUE=dev   # EC2 + launch template        🔐 admin
-task iam:destroy        VENUE=dev   # IAM policy + role attachment  🔐 admin
+task logstash:destroy   VENUE=dev   # Logstash EC2 + launch template  🔐 admin
+task iam:destroy        VENUE=dev   # IAM policy + role attachment     🔐 admin
 task s3:destroy         VENUE=dev   # S3 bucket (does not delete objects)
 task opensearch:destroy VENUE=dev   # OpenSearch domain (destroys all indexed data)
 ```
@@ -290,10 +315,11 @@ task opensearch:destroy VENUE=dev   # OpenSearch domain (destroys all indexed da
 
 ## Architecture notes
 
-- **State files** stored in S3 (`pds-dev-gh01dc-infra`):
-  - `web-analytics/terraform.tfstate` — S3 + EC2
-  - `web-analytics/iam-policies.tfstate` — IAM
+- **State files** stored in S3 (`pds-<venue>-<cicd>-infra`):
+  - `web-analytics/terraform.tfstate` — S3 log bucket (root module)
+  - `web-analytics/iam-policies.tfstate` — IAM policies
   - `web-analytics/opensearch.tfstate` — OpenSearch domain
+  - `web-analytics/logstash.tfstate` — Logstash EC2
 - **Variable naming** — `s3_bucket_prefix` is for the S3 bucket name only (may include CI/CD identifiers like `gh01dc`). `resource_prefix` is for all other resources and should not include CI/CD identifiers.
 - **VPC/SG values** are in tfvars. TODO: source from SSM under `/pds/cds-infra/vpc/` once published.
 - **Logstash sincedb** persists to `/var/lib/logstash/plugins/inputs/s3/` on the EC2 EBS volume (`delete_on_termination = false`) — S3 read position survives restarts and redeployments.
