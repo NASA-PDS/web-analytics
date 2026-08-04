@@ -5,7 +5,7 @@
 venue = "dev"
 
 vpc_id                  = ""                    # VPC ID for the Logstash EC2
-ec2_security_group_name = "<mcp-ec2-sg-name>"   # Name of the existing MCP EC2 security group
+ec2_security_group_id   = ""   # SG ID of the MCP EC2 security group
 logstash_instance_type  = "t3.large"
 logstash_version        = "8.17.0"
 s3_cf_bucket_name       = "<cf-logs-bucket-name>"  # S3 bucket for CloudFront logs (EN node only)
