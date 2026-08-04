@@ -45,8 +45,8 @@ variable "vpc_id" {
   sensitive   = true
 }
 
-variable "ec2_security_group_id" {
-  description = "Security group ID of the MCP EC2 security group to attach to the Logstash instance. TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published."
+variable "ec2_security_group_name" {
+  description = "Name of the MCP EC2 security group to attach to the Logstash instance. TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once MCP publishes it."
   type        = string
 }
 

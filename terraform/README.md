@@ -87,8 +87,8 @@ Key values to fill in:
 |---|---|---|
 | `tfvars/common-dev.tfvars` | `managedby` | Your email address |
 | `tfvars/common-dev.tfvars` | `s3_bucket_prefix`, `resource_prefix`, `ec2_role_name`, `opensearch_domain_name` | Venue-specific infra identifiers |
-| `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_id`, `firehose_security_group_id` | VPC values for the OpenSearch domain |
-| `logstash/tfvars/dev.tfvars` | `vpc_id`, `ec2_security_group_id`, `s3_cf_bucket_name` | VPC and CloudFront bucket for the EC2 |
+| `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_name`, `firehose_security_group_id` | VPC values for the OpenSearch domain |
+| `logstash/tfvars/dev.tfvars` | `vpc_id`, `ec2_security_group_name`, `s3_cf_bucket_name` | VPC and CloudFront bucket for the EC2 |
 
 ### 2. Configure credentials
 

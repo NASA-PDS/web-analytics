@@ -102,9 +102,9 @@ variable "vpc_subnet_ids" {
   default     = []
 }
 
-variable "ec2_security_group_id" {
+variable "ec2_security_group_name" {
   type        = string
-  description = "Security group ID of the Logstash EC2. Used to allow 443 inbound to the OpenSearch domain. Required when vpc_enabled = true."
+  description = "Name of the MCP EC2 security group. Used to allow 443 inbound to the OpenSearch domain. Required when vpc_enabled = true."
   default     = ""
 }
 

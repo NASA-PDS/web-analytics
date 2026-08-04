@@ -19,7 +19,7 @@ zone_awareness_enabled    = false
 vpc_enabled           = true
 vpc_id                = ""
 vpc_subnet_ids        = []
-ec2_security_group_id      = ""   # SG ID of the Logstash EC2
+ec2_security_group_name    = ""   # Name of the MCP EC2 security group
 firehose_security_group_id = ""   # SG ID of the Kinesis Firehose delivery stream
 
 ec2_role_name      = "<your-ec2-instance-role-name>"

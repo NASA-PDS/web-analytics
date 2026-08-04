@@ -1,5 +1,11 @@
 data "aws_caller_identity" "current" {}
 
+data "aws_security_group" "mcp_ec2" {
+  count  = var.vpc_enabled ? 1 : 0
+  name   = var.ec2_security_group_name
+  vpc_id = var.vpc_id
+}
+
 locals {
   module_relative_path = replace(abspath(path.module), "/^.*\\/terraform\\//", "")
   ssm_prefix           = "/pds/observability/${local.module_relative_path}"
@@ -19,7 +25,7 @@ resource "aws_security_group" "opensearch" {
     from_port       = 443
     to_port         = 443
     protocol        = "tcp"
-    security_groups = [var.ec2_security_group_id]
+    security_groups = [data.aws_security_group.mcp_ec2[0].id]
   }
 
   ingress {
