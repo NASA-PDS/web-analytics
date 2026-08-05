@@ -22,7 +22,7 @@ data "aws_ssm_parameter" "s3_bucket_name" {
 }
 
 data "aws_ssm_parameter" "opensearch_endpoint" {
-  name = "/pds/observability/opensearch_managed/opensearch_endpoint"
+  name = "/pds/observability/opensearch/opensearch_endpoint"
 }
 
 data "aws_ami" "mcp_amazon_linux" {

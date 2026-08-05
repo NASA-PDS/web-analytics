@@ -28,7 +28,7 @@ S3_CF_BUCKET_NAME="${S3_CF_BUCKET_NAME:-}"
 
 AWS_REGION="${AWS_REGION:-us-west-2}"
 OPENSEARCH_ENDPOINT="${OPENSEARCH_ENDPOINT:-$(aws ssm get-parameter \
-  --name /pds/observability/opensearch_managed/opensearch_endpoint \
+  --name /pds/observability/opensearch/opensearch_endpoint \
   --region us-west-2 \
   --query Parameter.Value --output text)}"
 

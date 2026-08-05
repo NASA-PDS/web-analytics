@@ -1,5 +1,5 @@
 # Shared values for root + IAM modules — copy to common-<venue>.tfvars and fill in values.
-# NOT passed to opensearch_managed (which has its own per-venue tfvars).
+# NOT passed to opensearch (which has its own per-venue tfvars).
 
 aws_region = "us-west-2"
 tenant     = "en"

@@ -22,16 +22,16 @@ terraform/
 ```mermaid
 flowchart TD
     subgraph ext["(1a) pdc-observability"]
-        OS["opensearch_managed"]
+        OS["OpenSearch"]
     end
 
     subgraph phase1["(1b) web-analytics"]
-        IAM["iam/policies\n🔐 Admin"]
+        IAM["IAM/Policies\n🔐 Admin"]
         S3["S3 bucket\n🔑 Power-User"]
     end
 
     subgraph phase2["(2) web-analytics"]
-        LS["logstash EC2\n🔐 Admin"]
+        LS["Logstash EC2\n🔐 Admin"]
     end
 
     OS -->|"endpoint → SSM"| LS
@@ -198,8 +198,9 @@ Once running, you should see S3 polling activity within a minute or two:
 To confirm events are landing in OpenSearch, run a quick count from the EC2:
 ```bash
 # Get credentials and endpoint
+SSM_PARAMETER_NAME=/pds/foo/bar/endpoint
 eval $(aws configure export-credentials --format env)
-ENDPOINT=$(aws ssm get-parameter --name /pds/observability/opensearch_managed/opensearch_endpoint \
+ENDPOINT=$(aws ssm get-parameter --name $SSM_PARAMETER_NAME \
   --region us-west-2 --query Parameter.Value --output text)
 
 # Count documents indexed today
@@ -309,8 +310,8 @@ OpenSearch teardown is managed in [pdc-observability](https://github.com/NASA-PD
   - `web-analytics/terraform.tfstate` — S3 log bucket (root module)
   - `web-analytics/iam-policies.tfstate` — IAM policies
   - `web-analytics/logstash.tfstate` — Logstash EC2
-  - `web-analytics/opensearch.tfstate` — OpenSearch domain (managed in pdc-observability)
+  - `observability/opensearch.tfstate` — OpenSearch domain (managed in pdc-observability, own bucket/key)
 - **Variable naming** — `s3_bucket_prefix` is for the S3 bucket name only (may include CI/CD identifiers like `gh01dc`). `resource_prefix` is for all other resources and should not include CI/CD identifiers.
 - **VPC/SG values** are in tfvars. TODO: source from SSM under `/pds/cds-infra/vpc/` once published.
 - **Logstash sincedb** persists to `/var/lib/logstash/plugins/inputs/s3/` on the EC2 EBS volume (`delete_on_termination = false`) — S3 read position survives restarts and redeployments.
-- **OpenSearch** is managed in [pdc-observability](https://github.com/NASA-PDS/pdc-observability). The endpoint is published to SSM at `/pds/observability/opensearch_managed/opensearch_endpoint` and consumed automatically at plan time.
+- **OpenSearch** is managed in [pdc-observability](https://github.com/NASA-PDS/pdc-observability). The endpoint is published to SSM at `/pds/observability/opensearch/opensearch_endpoint` and consumed automatically at plan time.

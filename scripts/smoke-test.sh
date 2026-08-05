@@ -28,7 +28,7 @@ def check(label, fn):
         ok = False
 
 S3_BUCKET  = ssm.get_parameter(Name='/pds/web-analytics/s3/bucket_name')['Parameter']['Value']
-ENDPOINT   = ssm.get_parameter(Name='/pds/observability/opensearch_managed/opensearch_endpoint')['Parameter']['Value']
+ENDPOINT   = ssm.get_parameter(Name='/pds/observability/opensearch/opensearch_endpoint')['Parameter']['Value']
 
 # 1. S3 access
 check('S3 bucket accessible',
