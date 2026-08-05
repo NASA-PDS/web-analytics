@@ -1,11 +1,11 @@
 # Taskfile for web-analytics Terraform
 # =====================================
 #
-# Root modules and their deployment order:
-#   1. opensearch_managed/   - OpenSearch domain (slow, ~15-20 min, run once at init)
-#   2. iam/policies/         - IAM policy + role attachment (admin required)
-#   3. . (root)              - S3 log bucket (Project-Power-User)
-#   4. logstash/             - Logstash EC2 instance (admin required — iam:PassRole)
+# Modules and their deployment order:
+#   0. pdc-observability     - OpenSearch domain (deploy first, separate repo)
+#   1. iam/policies/         - IAM policy + role attachment (admin required)
+#   2. . (root)              - S3 log bucket (Project-Power-User)
+#   3. logstash/             - Logstash EC2 instance (admin required — iam:PassRole)
 #
 # Prerequisites:
 #   brew install go-task/tap/go-task
@@ -275,114 +275,6 @@ tasks:
                   enum: [dev, test, prod]
         cmds:
             - terraform apply -refresh-only -var-file=../../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
-
-    # ------------------------------------------------------------------
-    # OpenSearch domain
-    # ------------------------------------------------------------------
-
-    opensearch:init:
-        desc: "Initialize OpenSearch domain Terraform"
-        summary: >
-            Initialize the opensearch_managed module, configuring the S3 backend for the given
-            venue. Requires a backend-<venue>.hcl file in terraform/opensearch_managed/.
-        deps: [aws]
-        dir: opensearch_managed
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform init -no-color -reconfigure -backend-config=backend-{{.VENUE}}.hcl {{.CLI_ARGS}}
-
-    opensearch:validate:
-        desc: "Validate OpenSearch domain Terraform files"
-        dir: opensearch_managed
-        cmds:
-            - terraform validate -no-color
-
-    opensearch:plan:
-        desc: "Plan OpenSearch domain changes"
-        deps: ["opensearch:init"]
-        dir: opensearch_managed
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform plan -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
-
-    opensearch:deploy:
-        desc: "Deploy the OpenSearch domain (slow - allow ~15-20 min for domain creation)"
-        summary: >
-            Applies the opensearch_managed module. Domain creation takes ~15-20 minutes.
-            After apply, the endpoint is published to SSM at
-            /pds/web-analytics/opensearch_managed/opensearch_endpoint.
-        deps: ["opensearch:validate"]
-        aliases: ["opensearch:apply"]
-        dir: opensearch_managed
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform apply -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
-
-    opensearch:destroy:
-        desc: "Destroy the OpenSearch domain"
-        dir: opensearch_managed
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform apply -destroy -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
-
-    opensearch:refresh:
-        desc: "Refresh OpenSearch module Terraform state"
-        deps: ["opensearch:init"]
-        dir: opensearch_managed
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform plan -refresh-only -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
-
-    opensearch:sync:
-        desc: "Apply refresh-only to sync OpenSearch state without changing infrastructure"
-        deps: ["opensearch:init"]
-        dir: opensearch_managed
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform apply -refresh-only -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
-
-    opensearch:show:
-        desc: "Show OpenSearch domain Terraform state"
-        deps: ["opensearch:init"]
-        dir: opensearch_managed
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - terraform show
-
-    opensearch:endpoint:
-        desc: "Print the OpenSearch endpoint from SSM (requires deploy to have run)"
-        silent: true
-        requires:
-            vars:
-                - name: VENUE
-                  enum: [dev, test, prod]
-        cmds:
-            - |
-              aws ssm get-parameter \
-                --name /pds/observability/opensearch_managed/opensearch_endpoint \
-                --query Parameter.Value \
-                --output text
 
     # ------------------------------------------------------------------
     # Default

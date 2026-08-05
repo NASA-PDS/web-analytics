@@ -5,12 +5,11 @@ Deploys the infrastructure for the PDS Web Analytics pipeline:
 - **S3 bucket** — log storage (versioning suspended), SSE, and Intelligent-Tiering
 - **IAM policy** — grants the Logstash EC2 role read access to S3 and write access to OpenSearch
 - **Logstash EC2** — MCP Amazon Linux 2023 instance running Logstash directly via RPM + systemd
-- **Managed OpenSearch domain** — VPC-only, no public endpoint, IAM resource-based access control
-- **Visualization** — AWS-hosted [OpenSearch UI](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/application.html) with IAM Identity Center
+
+> **OpenSearch** is managed separately in [pdc-observability](https://github.com/NASA-PDS/pdc-observability). Deploy it first — the endpoint is published to SSM and consumed automatically here.
 
 ```
 terraform/
-  ├── opensearch_managed/   # OpenSearch domain
   ├── iam/policies/         # IAM policy + role attachment  — 🔐 admin (iam:CreatePolicy, iam:AttachRolePolicy)
   ├── (root)                # S3 log bucket
   └── logstash/             # Logstash EC2                   — 🔐 admin (iam:PassRole)
@@ -20,20 +19,20 @@ terraform/
 
 ## Deployment flow
 
-Each module has its own Terraform state. Deploy in the order shown — `logstash/` depends on all three others completing first.
+Each module has its own Terraform state. Deploy in the order shown.
 
 ```mermaid
 flowchart TD
-    subgraph phase1["① Start first — slow (~15–20 min)"]
+    subgraph ext["pdc-observability (separate repo — deploy first)"]
         OS["opensearch_managed/\nOpenSearch domain\n🔑 Power-User"]
     end
 
-    subgraph phase2["② Run while OpenSearch provisions (parallel OK)"]
+    subgraph phase1["① Run in parallel (while OpenSearch provisions)"]
         IAM["iam/policies/\nIAM policy + role attachment\n🔐 Admin\niam:CreatePolicy · iam:AttachRolePolicy"]
         S3["(root)\nS3 log bucket\n🔑 Power-User"]
     end
 
-    subgraph phase3["③ After all above complete"]
+    subgraph phase2["② After all above complete"]
         LS["logstash/\nLogstash EC2\n🔐 Admin\niam:PassRole"]
     end
 
@@ -44,7 +43,7 @@ flowchart TD
 
 | Role | Modules |
 |---|---|
-| `Project-Power-User` | `opensearch_managed/`, `(root)` S3, Step 5 onward |
+| `Project-Power-User` | `(root)` S3, Step 5 onward |
 | 🔐 System administrator | `iam/policies/` (`iam:CreatePolicy`, `iam:AttachRolePolicy`), `logstash/` (`iam:PassRole`) |
 
 ---
@@ -77,7 +76,6 @@ cp tfvars/common.tfvars.example             tfvars/common-dev.tfvars
 # Module-specific venue values
 cp tfvars/dev.tfvars.example                        tfvars/dev.tfvars
 cp iam/policies/tfvars/dev.tfvars.example           iam/policies/tfvars/dev.tfvars
-cp opensearch_managed/tfvars/dev.tfvars.example     opensearch_managed/tfvars/dev.tfvars
 cp logstash/tfvars/dev.tfvars.example               logstash/tfvars/dev.tfvars
 ```
 
@@ -87,7 +85,6 @@ Key values to fill in:
 |---|---|---|
 | `tfvars/common-dev.tfvars` | `managedby` | Your email address |
 | `tfvars/common-dev.tfvars` | `s3_bucket_prefix`, `resource_prefix`, `ec2_role_name`, `opensearch_domain_name` | Venue-specific infra identifiers |
-| `opensearch_managed/tfvars/dev.tfvars` | `vpc_id`, `vpc_subnet_ids`, `ec2_security_group_name`, `firehose_security_group_id` | VPC values for the OpenSearch domain |
 | `logstash/tfvars/dev.tfvars` | `vpc_id`, `ec2_security_group_name`, `s3_cf_bucket_name` | VPC and CloudFront bucket for the EC2 |
 
 ### 2. Configure credentials
@@ -101,20 +98,13 @@ unset AWS_PROFILE  # required for Terraform S3 backend compatibility
 
 ## Deployment — step by step
 
-### Step 1: OpenSearch domain — 🔑 Power-User (~15-20 min)
+### Step 0: OpenSearch domain — pdc-observability repo
 
-```bash
-cd terraform/
-
-task opensearch:init   VENUE=dev
-task opensearch:plan   VENUE=dev
-task opensearch:deploy VENUE=dev
-task opensearch:endpoint VENUE=dev  # confirm endpoint stored in SSM
-```
+Deploy from the [pdc-observability](https://github.com/NASA-PDS/pdc-observability) repo first. The endpoint is published to SSM automatically and consumed here at plan time.
 
 ---
 
-### Step 2: S3 bucket — 🔑 Power-User
+### Step 1: S3 bucket — 🔑 Power-User
 
 ```bash
 task s3:plan   VENUE=dev
@@ -123,7 +113,7 @@ task s3:deploy VENUE=dev
 
 ---
 
-### 🔐 Step 3: IAM policy — admin only
+### 🔐 Step 2: IAM policy — admin only
 
 Requires `iam:CreatePolicy` and `iam:AttachRolePolicy`. Must be run by a system administrator.
 
@@ -134,9 +124,9 @@ task iam:deploy VENUE=dev
 
 ---
 
-### 🔐 Step 4: Logstash EC2 — admin only
+### 🔐 Step 3: Logstash EC2 — admin only
 
-Requires `iam:PassRole`. Must be run by a system administrator. Run after Steps 1–3.
+Requires `iam:PassRole`. Must be run by a system administrator. Run after Steps 0–2.
 
 ```bash
 task logstash:plan   VENUE=dev
@@ -145,7 +135,7 @@ task logstash:deploy VENUE=dev
 
 ---
 
-### Step 5: Initialize Logstash on the EC2
+### Step 4: Initialize Logstash on the EC2
 
 On **new EC2 deployments**, the userdata script runs `logstash-init.sh` automatically at first boot.
 
@@ -227,7 +217,7 @@ tail -f /tmp/bad_logs-$(date +%Y-%m).txt
 
 ---
 
-### Step 6: Smoke test
+### Step 5: Smoke test
 
 SSM into the EC2 and run:
 
@@ -239,7 +229,7 @@ Checks S3 access, OpenSearch network reachability, OpenSearch SigV4 auth, and Lo
 
 ---
 
-### Step 7 (optional): Grant Logstash access to CloudFront logs bucket
+### Step 6 (optional): Grant Logstash access to CloudFront logs bucket
 
 Required only if ingesting CloudFront logs. Apply in the `pdc-cds-infra` repo:
 
@@ -308,8 +298,9 @@ Then test, commit, and redeploy via the standard config-update workflow above.
 task logstash:destroy   VENUE=dev   # Logstash EC2 + launch template  🔐 admin
 task iam:destroy        VENUE=dev   # IAM policy + role attachment     🔐 admin
 task s3:destroy         VENUE=dev   # S3 bucket (does not delete objects)
-task opensearch:destroy VENUE=dev   # OpenSearch domain (destroys all indexed data)
 ```
+
+OpenSearch teardown is managed in [pdc-observability](https://github.com/NASA-PDS/pdc-observability).
 
 ---
 
@@ -318,10 +309,9 @@ task opensearch:destroy VENUE=dev   # OpenSearch domain (destroys all indexed da
 - **State files** stored in S3 (`pds-<venue>-<cicd>-infra`):
   - `web-analytics/terraform.tfstate` — S3 log bucket (root module)
   - `web-analytics/iam-policies.tfstate` — IAM policies
-  - `web-analytics/opensearch.tfstate` — OpenSearch domain
   - `web-analytics/logstash.tfstate` — Logstash EC2
+  - `web-analytics/opensearch.tfstate` — OpenSearch domain (managed in pdc-observability)
 - **Variable naming** — `s3_bucket_prefix` is for the S3 bucket name only (may include CI/CD identifiers like `gh01dc`). `resource_prefix` is for all other resources and should not include CI/CD identifiers.
 - **VPC/SG values** are in tfvars. TODO: source from SSM under `/pds/cds-infra/vpc/` once published.
 - **Logstash sincedb** persists to `/var/lib/logstash/plugins/inputs/s3/` on the EC2 EBS volume (`delete_on_termination = false`) — S3 read position survives restarts and redeployments.
-- **OpenSearch access** — IAM resource-based policy controls access (no FGAC). The `{venue}-en-platform-engineer` role can be added to `access_policy.json` for Dev Console access where that role exists (test/prod only).
-- **TODO:** Document OpenSearch UI application setup (create in AWS console, connect domain, assign IAM Identity Center users/groups).
+- **OpenSearch** is managed in [pdc-observability](https://github.com/NASA-PDS/pdc-observability). The endpoint is published to SSM at `/pds/observability/opensearch_managed/opensearch_endpoint` and consumed automatically at plan time.
