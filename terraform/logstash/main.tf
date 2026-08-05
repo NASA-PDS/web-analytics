@@ -61,7 +61,7 @@ data "aws_subnets" "private" {
 }
 
 locals {
-  ec2_name = "${var.resource_prefix}-observability"
+  ec2_name = "pds-${var.component}"
   logstash_tags = {
     tenant    = var.tenant
     venue     = var.venue
