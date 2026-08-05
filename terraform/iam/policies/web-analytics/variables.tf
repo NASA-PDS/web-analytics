@@ -23,11 +23,6 @@ variable "ec2_role_name" {
   description = "Name of the existing EC2 IAM role to attach the policy to"
 }
 
-variable "opensearch_domain_name" {
-  type        = string
-  description = "Name of the managed OpenSearch domain"
-}
-
 variable "common_tags" {
   type        = map(string)
   description = "Common tags to apply to all resources"

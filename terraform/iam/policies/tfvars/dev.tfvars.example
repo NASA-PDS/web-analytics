@@ -1,6 +1,7 @@
-# IAM-module dev values — module-specific only.
-# Shared infra values (partition, s3_bucket_prefix, etc.) are in common-infra-dev.tfvars.
-# Shared global values (aws_region, tenant, etc.) are in common.tfvars.
+# IAM-module dev values — copy to dev.tfvars and fill in values.
+# Shared values (aws_region, partition, resource_prefix, ec2_role_name, etc.) are in common-dev.tfvars.
 
 venue     = "dev"
-managedby = "your-email@jpl.nasa.gov"
+managedby = "<your-email>"
+
+logs_s3_bucket_name = ""  # full S3 bucket name (e.g. pds-dev-gh01dc-logs)

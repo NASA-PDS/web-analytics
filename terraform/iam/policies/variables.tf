@@ -25,11 +25,6 @@ variable "ec2_role_name" {
   description = "Name of the existing EC2 IAM role to attach the policy to"
 }
 
-variable "opensearch_domain_name" {
-  type        = string
-  description = "Name of the managed OpenSearch domain"
-}
-
 variable "venue" {
   type        = string
   description = "Deployment venue (dev, test, prod)"

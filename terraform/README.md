@@ -70,7 +70,7 @@ cd terraform/
 
 # Shared values for root + IAM modules (aws_region, tenant, partition, s3_bucket_prefix, etc.)
 cp tfvars/common.tfvars.example             tfvars/common-dev.tfvars
-# Edit common-dev.tfvars: set managedby, s3_bucket_prefix, resource_prefix, ec2_role_name, opensearch_domain_name
+# Edit common-dev.tfvars: set managedby, resource_prefix, ec2_role_name
 
 # Module-specific venue values
 cp tfvars/dev.tfvars.example                        tfvars/dev.tfvars
@@ -83,7 +83,9 @@ Key values to fill in:
 | File | Variable | Notes |
 |---|---|---|
 | `tfvars/common-dev.tfvars` | `managedby` | Your email address |
-| `tfvars/common-dev.tfvars` | `s3_bucket_prefix`, `resource_prefix`, `ec2_role_name`, `opensearch_domain_name` | `resource_prefix` drives IAM policy names; EC2 is named `pds-web-analytics` (from `component`) |
+| `tfvars/common-dev.tfvars` | `resource_prefix`, `ec2_role_name` | `resource_prefix` drives IAM policy names; EC2 is named `pds-web-analytics` (from `component`) |
+| `tfvars/dev.tfvars` | `s3_bucket_prefix` | S3 bucket name; may include CI/CD identifiers |
+| `iam/policies/tfvars/dev.tfvars` | `logs_s3_bucket_name` | Full S3 bucket name for the IAM policy resource ARN |
 | `logstash/tfvars/dev.tfvars` | `vpc_id`, `ec2_security_group_name`, `s3_cf_bucket_name` | VPC and CloudFront bucket for the EC2 |
 
 ### 2. Configure credentials
