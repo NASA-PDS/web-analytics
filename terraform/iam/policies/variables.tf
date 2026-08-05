@@ -46,6 +46,5 @@ variable "cicd" {
 }
 
 variable "managedby" {
-  type    = string
-  default = "pdsoperator@jpl.nasa.gov"
+  type = string
 }

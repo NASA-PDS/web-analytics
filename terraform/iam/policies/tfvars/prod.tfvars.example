@@ -2,6 +2,6 @@
 # Shared values (aws_region, partition, resource_prefix, ec2_role_name, etc.) are in common-prod.tfvars.
 
 venue     = "prod"
-managedby = "pdsoperator@jpl.nasa.gov"
+managedby = "<your-email>"
 
 logs_s3_bucket_name = ""  # full S3 bucket name (e.g. pds-prod-logs)

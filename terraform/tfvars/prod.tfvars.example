@@ -1,14 +1,7 @@
 # Root-module prod values — module-specific only.
-# Shared values (aws_region, partition, s3_bucket_prefix, etc.) are in common-prod.tfvars.
+# Shared values (aws_region, partition, resource_prefix, etc.) are in common-prod.tfvars.
 
 venue     = "prod"
-managedby = "your-team-distro@jpl.nasa.gov"
+managedby = "<your-email>"
 
-# TODO: replace with SSM lookup under /pds/cds-infra/vpc/id once published
-vpc_id = ""
-
-# TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published
-ec2_security_group_name = ""
-
-logstash_instance_type = "t3.large"
-logstash_version       = "8.17.0"
+s3_bucket_prefix = ""  # S3 bucket name — no CI/CD identifiers in prod (e.g. pds-prod-logs)
