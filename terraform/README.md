@@ -19,32 +19,31 @@ terraform/
 
 ## Deployment flow
 
-Each module has its own Terraform state. Deploy in the order shown.
-
 ```mermaid
 flowchart TD
-    subgraph ext["pdc-observability (separate repo — deploy first)"]
-        OS["opensearch_managed/\nOpenSearch domain\n🔑 Power-User"]
+    subgraph ext["(1a) pdc-observability"]
+        OS["opensearch_managed"]
     end
 
-    subgraph phase1["① Run in parallel (while OpenSearch provisions)"]
-        IAM["iam/policies/\nIAM policy + role attachment\n🔐 Admin\niam:CreatePolicy · iam:AttachRolePolicy"]
-        S3["(root)\nS3 log bucket\n🔑 Power-User"]
+    subgraph phase1["(1b) web-analytics"]
+        IAM["iam/policies\n🔐 Admin"]
+        S3["S3 bucket\n🔑 Power-User"]
     end
 
-    subgraph phase2["② After all above complete"]
-        LS["logstash/\nLogstash EC2\n🔐 Admin\niam:PassRole"]
+    subgraph phase2["(2) web-analytics"]
+        LS["logstash EC2\n🔐 Admin"]
     end
 
     OS -->|"endpoint → SSM"| LS
-    IAM -->|"policy attached to EC2 role"| LS
-    S3 -->|"bucket name → SSM"| LS
+    IAM --> LS
+    S3 -->|"bucket → SSM"| LS
 ```
 
-| Role | Modules |
-|---|---|
-| `Project-Power-User` | `(root)` S3, Step 5 onward |
-| 🔐 System administrator | `iam/policies/` (`iam:CreatePolicy`, `iam:AttachRolePolicy`), `logstash/` (`iam:PassRole`) |
+1. **(1a) Deploy OpenSearch** — See [pdc-observability](https://github.com/NASA-PDS/pdc-observability) (~15-20 min)
+2. **(1b) While OpenSearch provisions**, Can be run in parallel with (1a):
+   - `task iam:deploy VENUE=dev` 🔐 — requires `iam:CreatePolicy`, `iam:AttachRolePolicy`
+   - `task s3:deploy VENUE=dev` — creates the log bucket, publishes name to SSM
+3. **(2) After all above complete** — `task logstash:deploy VENUE=dev` 🔐 — requires `iam:PassRole`; reads OpenSearch endpoint and bucket name from SSM at plan time
 
 ---
 

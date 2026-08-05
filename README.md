@@ -45,15 +45,31 @@ This system ingests web access logs from various PDS nodes (ATM, EN, GEO, IMG, N
 
 ## Architecture
 
-```
-PDS Nodes → S3 Bucket → Logstash Pipeline → OpenSearch → Dashboards
-                ↓
-            Error Logs → Bad Logs File
+```mermaid
+flowchart LR
+    subgraph pds["PDS Nodes"]
+        N["ATM · EN · GEO · IMG\nNAIF · PPI · RINGS · SBN"]
+    end
+
+    S3["pds-logs\nS3 bucket"]
+
+    subgraph wa["web-analytics"]
+        LS["Logstash EC2\n(parse + enrich)"]
+    end
+
+    subgraph obs["pdc-observability"]
+        OS["OpenSearch"]
+    end
+
+    DASH["OpenSearch UI\nDashboards"]
+
+    N -->|"Data Upload Manager"| S3
+    S3 --> LS
+    LS -->|"ECS v8 events"| OS
+    OS --> DASH
 ```
 
-See internal wiki for more detailed architecture.
-
-**NOTE:** The current practice is for PDS EN to gather the various PDS nodes' logs onto PDS reporting servers then sync those to S3. This will shift in FY2026 to each PDS node pushing their logs - logs in one of the acceptable formats and gzipped - to S3. This does not affect the architecture diagram just above but will affect much of the instructions in this README.
+PDS nodes upload access logs to a shared `pds-logs` S3 bucket using Data Upload Manager. Logstash polls S3, parses logs into ECS v8 format, and writes to OpenSearch. OpenSearch is a shared platform managed in [pdc-observability](https://github.com/NASA-PDS/pdc-observability) — both this pipeline and [cloudfront-realtime-monitor](https://github.com/NASA-PDS/cloudfront-realtime-monitor) write to it. Analysts query via OpenSearch Dashboards.
 
 ## Prerequisites
 
