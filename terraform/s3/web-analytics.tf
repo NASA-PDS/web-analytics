@@ -60,7 +60,6 @@ resource "aws_ssm_parameter" "s3_bucket_name" {
   type        = "String"
   value       = module.s3_bucket.bucket_name
   description = "Name of the web-analytics S3 log bucket"
-  overwrite   = true
 }
 
 

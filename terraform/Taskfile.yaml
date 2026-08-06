@@ -4,7 +4,7 @@
 # Modules and their deployment order:
 #   0. pdc-observability     - OpenSearch domain (deploy first, separate repo)
 #   1. iam/policies/         - IAM policy + role attachment (admin required)
-#   2. . (root)              - S3 log bucket (Project-Power-User)
+#   2. s3/                   - S3 log bucket (Project-Power-User)
 #   3. logstash/             - Logstash EC2 instance (admin required — iam:PassRole)
 #
 # Prerequisites:
@@ -48,10 +48,10 @@ tasks:
     # Can be run by Project-Power-User.
     # ------------------------------------------------------------------
 
-    init:
-        desc: "Initialize S3 root module Terraform"
+    s3:init:
+        desc: "Initialize S3 module Terraform"
         deps: [aws]
-        dir: '{{.USER_WORKING_DIR}}'
+        dir: s3
         requires:
             vars:
                 - name: VENUE
@@ -59,66 +59,66 @@ tasks:
         cmds:
             - terraform init -no-color -reconfigure -backend-config=backend-{{.VENUE}}.hcl {{.CLI_ARGS}}
 
-    validate:
-        desc: "Validate S3 root module Terraform files"
-        dir: '{{.USER_WORKING_DIR}}'
+    s3:validate:
+        desc: "Validate S3 module Terraform files"
+        dir: s3
         cmds:
             - terraform validate -no-color
 
     s3:plan:
         desc: "Plan S3 bucket changes"
-        deps: [init]
-        dir: '{{.USER_WORKING_DIR}}'
+        deps: ["s3:init"]
+        dir: s3
         requires:
             vars:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform plan -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     s3:deploy:
         desc: "Deploy S3 bucket and lifecycle policy"
         aliases: ["s3:apply"]
-        deps: [validate]
-        dir: '{{.USER_WORKING_DIR}}'
+        deps: ["s3:validate"]
+        dir: s3
         requires:
             vars:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     s3:destroy:
         desc: "Destroy S3 bucket resources"
-        dir: '{{.USER_WORKING_DIR}}'
+        dir: s3
         requires:
             vars:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -destroy -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -destroy -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     s3:refresh:
-        desc: "Refresh S3 root module Terraform state"
-        deps: [init]
-        dir: '{{.USER_WORKING_DIR}}'
+        desc: "Refresh S3 module Terraform state"
+        deps: ["s3:init"]
+        dir: s3
         requires:
             vars:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform plan -refresh-only -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform plan -refresh-only -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     s3:sync:
         desc: "Apply refresh-only to sync S3 state without changing infrastructure"
-        deps: [init]
-        dir: '{{.USER_WORKING_DIR}}'
+        deps: ["s3:init"]
+        dir: s3
         requires:
             vars:
                 - name: VENUE
                   enum: [dev, test, prod]
         cmds:
-            - terraform apply -refresh-only -var-file=tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
+            - terraform apply -refresh-only -var-file=../tfvars/common-{{.VENUE}}.tfvars -var-file=tfvars/{{.VENUE}}.tfvars {{.CLI_ARGS}}
 
     # ------------------------------------------------------------------
     # Logstash: EC2 instance
