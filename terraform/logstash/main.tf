@@ -133,7 +133,6 @@ resource "aws_ssm_parameter" "ec2_role_arn" {
   type        = "String"
   value       = "arn:${var.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_role_name}"
   description = "ARN of the EC2 role used by the Logstash instance — currently the shared MCP instance profile, update when a dedicated role exists"
-  overwrite   = true
 }
 
 resource "aws_ssm_parameter" "logstash_instance_id" {
@@ -141,5 +140,4 @@ resource "aws_ssm_parameter" "logstash_instance_id" {
   type        = "String"
   value       = aws_instance.logstash.id
   description = "Instance ID of the web-analytics Logstash EC2"
-  overwrite   = true
 }
