@@ -126,6 +126,12 @@ resource "aws_instance" "logstash" {
   }
 
   tags = local.logstash_tags
+
+  lifecycle {
+    # MCP automation stamps Audit, CreatedBy, CreationTime on launch — ignore to avoid stripping compliance tags.
+    # user_data is managed via launch template; ignore the value stored on the instance itself.
+    ignore_changes = [tags["Audit"], tags["CreatedBy"], tags["CreationTime"], user_data]
+  }
 }
 
 resource "aws_ssm_parameter" "ec2_role_arn" {
