@@ -41,7 +41,7 @@ data "aws_ami" "mcp_amazon_linux" {
     values = ["hvm"]
   }
 
-  owners = ["794625662971"]
+  owners = [var.mcp_ami_owner_id]
 }
 
 data "aws_security_group" "mcp_ec2" {
