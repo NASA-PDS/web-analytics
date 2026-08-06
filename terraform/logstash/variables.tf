@@ -77,5 +77,4 @@ variable "s3_cf_bucket_name" {
 variable "mcp_ami_owner_id" {
   description = "AWS account ID that owns the MCP Amazon Linux 2023 AMIs used for the Logstash instance."
   type        = string
-  default     = "794625662971"
 }
