@@ -39,4 +39,6 @@ task s3:plan   VENUE=dev
 task s3:deploy VENUE=dev
 ```
 
-Shared values (`aws_region`, `tenant`, `resource_prefix`, etc.) come from `../tfvars/common-<venue>.tfvars`.
+Shared values (`aws_region`, `tenant`, `ec2_role_name`, etc.) come from `../tfvars/common-<venue>.tfvars`.
+
+> **Expected warning:** `common-<venue>.tfvars` includes `resource_prefix` (used by the logstash and iam modules) but the S3 module does not declare it. Terraform will emit a "Value for undeclared variable" warning for `resource_prefix` on every plan/apply — this is harmless and expected.
