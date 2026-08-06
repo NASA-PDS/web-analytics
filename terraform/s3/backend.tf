@@ -13,6 +13,6 @@
 
 terraform {
   backend "s3" {
-    key = "web-analytics/s3.tfstate"
+    key = "web-analytics/terraform.tfstate"
   }
 }
