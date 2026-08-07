@@ -61,9 +61,21 @@ flowchart TD
 
 ## Setup
 
-### 1. Create tfvars files
+### 1. tfvars
 
-All tfvars are gitignored. Copy the examples and fill in values:
+tfvars are tracked in [`cds-infra-deploy`](https://github.com/NASA-PDS/cds-infra-deploy) at
+`venues/<venue>/web-analytics/{common,s3,logstash,iam-policies}.tfvars`, not in this repo —
+`tfvars/`, `s3/tfvars/`, `iam/policies/tfvars/`, and `logstash/tfvars/` here are all gitignored.
+Point Task at a local checkout:
+
+```bash
+export CDS_INFRA_DEPLOY_DIR=/path/to/cds-infra-deploy
+cd terraform/
+task s3:plan VENUE=dev
+```
+
+For personal iteration before promoting values to `cds-infra-deploy`, pass `LOCAL=1` to use
+this repo's own (gitignored) tfvars instead:
 
 ```bash
 cd terraform/
@@ -76,17 +88,19 @@ cp tfvars/common.tfvars.example             tfvars/common-dev.tfvars
 cp s3/tfvars/dev.tfvars.example                     s3/tfvars/dev.tfvars
 cp iam/policies/tfvars/dev.tfvars.example           iam/policies/tfvars/dev.tfvars
 cp logstash/tfvars/dev.tfvars.example               logstash/tfvars/dev.tfvars
+
+task s3:plan VENUE=dev LOCAL=1
 ```
 
 Key values to fill in:
 
-| File | Variable | Notes |
+| File (cds-infra-deploy path shown; `LOCAL=1` uses the repo-local path in parens) | Variable | Notes |
 |---|---|---|
-| `tfvars/common-dev.tfvars` | `managedby` | Your email address |
-| `tfvars/common-dev.tfvars` | `resource_prefix`, `ec2_role_name` | `resource_prefix` drives IAM policy names; EC2 is named `pds-web-analytics` (from `component`) |
-| `s3/tfvars/dev.tfvars` | `s3_bucket_prefix` | S3 bucket name; may include CI/CD identifiers |
-| `iam/policies/tfvars/dev.tfvars` | `logs_s3_bucket_name` | Full S3 bucket name for the IAM policy resource ARN |
-| `logstash/tfvars/dev.tfvars` | `vpc_id`, `ec2_security_group_name`, `s3_cf_bucket_name` | VPC and CloudFront bucket for the EC2 |
+| `common.tfvars` (`tfvars/common-dev.tfvars`) | `managedby` | Your email address |
+| `common.tfvars` (`tfvars/common-dev.tfvars`) | `resource_prefix`, `ec2_role_name` | `resource_prefix` drives IAM policy names; EC2 is named `pds-web-analytics` (from `component`) |
+| `s3.tfvars` (`s3/tfvars/dev.tfvars`) | `s3_bucket_prefix` | S3 bucket name; may include CI/CD identifiers |
+| `iam-policies.tfvars` (`iam/policies/tfvars/dev.tfvars`) | `logs_s3_bucket_name` | Full S3 bucket name for the IAM policy resource ARN |
+| `logstash.tfvars` (`logstash/tfvars/dev.tfvars`) | `vpc_id`, `ec2_security_group_name`, `s3_cf_bucket_name` | VPC and CloudFront bucket for the EC2 |
 
 ### 2. Configure credentials
 
