@@ -6,7 +6,7 @@ Deploys the infrastructure for the PDS Web Analytics pipeline:
 - **IAM policy** — grants the Logstash EC2 role read access to S3 and write access to OpenSearch
 - **Logstash EC2** — MCP Amazon Linux 2023 instance running Logstash directly via RPM + systemd
 
-> **OpenSearch** is managed separately in [pdc-observability](https://github.com/NASA-PDS/pdc-observability). Deploy it first — the endpoint is published to SSM and consumed automatically here.
+> **OpenSearch** is managed separately in [pdc-observability](https://github.com/NASA-PDS/pdc-observability). Deploy it first — the endpoint is published to SSM and consumed automatically here. Its `opensearch` module bootstraps with `web_analytics_enabled = false`, so Logstash's role isn't actually allowed to write to OpenSearch until someone flips that flag and re-applies it *after* this repo's `iam:deploy` has run — see Step 2 below and pdc-observability's `terraform/README.md#deployment-flow`.
 
 ```
 terraform/
@@ -22,7 +22,7 @@ terraform/
 ```mermaid
 flowchart TD
     subgraph ext["(1a) pdc-observability"]
-        OS["OpenSearch"]
+        OS["OpenSearch\nweb_analytics_enabled = false\n(bootstrap)"]
     end
 
     subgraph phase1["(1b) web-analytics"]
@@ -30,20 +30,28 @@ flowchart TD
         S3["S3 bucket\n🔑 Power-User"]
     end
 
-    subgraph phase2["(2) web-analytics"]
+    subgraph ext2["(2) pdc-observability"]
+        OS2["OpenSearch\nweb_analytics_enabled = true\n(access-policy update only)"]
+    end
+
+    subgraph phase2["(3) web-analytics"]
         LS["Logstash EC2\n🔐 Admin"]
     end
 
+    OS -->|"endpoint → SSM"| IAM
     OS -->|"endpoint → SSM"| LS
+    IAM -->|"ec2_role_arn → SSM"| OS2
+    OS2 -->|"access policy now allows Logstash"| LS
     IAM --> LS
     S3 -->|"bucket → SSM"| LS
 ```
 
-1. **(1a) Deploy OpenSearch** — See [pdc-observability](https://github.com/NASA-PDS/pdc-observability) (~15-20 min)
-2. **(1b) While OpenSearch provisions**, Can be run in parallel with (1a):
-   - `task iam:deploy VENUE=dev` 🔐 — requires `iam:CreatePolicy`, `iam:AttachRolePolicy`
+1. **(1a) Deploy OpenSearch** — See [pdc-observability](https://github.com/NASA-PDS/pdc-observability) (~15-20 min), bootstrapped with `web_analytics_enabled = false` (and `realtime_monitor_enabled` set however cf-realtime-monitor's status warrants — the two are independent)
+2. **(1b) While OpenSearch provisions**, can be run in parallel with (1a):
+   - `task iam:deploy VENUE=dev` 🔐 — requires `iam:CreatePolicy`, `iam:AttachRolePolicy`; publishes `ec2_role_arn` to SSM
    - `task s3:deploy VENUE=dev` — creates the log bucket, publishes name to SSM
-3. **(2) After all above complete** — `task logstash:deploy VENUE=dev` 🔐 — requires `iam:PassRole`; reads OpenSearch endpoint and bucket name from SSM at plan time
+3. **(2) After `iam:deploy` completes**, back in [pdc-observability](https://github.com/NASA-PDS/pdc-observability): set `web_analytics_enabled = true` and re-run `task opensearch:deploy` — this only updates the OpenSearch access policy (adds the Logstash role as a principal), no domain redeployment. Skip this if it's already `true` from a prior deploy.
+4. **(3) After all above complete** — `task logstash:deploy VENUE=dev` 🔐 — requires `iam:PassRole`; reads OpenSearch endpoint and bucket name from SSM at plan time. **Note:** the EC2 role won't actually be able to write to OpenSearch until step (2) has run — `terraform apply` here will succeed either way, but Logstash will get 403s from OpenSearch until then.
 
 ---
 
@@ -115,7 +123,7 @@ unset AWS_PROFILE  # required for Terraform S3 backend compatibility
 
 ### Step 0: OpenSearch domain — pdc-observability repo
 
-Deploy from the [pdc-observability](https://github.com/NASA-PDS/pdc-observability) repo first. The endpoint is published to SSM automatically and consumed here at plan time.
+Deploy from the [pdc-observability](https://github.com/NASA-PDS/pdc-observability) repo first, bootstrapped with `web_analytics_enabled = false`. The endpoint is published to SSM automatically and consumed here at plan time. The Logstash EC2 role won't be allowed to write to OpenSearch yet — see Step 2.5.
 
 ---
 
@@ -137,11 +145,19 @@ task iam:plan   VENUE=dev
 task iam:deploy VENUE=dev
 ```
 
+This publishes `/pds/web-analytics/iam/ec2_role_arn` to SSM.
+
+---
+
+### Step 2.5: Grant OpenSearch access — pdc-observability repo
+
+Back in [pdc-observability](https://github.com/NASA-PDS/pdc-observability): set `web_analytics_enabled = true` in the `opensearch` tfvars and re-run `task opensearch:deploy`. This only updates the OpenSearch access policy to add the Logstash role as a principal — no domain redeployment (seconds, not minutes). Skip this if it's already `true` from a prior deploy.
+
 ---
 
 ### 🔐 Step 3: Logstash EC2 — admin only
 
-Requires `iam:PassRole`. Must be run by a system administrator. Run after Steps 0–2.
+Requires `iam:PassRole`. Must be run by a system administrator. Run after Steps 0–2.5 — **Logstash will get 403s from OpenSearch if Step 2.5 hasn't run yet**, even though this step's `terraform apply` succeeds regardless.
 
 ```bash
 task logstash:plan   VENUE=dev
@@ -154,7 +170,7 @@ task logstash:deploy VENUE=dev
 
 On **new EC2 deployments**, the userdata script runs `logstash-init.sh` automatically at first boot.
 
-For an **already-running EC2** (e.g., after recreating the OpenSearch domain), SSM in and re-run the init script:
+For an **already-running EC2** (e.g., after recreating the OpenSearch domain, or after a manual deployment where the env file is wrong), SSM in and re-run the init script with the required env vars:
 
 ```bash
 # SSM into the EC2
@@ -163,9 +179,25 @@ aws ssm start-session \
     --name /pds/web-analytics/ec2/logstash_instance_id \
     --query Parameter.Value --output text)
 
-# On the EC2 — fetch the latest init script directly from GitHub and run it.
-# The script clones (or updates) the full repo itself.
-sudo bash <(curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh)
+# On the EC2 — verify what's currently in the env file
+cat /etc/logstash/env
+
+# Fetch and run the init script, passing any values that are missing or wrong.
+# OPENSEARCH_ENDPOINT, S3_BUCKET_NAME, and S3_CF_BUCKET_NAME are read from SSM
+# automatically if not set here — but set them explicitly if SSM isn't populated yet.
+curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh
+sudo \
+  OPENSEARCH_ENDPOINT=<endpoint-without-https> \
+  S3_BUCKET_NAME=<logs-bucket-name> \
+  S3_CF_BUCKET_NAME=<cf-logs-bucket-name> \
+  bash /tmp/logstash-init.sh
+
+# To deploy from a non-main branch (e.g. during active development):
+sudo REPO_BRANCH=my-branch \
+  OPENSEARCH_ENDPOINT=<endpoint-without-https> \
+  S3_BUCKET_NAME=<logs-bucket-name> \
+  S3_CF_BUCKET_NAME=<cf-logs-bucket-name> \
+  bash /tmp/logstash-init.sh
 ```
 
 The script will:
@@ -274,14 +306,16 @@ aws ssm start-session \
     --query Parameter.Value --output text)
 
 # On the EC2:
-sudo curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh \
+curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh \
   -o /tmp/logstash-init.sh
 sudo bash /tmp/logstash-init.sh
 ```
 
 > If deploying from a non-`main` branch during active development:
 > ```bash
-> sudo REPO_BRANCH=terraform bash /tmp/logstash-init.sh
+> curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/<your-branch>/scripts/logstash-init.sh \
+>   -o /tmp/logstash-init.sh
+> sudo REPO_BRANCH=<your-branch> bash /tmp/logstash-init.sh
 > ```
 
 Common files to edit:

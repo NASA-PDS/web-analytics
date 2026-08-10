@@ -69,12 +69,17 @@ variable "logstash_version" {
 }
 
 variable "s3_cf_bucket_name" {
-  description = "Name of the S3 bucket containing CloudFront access logs (EN node only). Leave empty to skip CloudFront log ingestion."
+  description = "Name of the S3 bucket containing CloudFront access logs (EN node only)."
   type        = string
-  default     = ""
 }
 
 variable "mcp_ami_owner_id" {
   description = "AWS account ID that owns the MCP Amazon Linux 2023 AMIs used for the Logstash instance."
   type        = string
+}
+
+variable "repo_branch" {
+  description = "Branch of the web-analytics repo to clone at EC2 first boot."
+  type        = string
+  default     = "main"
 }

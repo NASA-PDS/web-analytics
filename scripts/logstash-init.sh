@@ -54,12 +54,12 @@ autorefresh=1
 type=rpm-md
 REPO
   dnf install -y logstash-${LOGSTASH_VERSION}
-  mkdir -p /var/lib/logstash/sincedb /var/log/logstash
+  mkdir -p /var/lib/logstash/plugins/inputs/s3 /var/log/logstash
   chown -R logstash:logstash /var/lib/logstash /var/log/logstash
   echo "Logstash installed"
 else
   echo "Logstash already installed — skipping"
-  mkdir -p /var/lib/logstash/sincedb /var/log/logstash
+  mkdir -p /var/lib/logstash/plugins/inputs/s3 /var/log/logstash
   chown -R logstash:logstash /var/lib/logstash /var/log/logstash
 fi
 
@@ -67,6 +67,7 @@ fi
 # 0b. Install required Logstash plugins
 # ----------------------------------------
 echo "--- Installing Logstash plugins ---"
+/usr/share/logstash/bin/logstash-plugin update logstash-integration-aws
 /usr/share/logstash/bin/logstash-plugin install logstash-filter-tld logstash-output-opensearch
 chown -R logstash:logstash /usr/share/logstash/vendor
 echo "Plugins installed"

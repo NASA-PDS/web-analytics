@@ -261,25 +261,55 @@ s3-log-sync -c config/config.yaml -d /var/log/pds --no-gzip
 
 ### Logstash Processing
 
-Start Logstash with the PDS configuration:
+In production, Logstash runs as a systemd service on an MCP Amazon Linux 2023 EC2.
+Access is via AWS Systems Manager — no SSH keys required.
+Full operational runbooks are in [`terraform/README.md`](terraform/README.md).
 
+#### Quick reference (from an SSM session on the EC2)
+
+**SSM into the EC2:**
 ```bash
-cd $WEB_ANALYTICS_HOME
+aws ssm start-session \
+  --target $(aws ssm get-parameter \
+    --name /pds/web-analytics/ec2/logstash_instance_id \
+    --query Parameter.Value --output text)
+```
 
-# Source the environment variables
-source .env
+**Service control:**
+```bash
+sudo systemctl status logstash
+sudo systemctl restart logstash
+sudo journalctl -u logstash -f
+```
 
-# Pull the latest changes on the repo
-git pull
+**Update config (pull latest from GitHub and restart):**
+```bash
+# On the EC2 — re-runs the idempotent init script
+curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh
+sudo bash /tmp/logstash-init.sh
 
-# If anything changed, re-generate the pipeline configs
-./scripts/logstash_build_config.sh
+# To deploy from a non-main branch:
+sudo REPO_BRANCH=my-branch bash /tmp/logstash-init.sh
+```
 
-# Start Logstash
-logstash -f ${WEB_ANALYTICS_HOME}/config/logstash/config/pipelines.yml
+**Clear S3 read history for one node (force re-ingest):**
+```bash
+sudo systemctl stop logstash
+# Replace 'naif' with the node name (atm, en, geo, img, naif, ppi, rings, sbn)
+sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_file_input_naif*
+sudo systemctl start logstash
+```
 
-# To run in background
-nohup $HOME/logstash/bin/logstash > $OUTPUT_LOG 2>&1&
+**Clear history for all nodes:**
+```bash
+sudo systemctl stop logstash
+sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_*
+sudo systemctl start logstash
+```
+
+**Smoke test:**
+```bash
+bash /opt/web-analytics/scripts/smoke-test.sh
 ```
 
 ### Testing
@@ -575,11 +605,11 @@ These hooks then will check for any future commits that might contain secrets. T
    - Check logs: `sudo journalctl -u logstash -n 50`
    - Check env file: `sudo cat /etc/logstash/env`
    - Verify pipeline configs were generated: `ls /etc/logstash/pipelines/`
-   - Re-run init if needed: `sudo REPO_BRANCH=main bash /opt/web-analytics/scripts/logstash-init.sh`
+   - Re-run init to pull latest config and restart: `curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh && sudo bash /tmp/logstash-init.sh`
 
 2. **No data in OpenSearch**
    - Run smoke test: `bash /opt/web-analytics/scripts/smoke-test.sh`
-   - Check S3 sincedb is not stuck: `ls -la /var/lib/logstash/sincedb/`
+   - Check S3 sincedb files: `ls -la /var/lib/logstash/plugins/inputs/s3/`
    - Check Logstash logs for S3 read errors: `sudo journalctl -u logstash -n 100`
 
 3. **High memory usage**

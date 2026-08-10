@@ -20,8 +20,11 @@ type=rpm-md
 REPO
 dnf install -y logstash-${logstash_version}
 
+# Update aws integration plugin — bundled version has a PageableResponse incompatibility with aws-sdk-core 3.213+
+/usr/share/logstash/bin/logstash-plugin update logstash-integration-aws
+
 # sincedb: persists S3 read position across restarts
-mkdir -p /var/lib/logstash/sincedb
+mkdir -p /var/lib/logstash/plugins/inputs/s3
 chown -R logstash:logstash /var/lib/logstash
 
 # Write environment file — sourced by the systemd service
@@ -60,10 +63,12 @@ systemctl enable logstash
 
 # Clone repo and run init script on first boot
 REPO_DIR="/opt/web-analytics"
-REPO_BRANCH="main"
+REPO_BRANCH="${repo_branch}"
 
 git clone --branch "$REPO_BRANCH" https://github.com/NASA-PDS/web-analytics.git "$REPO_DIR"
 
 OPENSEARCH_ENDPOINT="${opensearch_endpoint}" \
+S3_BUCKET_NAME="${s3_bucket_name}" \
+S3_CF_BUCKET_NAME="${s3_cf_bucket_name}" \
 REPO_BRANCH="$REPO_BRANCH" \
   bash "$REPO_DIR/scripts/logstash-init.sh" >> /var/log/logstash-init.log 2>&1

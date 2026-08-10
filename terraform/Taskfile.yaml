@@ -2,8 +2,13 @@
 # =====================================
 #
 # Modules and their deployment order:
-#   0. pdc-observability     - OpenSearch domain (deploy first, separate repo)
-#   1. iam/policies/         - IAM policy + role attachment (admin required)
+#   0. pdc-observability     - OpenSearch domain, bootstrapped with web_analytics_enabled=false
+#                              (deploy first, separate repo)
+#   1. iam/policies/         - IAM policy + role attachment (admin required); publishes
+#                              ec2_role_arn to SSM
+#   1.5. pdc-observability   - re-apply with web_analytics_enabled=true (access-policy update
+#                              only, separate repo) — Logstash gets 403s from OpenSearch until
+#                              this runs
 #   2. s3/                   - S3 log bucket (Project-Power-User)
 #   3. logstash/             - Logstash EC2 instance (admin required — iam:PassRole)
 #
