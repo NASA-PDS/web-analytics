@@ -63,7 +63,7 @@ flowchart TD
 
 ### 1. tfvars
 
-tfvars are tracked in [`cds-infra-deploy`](https://github.com/NASA-PDS/cds-infra-deploy) at
+tfvars are tracked in the `cds-infra-deploy` repo (private GitLab, not GitHub) at
 `venues/<venue>/web-analytics/{common,s3,logstash,iam-policies}.tfvars`, not in this repo —
 `tfvars/`, `s3/tfvars/`, `iam/policies/tfvars/`, and `logstash/tfvars/` here are all gitignored.
 Point Task at a local checkout:
