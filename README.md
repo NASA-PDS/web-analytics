@@ -286,10 +286,11 @@ sudo journalctl -u logstash -f
 ```bash
 # On the EC2 — re-runs the idempotent init script
 curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh
-sudo bash /tmp/logstash-init.sh
+sudo S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
 
 # To deploy from a non-main branch:
-sudo REPO_BRANCH=my-branch bash /tmp/logstash-init.sh
+curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/<your-branch>/scripts/logstash-init.sh -o /tmp/logstash-init.sh
+sudo REPO_BRANCH=<your-branch> S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
 ```
 
 **Clear S3 read history for one node (force re-ingest):**

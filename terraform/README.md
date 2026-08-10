@@ -308,14 +308,14 @@ aws ssm start-session \
 # On the EC2:
 curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh \
   -o /tmp/logstash-init.sh
-sudo bash /tmp/logstash-init.sh
+sudo S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
 ```
 
 > If deploying from a non-`main` branch during active development:
 > ```bash
 > curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/<your-branch>/scripts/logstash-init.sh \
 >   -o /tmp/logstash-init.sh
-> sudo REPO_BRANCH=<your-branch> bash /tmp/logstash-init.sh
+> sudo REPO_BRANCH=<your-branch> S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
 > ```
 
 Common files to edit:
