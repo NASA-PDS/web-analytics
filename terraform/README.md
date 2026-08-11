@@ -182,22 +182,15 @@ aws ssm start-session \
 # On the EC2 — verify what's currently in the env file
 cat /etc/logstash/env
 
-# Fetch and run the init script, passing any values that are missing or wrong.
-# OPENSEARCH_ENDPOINT, S3_BUCKET_NAME, and S3_CF_BUCKET_NAME are read from SSM
-# automatically if not set here — but set them explicitly if SSM isn't populated yet.
+# Fetch and run the init script.
+# S3_BUCKET_NAME and OPENSEARCH_ENDPOINT are fetched from SSM automatically.
+# S3_CF_BUCKET_NAME must be set explicitly (not in SSM).
 curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh
-sudo \
-  OPENSEARCH_ENDPOINT=<endpoint-without-https> \
-  S3_BUCKET_NAME=<logs-bucket-name> \
-  S3_CF_BUCKET_NAME=<cf-logs-bucket-name> \
-  bash /tmp/logstash-init.sh
+sudo S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
 
 # To deploy from a non-main branch (e.g. during active development):
-sudo REPO_BRANCH=my-branch \
-  OPENSEARCH_ENDPOINT=<endpoint-without-https> \
-  S3_BUCKET_NAME=<logs-bucket-name> \
-  S3_CF_BUCKET_NAME=<cf-logs-bucket-name> \
-  bash /tmp/logstash-init.sh
+curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/<your-branch>/scripts/logstash-init.sh -o /tmp/logstash-init.sh
+sudo REPO_BRANCH=<your-branch> S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
 ```
 
 The script will:

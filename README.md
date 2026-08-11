@@ -606,7 +606,7 @@ These hooks then will check for any future commits that might contain secrets. T
    - Check logs: `sudo journalctl -u logstash -n 50`
    - Check env file: `sudo cat /etc/logstash/env`
    - Verify pipeline configs were generated: `ls /etc/logstash/pipelines/`
-   - Re-run init to pull latest config and restart: `curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh && sudo bash /tmp/logstash-init.sh`
+   - Re-run init to pull latest config and restart: `curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh && sudo S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh`
 
 2. **No data in OpenSearch**
    - Run smoke test: `bash /opt/web-analytics/scripts/smoke-test.sh`
