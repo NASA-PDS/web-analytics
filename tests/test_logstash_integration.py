@@ -25,7 +25,12 @@ class TestLogstashIntegration(unittest.TestCase):
     # ============================================================================
     # CONFIGURATION: Set which configurations to test here
     # ============================================================================
-    ENABLED_CONFIGS = ["https", "ftp", "cloudfront", "cloudfront-json"]  # Options: "https", "ftp", "cloudfront", "cloudfront-json"
+    ENABLED_CONFIGS = [
+        "https",
+        "ftp",
+        "cloudfront",
+        "cloudfront-json",
+    ]  # Options: "https", "ftp", "cloudfront", "cloudfront-json"
 
     # Configuration-specific test expectations
     EXPECTED_COUNTS = {
@@ -546,7 +551,9 @@ class TestLogstashIntegration(unittest.TestCase):
         if "cloudfront-json" not in self.ENABLED_CONFIGS:
             self.skipTest("CloudFront JSON configuration not enabled")
 
-        success, output_dir = self.run_logstash_pipeline("cloudfront-json", "CloudFront JSON Standard Logging v2 Processing")
+        success, output_dir = self.run_logstash_pipeline(
+            "cloudfront-json", "CloudFront JSON Standard Logging v2 Processing"
+        )
         self.assertTrue(success, "Logstash pipeline failed for CloudFront JSON logs")
 
         self.validate_output_counts(output_dir, "cloudfront-json")
