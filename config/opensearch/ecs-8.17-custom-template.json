@@ -7537,6 +7537,9 @@
             "path_parts": {
               "type": "keyword"
             },
+            "path_depth": {
+              "type": "keyword"
+            },
             "query_parts": {
               "type": "keyword"
             },
