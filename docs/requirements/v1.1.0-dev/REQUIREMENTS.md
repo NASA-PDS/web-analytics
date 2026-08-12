@@ -60,3 +60,15 @@ This requirement is not impacted by the current version
 
 
 This requirement is not impacted by the current version
+## Deploy web analytics infrastructure to Test environment ([#78](https://github.com/NASA-PDS/web-analytics/issues/78)) 
+
+
+This requirement is not impacted by the current version
+## Deploy web analytics infrastructure to Prod environment ([#79](https://github.com/NASA-PDS/web-analytics/issues/79)) 
+
+
+This requirement is not impacted by the current version
+## As an EN/node operator, I want clear documentation of the DUM onboarding process ([#80](https://github.com/NASA-PDS/web-analytics/issues/80)) 
+
+
+This requirement is not impacted by the current version
