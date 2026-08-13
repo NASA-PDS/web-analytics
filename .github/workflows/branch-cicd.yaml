@@ -30,19 +30,19 @@ jobs:
 
         steps:
             - name: 💳 Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   lfs: true
                   fetch-depth: 0
                   token: ${{secrets.ADMIN_GITHUB_TOKEN || github.token}}
 
             - name: Set up Python 3
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@v7
               with:
                   python-version: '3.13'
 
             - name: 💵 Python Cache
-              uses: actions/cache@v3
+              uses: actions/cache@v6
               with:
                   path: ~/.cache/pip
                   key: pds-${{runner.os}}-py-${{hashFiles('**/*.whl')}}
