@@ -459,8 +459,8 @@ class TestLogstashIntegration(unittest.TestCase):
                         line = line.strip()
                         if line:
                             events.append(json.loads(line))
-            except (json.JSONDecodeError, OSError):
-                pass
+            except (json.JSONDecodeError, OSError) as e:
+                self.fail(f"Failed to parse processed event in {json_file}: {e}")
         return events
 
     def validate_url_field_parsing(self, output_dir: Path):
