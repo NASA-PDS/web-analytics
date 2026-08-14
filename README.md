@@ -75,7 +75,7 @@ PDS nodes upload access logs to a shared `pds-logs` S3 bucket using Data Upload 
 
 ### Production deployment on AWS
 
-See [`terraform/README.md`](terraform/README.md) for the full step-by-step deployment guide. Infrastructure runs on an MCP Amazon Linux 2023 EC2 with Logstash running in Docker via systemd. Access is via AWS Systems Manager (SSM) — no SSH keys or special EC2 users required.
+See [`terraform/README.md`](terraform/README.md) for the full step-by-step deployment guide. Infrastructure runs on an MCP Amazon Linux 2023 EC2 with Logstash installed via RPM and managed by systemd. Access is via AWS Systems Manager (SSM) — no SSH keys or special EC2 users required.
 
 ### Local development and testing
 
