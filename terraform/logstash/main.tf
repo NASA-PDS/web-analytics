@@ -79,7 +79,7 @@ resource "aws_launch_template" "logstash" {
 
   network_interfaces {
     associate_public_ip_address = false
-    subnet_id                   = data.aws_subnets.private.ids[0]
+    subnet_id                   = sort(data.aws_subnets.private.ids)[0]
     security_groups             = [data.aws_security_group.mcp_ec2.id]
   }
 
