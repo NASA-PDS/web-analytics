@@ -22,7 +22,7 @@ module "s3_bucket" {
             "arn:${var.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.ec2_role_name}"
           ]
         },
-        Action = "s3:*",
+        Action = ["s3:GetBucketLocation", "s3:ListBucket", "s3:GetObject", "s3:GetObjectVersion"],
         Resource = [
           "arn:${var.partition}:s3:::${local.s3_bucket_name}",
           "arn:${var.partition}:s3:::${local.s3_bucket_name}/*"
