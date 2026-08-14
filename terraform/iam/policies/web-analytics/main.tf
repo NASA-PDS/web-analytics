@@ -8,7 +8,7 @@ data "aws_iam_policy_document" "ec2_web_analytics_access" {
     actions = [
       "s3:List*",
       "s3:GetObject*",
-      "s3:Bucket*"
+      "s3:GetBucket*"
     ]
     resources = [
       "arn:${var.partition}:s3:::${var.logs_s3_bucket_name}",
