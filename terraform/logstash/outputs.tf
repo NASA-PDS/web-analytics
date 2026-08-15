@@ -1,6 +1,6 @@
 output "logstash_instance_id" {
-  value       = aws_instance.logstash.id
-  description = "Instance ID of the Logstash EC2"
+  value       = aws_ssm_parameter.logstash_instance_id.value
+  description = "Instance ID of the Logstash EC2 (created by this module, or existing_instance_id when manage_ec2_instance = false)"
 }
 
 output "logstash_ssm_document_name" {

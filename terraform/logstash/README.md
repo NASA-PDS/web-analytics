@@ -4,15 +4,20 @@ Deploys a Logstash EC2 instance (Amazon Linux 2023, RPM install) that reads logs
 
 Reads the S3 bucket name and OpenSearch endpoint from SSM at plan time — deploy the S3 and pdc-observability OpenSearch modules first.
 
+EC2 creation is optional (`manage_ec2_instance`, default `true`) — production
+will likely reuse an existing EC2, in which case this module only manages
+the SSM Run-As document and parameter outputs. See
+["Using an existing EC2"](#using-an-existing-ec2-manage_ec2_instance--false)
+below.
+
 > **Requires `iam:PassRole`** — must be applied by a system administrator.
 
 ## Resources
 
-- `aws_launch_template.logstash` — EC2 launch template; userdata installs Logstash via RPM (root, `logstash-bootstrap.sh`) then deploys config and starts Logstash as a `systemd --user` service under the `logstash` account (`logstash-deploy.sh`)
-- `aws_instance.logstash` — EC2 instance (no SSH; access via SSM Session Manager)
-- `aws_ssm_document.logstash_runas` — custom SSM Session document (Run-As `logstash`) so operators never need sudo for day-2 ops
+- `aws_launch_template.logstash`, `aws_instance.logstash` — EC2 launch template + instance, only created when `manage_ec2_instance = true`; userdata installs Logstash via RPM (root, `logstash-bootstrap.sh`) then deploys config and starts Logstash as a `systemd --user` service under the `logstash` account (`logstash-deploy.sh`). No SSH; access via SSM Session Manager.
+- `aws_ssm_document.logstash_runas` — custom SSM Session document (Run-As `logstash`) so operators never need sudo for day-2 ops; always created, works against any instance (created here or existing)
 - `aws_ssm_parameter.ec2_role_arn` — publishes EC2 role ARN to `/pds/web-analytics/iam/ec2_role_arn`
-- `aws_ssm_parameter.logstash_instance_id` — publishes instance ID to `/pds/web-analytics/ec2/logstash_instance_id`
+- `aws_ssm_parameter.logstash_instance_id` — publishes the instance ID (created, or `existing_instance_id`) to `/pds/web-analytics/ec2/logstash_instance_id`
 - `aws_ssm_parameter.logstash_runas_document` — publishes the Run-As document name to `/pds/web-analytics/ssm/logstash_runas_document`
 
 ### Access model
@@ -41,14 +46,16 @@ deliberate admin actions like a Logstash version upgrade.
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `vpc_id` | `string` | — | VPC ID for subnet and security group lookup. |
-| `ec2_security_group_name` | `string` | — | Name of the EC2 security group to attach. |
-| `ec2_role_name` | `string` | — | Existing EC2 IAM role / instance profile name. |
+| `manage_ec2_instance` | `bool` | `true` | Whether this module creates the EC2. Set `false` to reuse an existing instance. |
+| `existing_instance_id` | `string` | `""` | Instance ID to publish when `manage_ec2_instance = false`. Required in that mode. |
+| `ec2_role_name` | `string` | — | Existing EC2 IAM role / instance profile name. Always required. |
+| `vpc_id` | `string` | `""` | VPC ID for subnet and security group lookup. Required when `manage_ec2_instance = true`. |
+| `ec2_security_group_name` | `string` | `""` | Name of the EC2 security group to attach. Required when `manage_ec2_instance = true`. |
+| `mcp_ami_owner_id` | `string` | `""` | AWS account ID that owns the Amazon Linux 2023 AMIs. Required when `manage_ec2_instance = true`. |
 | `resource_prefix` | `string` | — | Prefix for all resource names (e.g. `pds-dev`). No CI/CD identifiers. |
 | `s3_cf_bucket_name` | `string` | `""` | S3 bucket containing CloudFront logs (EN node only). Leave empty to skip. |
-| `logstash_instance_type` | `string` | `t3.large` | EC2 instance type. |
+| `logstash_instance_type` | `string` | `t3.large` | EC2 instance type. Only used when `manage_ec2_instance = true`. |
 | `logstash_version` | `string` | `8.17.0` | Logstash RPM version to install. |
-| `mcp_ami_owner_id` | `string` | `794625662971` | AWS account ID that owns the Amazon Linux 2023 AMIs. |
 | `aws_region` | `string` | `us-west-2` | AWS region. |
 | `partition` | `string` | `aws` | AWS partition. |
 | `venue` | `string` | — | Deployment venue (`dev`, `test`, `prod`). |
@@ -75,3 +82,99 @@ task logstash:deploy VENUE=dev
 ```
 
 Shared values come from `../tfvars/common-<venue>.tfvars`.
+
+## Using an existing EC2 (`manage_ec2_instance = false`)
+
+Set in tfvars:
+
+```hcl
+manage_ec2_instance  = false
+existing_instance_id = "i-0123456789abcdef0"
+```
+
+`task logstash:deploy` then only creates/updates the SSM Run-As document and
+publishes `/pds/web-analytics/ec2/logstash_instance_id` (from
+`existing_instance_id`) and `/pds/web-analytics/iam/ec2_role_arn` — it never
+touches the EC2 itself.
+
+**Connecting to the box is entirely outside this module's control.** These
+instructions work regardless of *how* you get a root shell — an SSM
+session, a locked-down bastion/gateway with SSH, port-forwarding, whatever
+your SA team configures for that instance. `aws_ssm_document.logstash_runas`
+is created either way and is one option if SSM access is available, but
+nothing here depends on it.
+
+### Prerequisites on the existing EC2 (outside this module's control)
+
+- Amazon Linux 2023, or another systemd-based RPM distro (`dnf`, `systemd
+  --user`, `loginctl enable-linger` all need to work)
+- However access is configured (SSM, SSH via a gateway, etc.), it needs to
+  be able to reach the box as root (or a sudo-capable user) for the
+  one-time install below
+- Instance profile with the app-level S3 + OpenSearch policy from
+  [`../iam/policies`](../iam/policies) (the same `ec2_role_name` this
+  module reads for `ec2_role_arn`) — plus SSM connectivity
+  (`AmazonSSMManagedInstanceCore`) if SSM access will be used at all
+
+### One-time manual install
+
+This replicates exactly what `terraform/templates/logstash-userdata.sh.tpl`
+automates for a newly created instance — run it once, by hand, as root,
+however you reach the box:
+
+```bash
+# 1. Connect as root (or a sudo-capable user)
+
+# 2. Install git and clone the repo — logstash-bootstrap.sh needs it on disk first
+sudo dnf install -y git --quiet
+sudo git clone --branch main https://github.com/NASA-PDS/web-analytics.git /opt/web-analytics
+
+# 3. Root, one-time: installs Logstash + plugins, and provisions the
+#    logstash account (home dir, login shell, linger, nofile limits,
+#    systemd --user unit) — see scripts/logstash-bootstrap.sh
+sudo LOGSTASH_VERSION=8.17.0 REPO_DIR=/opt/web-analytics \
+  bash /opt/web-analytics/scripts/logstash-bootstrap.sh
+
+# 4. As the logstash user, no sudo: deploy config and start the service —
+#    see scripts/logstash-deploy.sh
+sudo runuser -u logstash -- env \
+  XDG_RUNTIME_DIR="/run/user/$(id -u logstash)" \
+  REPO_DIR=/opt/web-analytics \
+  AWS_REGION=us-west-2 \
+  S3_BUCKET_NAME=$(aws ssm get-parameter --name /pds/web-analytics/s3/bucket_name --query Parameter.Value --output text) \
+  OPENSEARCH_ENDPOINT=$(aws ssm get-parameter --name /pds/observability/opensearch/opensearch_endpoint --query Parameter.Value --output text) \
+  INDEX_PREFIX=pds-weblogs \
+  S3_CF_BUCKET_NAME=<cf-logs-bucket-name-or-empty> \
+  bash /opt/web-analytics/scripts/logstash-deploy.sh
+
+# 5. Verify
+sudo runuser -u logstash -- systemctl --user status logstash
+```
+
+Step 4 also sets up the account for direct login as `logstash` afterward
+(real shell, home dir) — so if your SA team's locked-down access to this
+box is SSH-based (e.g. a gateway/bastion that ends in `ssh
+logstash@localhost`), it works against the same account with no extra
+configuration on this module's side. Whatever they add for SSH auth
+(`authorized_keys`, bastion security group rules, etc.) is entirely their
+setup, not something these scripts touch.
+
+### Day-2 operations from here on — no sudo
+
+However you reconnect (SSH directly as `logstash`, or an SSM session using
+the `logstash_runas` document if that's available for this instance), the
+workflow is identical to a freshly-provisioned instance — `bash
+scripts/logstash-deploy.sh` to update config, `systemctl --user restart
+logstash`, `journalctl --user-unit logstash -f` — see the root
+[`README.md`](../../README.md) Quick Reference. If using the SSM Run-As
+document:
+
+```bash
+aws ssm start-session \
+  --target $(aws ssm get-parameter --name /pds/web-analytics/ec2/logstash_instance_id --query Parameter.Value --output text) \
+  --document-name $(aws ssm get-parameter --name /pds/web-analytics/ssm/logstash_runas_document --query Parameter.Value --output text)
+```
+
+The only step that ever needs sudo/root again is re-running
+`logstash-bootstrap.sh` for a deliberate admin action like a Logstash
+version upgrade.

@@ -11,6 +11,14 @@
 # Reads s3_bucket_name from SSM (/pds/web-analytics/s3/bucket_name) so this
 # module can be applied independently of the S3 root module.
 #
+# EC2 creation is optional (var.manage_ec2_instance, default true) — set to
+# false to point this module at an existing, externally-managed EC2 (e.g.
+# production reusing an instance that predates this module). In that mode,
+# only the SSM Run-As session document and the SSM parameter outputs are
+# managed; var.existing_instance_id is published in place of a created
+# instance's ID. See terraform/logstash/README.md "Using an existing EC2"
+# for the manual setup steps (logstash-bootstrap.sh + logstash-deploy.sh).
+#
 # TODO: vpc_id and ec2_security_group_name should be sourced from SSM once
 # published under /pds/cds-infra/vpc/ — the pattern exists for other
 # SGs at /pds/cds-infra/vpc/security_groups/registry_api_ecs_app_sg_id etc.
@@ -26,6 +34,8 @@ data "aws_ssm_parameter" "opensearch_endpoint" {
 }
 
 data "aws_ami" "mcp_amazon_linux" {
+  count = var.manage_ec2_instance ? 1 : 0
+
   most_recent = true
 
   filter {
@@ -45,11 +55,15 @@ data "aws_ami" "mcp_amazon_linux" {
 }
 
 data "aws_security_group" "mcp_ec2" {
+  count = var.manage_ec2_instance ? 1 : 0
+
   name   = var.ec2_security_group_name
   vpc_id = var.vpc_id
 }
 
 data "aws_subnets" "private" {
+  count = var.manage_ec2_instance ? 1 : 0
+
   filter {
     name   = "vpc-id"
     values = [var.vpc_id]
@@ -73,14 +87,16 @@ locals {
 }
 
 resource "aws_launch_template" "logstash" {
+  count = var.manage_ec2_instance ? 1 : 0
+
   name_prefix   = "${local.ec2_name}-"
-  image_id      = data.aws_ami.mcp_amazon_linux.id
+  image_id      = data.aws_ami.mcp_amazon_linux[0].id
   instance_type = var.logstash_instance_type
 
   network_interfaces {
     associate_public_ip_address = false
-    subnet_id                   = sort(data.aws_subnets.private.ids)[0]
-    security_groups             = [data.aws_security_group.mcp_ec2.id]
+    subnet_id                   = sort(data.aws_subnets.private[0].ids)[0]
+    security_groups             = [data.aws_security_group.mcp_ec2[0].id]
   }
 
   iam_instance_profile {
@@ -121,8 +137,10 @@ resource "aws_launch_template" "logstash" {
 }
 
 resource "aws_instance" "logstash" {
+  count = var.manage_ec2_instance ? 1 : 0
+
   launch_template {
-    id      = aws_launch_template.logstash.id
+    id      = aws_launch_template.logstash[0].id
     version = "$Latest"
   }
 
@@ -145,8 +163,15 @@ resource "aws_ssm_parameter" "ec2_role_arn" {
 resource "aws_ssm_parameter" "logstash_instance_id" {
   name        = "/pds/web-analytics/ec2/logstash_instance_id"
   type        = "String"
-  value       = aws_instance.logstash.id
-  description = "Instance ID of the web-analytics Logstash EC2"
+  value       = var.manage_ec2_instance ? aws_instance.logstash[0].id : var.existing_instance_id
+  description = "Instance ID of the web-analytics Logstash EC2 (created by this module, or an existing instance when manage_ec2_instance = false)"
+
+  lifecycle {
+    precondition {
+      condition     = var.manage_ec2_instance || length(var.existing_instance_id) > 0
+      error_message = "existing_instance_id must be set when manage_ec2_instance = false."
+    }
+  }
 }
 
 # ---------------------------------------------------------------------------

@@ -45,15 +45,29 @@ variable "ec2_role_name" {
   type        = string
 }
 
+variable "manage_ec2_instance" {
+  description = "Whether this module creates the Logstash EC2 (launch template + instance). Set to false to reuse an existing, externally-managed EC2 (e.g. production) — see existing_instance_id and terraform/logstash/README.md 'Using an existing EC2'."
+  type        = bool
+  default     = true
+}
+
+variable "existing_instance_id" {
+  description = "Instance ID of an existing EC2 to publish as /pds/web-analytics/ec2/logstash_instance_id. Required when manage_ec2_instance = false; ignored otherwise."
+  type        = string
+  default     = ""
+}
+
 variable "vpc_id" {
-  description = "VPC ID for the Logstash EC2 and security group lookup. TODO: replace with SSM data source under /pds/cds-infra/vpc/id once published."
+  description = "VPC ID for the Logstash EC2 and security group lookup. Required when manage_ec2_instance = true. TODO: replace with SSM data source under /pds/cds-infra/vpc/id once published."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "ec2_security_group_name" {
-  description = "Name of the EC2 security group to attach to the Logstash instance. TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published."
+  description = "Name of the EC2 security group to attach to the Logstash instance. Required when manage_ec2_instance = true. TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published."
   type        = string
+  default     = ""
 }
 
 variable "logstash_instance_type" {
@@ -69,13 +83,15 @@ variable "logstash_version" {
 }
 
 variable "s3_cf_bucket_name" {
-  description = "Name of the S3 bucket containing CloudFront access logs (EN node only)."
+  description = "Name of the S3 bucket containing CloudFront access logs (EN node only). Leave empty to skip."
   type        = string
+  default     = ""
 }
 
 variable "mcp_ami_owner_id" {
-  description = "AWS account ID that owns the Amazon Linux 2023 AMIs used for the Logstash instance."
+  description = "AWS account ID that owns the Amazon Linux 2023 AMIs used for the Logstash instance. Required when manage_ec2_instance = true."
   type        = string
+  default     = ""
 }
 
 variable "repo_branch" {

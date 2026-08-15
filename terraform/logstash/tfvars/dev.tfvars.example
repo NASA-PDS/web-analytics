@@ -1,6 +1,10 @@
 # Logstash EC2 module — dev venue
 # Copy to dev.tfvars and fill in values.
 # common-dev.tfvars supplies: tenant, cicd, component, managedby, resource_prefix, ec2_role_name
+#
+# dev creates its own EC2 (manage_ec2_instance defaults to true). To instead
+# point at an existing instance, set manage_ec2_instance = false and
+# existing_instance_id — see terraform/logstash/README.md "Using an existing EC2".
 
 venue = "dev"
 
