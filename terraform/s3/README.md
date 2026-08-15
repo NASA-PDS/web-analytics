@@ -4,7 +4,7 @@ Creates the S3 log bucket for PDS Web Analytics and publishes its name to SSM.
 
 ## Resources
 
-- `module.s3_bucket` — S3 bucket via [pds-tf-modules](https://github.com/NASA-PDS/pds-tf-modules) with SSE, public-access blocks disabled (enforced at account level by MCP), and an EC2-role allow + SSL-only deny bucket policy
+- `module.s3_bucket` — S3 bucket via [pds-tf-modules](https://github.com/NASA-PDS/pds-tf-modules) with SSE, public-access blocks disabled (enforced at the account level), and an EC2-role allow + SSL-only deny bucket policy
 - `aws_s3_bucket_lifecycle_configuration.lifecycle` — aborts incomplete multipart uploads after 7 days; transitions all objects to Intelligent-Tiering immediately
 - `aws_ssm_parameter.s3_bucket_name` — publishes the bucket name to `/pds/web-analytics/s3/bucket_name` for consumption by the logstash module
 

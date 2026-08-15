@@ -140,7 +140,7 @@ set -a; source .env; set +a
 
 ### 4. Build Logstash Pipeline Configs (local only)
 
-On the EC2, `logstash-init.sh` does this automatically. For local dev:
+On the EC2, `logstash-deploy.sh` does this automatically. For local dev:
 
 ```bash
 set -a; source .env; set +a
@@ -151,7 +151,7 @@ This generates `config/logstash/config/pipelines.yml` and one `.conf` file per P
 
 #### 5. Apply the OpenSearch Index Template (manual/one-time)
 
-On the EC2, `logstash-init.sh` applies this automatically via the AWS CLI. To apply manually from the OpenSearch Dev Console:
+On the EC2, `logstash-deploy.sh` applies this automatically via the AWS CLI. To apply manually from the OpenSearch Dev Console:
 
 ```
 GET _cat/templates
@@ -261,57 +261,65 @@ s3-log-sync -c config/config.yaml -d /var/log/pds --no-gzip
 
 ### Logstash Processing
 
-In production, Logstash runs as a systemd service on an MCP Amazon Linux 2023 EC2.
-Access is via AWS Systems Manager — no SSH keys required.
+In production, Logstash runs as a `systemd --user` service under a shared `logstash`
+OS account on an Amazon Linux 2023 EC2. Access is via AWS Systems Manager
+(no SSH keys, no inbound rules) using a Run-As session document that lands
+directly as `logstash` — day-2 operations (service control, logs, config
+updates) never require sudo.
 Full operational runbooks are in [`terraform/README.md`](terraform/README.md).
 
-#### Quick reference (from an SSM session on the EC2)
+#### Quick reference (from an SSM session on the EC2, as the logstash user)
 
-**SSM into the EC2:**
+**SSM into the EC2 (lands as `logstash`, in `/opt/web-analytics`):**
 ```bash
 aws ssm start-session \
   --target $(aws ssm get-parameter \
     --name /pds/web-analytics/ec2/logstash_instance_id \
+    --query Parameter.Value --output text) \
+  --document-name $(aws ssm get-parameter \
+    --name /pds/web-analytics/ssm/logstash_runas_document \
     --query Parameter.Value --output text)
 ```
 
-**Service control:**
+**Service control (no sudo):**
 ```bash
-sudo systemctl status logstash
-sudo systemctl restart logstash
-sudo journalctl -u logstash -f
+systemctl --user status logstash
+systemctl --user restart logstash
+journalctl --user-unit logstash -f
 ```
 
-**Update config (pull latest from GitHub and restart):**
+**Update config (pull latest from GitHub and restart, no sudo):**
 ```bash
-# On the EC2 — re-runs the idempotent init script
-curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh
-sudo S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
+# On the EC2 — repo is already cloned and owned by logstash; re-runs the idempotent deploy script
+bash scripts/logstash-deploy.sh
 
 # To deploy from a non-main branch:
-curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/<your-branch>/scripts/logstash-init.sh -o /tmp/logstash-init.sh
-sudo REPO_BRANCH=<your-branch> S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
+REPO_BRANCH=<your-branch> bash scripts/logstash-deploy.sh
 ```
 
 **Clear S3 read history for one node (force re-ingest):**
 ```bash
-sudo systemctl stop logstash
+systemctl --user stop logstash
 # Replace 'naif' with the node name (atm, en, geo, img, naif, ppi, rings, sbn)
-sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_file_input_naif*
-sudo systemctl start logstash
+rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_file_input_naif*
+systemctl --user start logstash
 ```
 
 **Clear history for all nodes:**
 ```bash
-sudo systemctl stop logstash
-sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_*
-sudo systemctl start logstash
+systemctl --user stop logstash
+rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_*
+systemctl --user start logstash
 ```
 
 **Smoke test:**
 ```bash
 bash /opt/web-analytics/scripts/smoke-test.sh
 ```
+
+> An admin occasionally needs `sudo bash scripts/logstash-bootstrap.sh` — but
+> only for installing/upgrading Logstash itself or re-provisioning the
+> `logstash` account, not for routine operations.
 
 ### Testing
 
@@ -454,20 +462,21 @@ If a count is wrong, inspect the JSON files in `./output/` to understand which e
 
 ### Monitoring
 
-**On the EC2 (via SSM):**
+**On the EC2 (via SSM, as the logstash user — no sudo):**
 
 ```bash
-# Logstash systemd service status
-sudo systemctl status logstash
+# Logstash systemd --user service status
+systemctl --user status logstash
 
 # Live logs
-sudo journalctl -u logstash -f
+journalctl --user-unit logstash -f
 
 # Bad / unparseable logs written by the Logstash pipeline
-sudo tail -f /tmp/bad_logs_$(date +%Y-%m).txt
+tail -f /tmp/bad_logs_$(date +%Y-%m).txt
 
-# Logstash init log (first-boot setup)
-sudo tail -f /var/log/logstash-init.log
+# First-boot setup logs (root bootstrap phase, then logstash deploy phase)
+tail -f /var/log/logstash-bootstrap.log
+tail -f /var/log/logstash-deploy.log
 ```
 
 **Verify data is flowing into OpenSearch:**
@@ -602,16 +611,17 @@ These hooks then will check for any future commits that might contain secrets. T
 ### Common Issues
 
 1. **Logstash won't start**
-   - Check service status: `sudo systemctl status logstash`
-   - Check logs: `sudo journalctl -u logstash -n 50`
-   - Check env file: `sudo cat /etc/logstash/env`
+   - Check service status: `systemctl --user status logstash`
+   - Check logs: `journalctl --user-unit logstash -n 50`
+   - Check env file: `cat /etc/logstash/env`
    - Verify pipeline configs were generated: `ls /etc/logstash/pipelines/`
-   - Re-run init to pull latest config and restart: `curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh && sudo S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh`
+   - Re-run deploy to pull latest config and restart (as the logstash user, no sudo): `bash scripts/logstash-deploy.sh`
+   - If Logstash itself isn't installed yet, an admin needs to run `sudo bash scripts/logstash-bootstrap.sh` first
 
 2. **No data in OpenSearch**
    - Run smoke test: `bash /opt/web-analytics/scripts/smoke-test.sh`
    - Check S3 sincedb files: `ls -la /var/lib/logstash/plugins/inputs/s3/`
-   - Check Logstash logs for S3 read errors: `sudo journalctl -u logstash -n 100`
+   - Check Logstash logs for S3 read errors: `journalctl --user-unit logstash -n 100`
 
 3. **High memory usage**
    - Adjust `pipeline.batch.size` in `config/logstash/config/logstash.yml`
@@ -619,13 +629,14 @@ These hooks then will check for any future commits that might contain secrets. T
 
 4. **Parse failures**
    - Check log format matches expected patterns
-   - Inspect bad logs: `sudo tail -f /tmp/bad_logs_$(date +%Y-%m).txt`
+   - Inspect bad logs: `tail -f /tmp/bad_logs_$(date +%Y-%m).txt`
    - Update grok patterns in `config/logstash/config/shared/pds-filter.conf`
 
 ### Log Locations
 
-- **Logstash service logs**: `sudo journalctl -u logstash`
-- **Logstash init log**: `/var/log/logstash-init.log`
+- **Logstash service logs**: `journalctl --user-unit logstash` (as the logstash user, no sudo)
+- **First-boot bootstrap log** (root phase): `/var/log/logstash-bootstrap.log`
+- **First-boot deploy log** (logstash phase): `/var/log/logstash-deploy.log`
 - **Bad / unparseable logs**: `/tmp/bad_logs_YYYY-MM.txt` (inside the EC2)
 - **Test output**: `./output/` (Docker integration tests)
 

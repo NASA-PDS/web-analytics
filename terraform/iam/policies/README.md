@@ -1,6 +1,6 @@
 # IAM Policies Module
 
-Creates the web-analytics EC2 IAM policy and attaches it to the shared MCP EC2 instance role.
+Creates the web-analytics EC2 IAM policy and attaches it to the shared EC2 instance role.
 
 > **Requires `iam:CreatePolicy` and `iam:AttachRolePolicy`** — must be applied by a system administrator.
 

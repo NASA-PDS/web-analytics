@@ -1,6 +1,6 @@
 #!/bin/bash
 # smoke-test.sh — Verify S3, OpenSearch, and Logstash are all reachable and auth works.
-# Run from the Logstash EC2 after deployment.
+# Run from the Logstash EC2 after deployment, as the logstash user (no sudo).
 #
 # Usage:
 #   bash /opt/web-analytics/scripts/smoke-test.sh
@@ -62,5 +62,5 @@ EOF
 
 echo ""
 echo "--- Logstash service ---"
-systemctl is-active logstash && echo "logstash: active" || echo "logstash: INACTIVE"
-journalctl -u logstash --no-pager -n 5
+systemctl --user is-active logstash && echo "logstash: active" || echo "logstash: INACTIVE"
+journalctl --user-unit logstash --no-pager -n 5

@@ -7,7 +7,7 @@ module "s3_bucket" {
   # Disable module's own lifecycle rule — we manage all lifecycle rules in the resource below
   abort_incomplete_multipart_upload_days = 0
 
-  # MCP enforces public access blocks at the account level; enable_blocks=false avoids a redundant conflict
+  # Public access blocks are enforced at the account level; enable_blocks=false avoids a redundant conflict
   enable_blocks = false
   enable_policy = true
 

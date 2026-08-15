@@ -52,7 +52,7 @@ variable "vpc_id" {
 }
 
 variable "ec2_security_group_name" {
-  description = "Name of the MCP EC2 security group to attach to the Logstash instance. TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once MCP publishes it."
+  description = "Name of the EC2 security group to attach to the Logstash instance. TODO: replace with SSM lookup under /pds/cds-infra/vpc/security_groups/ once published."
   type        = string
 }
 
@@ -74,7 +74,7 @@ variable "s3_cf_bucket_name" {
 }
 
 variable "mcp_ami_owner_id" {
-  description = "AWS account ID that owns the MCP Amazon Linux 2023 AMIs used for the Logstash instance."
+  description = "AWS account ID that owns the Amazon Linux 2023 AMIs used for the Logstash instance."
   type        = string
 }
 

@@ -4,7 +4,7 @@ Deploys the infrastructure for the PDS Web Analytics pipeline:
 
 - **S3 bucket** — log storage (versioning suspended), SSE, and Intelligent-Tiering
 - **IAM policy** — grants the Logstash EC2 role read access to S3 and write access to OpenSearch
-- **Logstash EC2** — MCP Amazon Linux 2023 instance running Logstash directly via RPM + systemd
+- **Logstash EC2** — Amazon Linux 2023 instance running Logstash directly via RPM + systemd
 
 > **OpenSearch** is managed separately in [pdc-observability](https://github.com/NASA-PDS/pdc-observability). Deploy it first — the endpoint is published to SSM and consumed automatically here. Its `opensearch` module bootstraps with `web_analytics_enabled = false`, so Logstash's role isn't actually allowed to write to OpenSearch until someone flips that flag and re-applies it *after* this repo's `iam:deploy` has run — see Step 2 below and pdc-observability's `terraform/README.md#deployment-flow`.
 
@@ -168,60 +168,70 @@ task logstash:deploy VENUE=dev
 
 ### Step 4: Initialize Logstash on the EC2
 
-On **new EC2 deployments**, the userdata script runs `logstash-init.sh` automatically at first boot.
+On **new EC2 deployments**, the userdata script runs `scripts/logstash-bootstrap.sh`
+(root, one-time: packages, Logstash RPM, provisions the `logstash` account)
+followed by `scripts/logstash-deploy.sh` (as the `logstash` user, no sudo:
+config + service start) automatically at first boot.
 
-For an **already-running EC2** (e.g., after recreating the OpenSearch domain, or after a manual deployment where the env file is wrong), SSM in and re-run the init script with the required env vars:
+For an **already-running EC2** (e.g., after recreating the OpenSearch domain, or after a manual deployment where the env file is wrong), SSM in — landing directly as `logstash`, no sudo needed — and re-run the deploy script with the required env vars:
 
 ```bash
-# SSM into the EC2
+# SSM into the EC2, landing as the logstash user via the Run-As document
 aws ssm start-session \
   --target $(aws ssm get-parameter \
     --name /pds/web-analytics/ec2/logstash_instance_id \
+    --query Parameter.Value --output text) \
+  --document-name $(aws ssm get-parameter \
+    --name /pds/web-analytics/ssm/logstash_runas_document \
     --query Parameter.Value --output text)
 
 # On the EC2 — verify what's currently in the env file
 cat /etc/logstash/env
 
-# Fetch and run the init script.
+# Re-run the deploy script from the already-cloned, logstash-owned repo.
 # S3_BUCKET_NAME and OPENSEARCH_ENDPOINT are fetched from SSM automatically.
 # S3_CF_BUCKET_NAME must be set explicitly (not in SSM).
-curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh -o /tmp/logstash-init.sh
-sudo S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
+S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash scripts/logstash-deploy.sh
 
 # To deploy from a non-main branch (e.g. during active development):
-curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/<your-branch>/scripts/logstash-init.sh -o /tmp/logstash-init.sh
-sudo REPO_BRANCH=<your-branch> S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
+REPO_BRANCH=<your-branch> S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash scripts/logstash-deploy.sh
 ```
 
-The script will:
-1. Clone/update the web-analytics repo to `/opt/web-analytics`
-2. Copy Logstash pipeline config to `/opt/logstash/config`
+> If Logstash itself isn't installed yet (e.g. a fresh instance where
+> bootstrap never ran), `logstash-deploy.sh` will refuse and tell you to
+> have an admin run `sudo bash scripts/logstash-bootstrap.sh` first —
+> that's the only step in this whole workflow that ever needs sudo, and
+> it's rare (install/upgrade only).
+
+The deploy script will:
+1. Clone/update the web-analytics repo to `/opt/web-analytics` (owned by `logstash`)
+2. Copy Logstash pipeline config to `/etc/logstash`
 3. Build `pipelines.yml` and `pipelines/*.conf` from templates
 4. Apply the OpenSearch ECS index template to the new domain
-5. Update `/etc/systemd/system/logstash.service` with the current OpenSearch endpoint from SSM
-6. Restart the Logstash systemd service
+5. Write `/etc/logstash/env` with the current OpenSearch endpoint from SSM
+6. Restart the Logstash `systemd --user` service
 
 > **Sincedb (S3 read position):** Each S3 input has a named sincedb file in `/var/lib/logstash/plugins/inputs/s3/` that tracks which objects have been read. Files are named after the input ID (e.g., `sincedb_file_input_naif1`).
 >
 > Reset all nodes to re-ingest everything from scratch:
 > ```bash
-> sudo systemctl stop logstash
-> sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_*
-> sudo systemctl start logstash
+> systemctl --user stop logstash
+> rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_*
+> systemctl --user start logstash
 > ```
 >
 > Reset a single node (e.g., NAIF only):
 > ```bash
-> sudo systemctl stop logstash
-> sudo rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_file_input_naif*
-> sudo systemctl start logstash
+> systemctl --user stop logstash
+> rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_file_input_naif*
+> systemctl --user start logstash
 > ```
 >
 > Leave sincedb intact if you only want to process new S3 objects going forward.
 
 **Tail logs and verify startup:**
 ```bash
-sudo journalctl -u logstash -f
+journalctl --user-unit logstash -f
 ```
 
 A healthy startup looks like this (in order):
@@ -285,30 +295,29 @@ task deploy VENUE=dev
 
 ## Updating Logstash configuration
 
-The init script is idempotent — re-running it pulls the latest repo, redeploys config, rebuilds pipelines, and restarts Logstash. This is the standard workflow for config changes:
+The deploy script is idempotent — re-running it pulls the latest repo, redeploys config, rebuilds pipelines, and restarts Logstash. This is the standard workflow for config changes, and it never requires sudo:
 
 1. Edit files under `config/logstash/config/` locally
 2. Test locally: `docker compose run --rm test`
 3. Push to your branch
-4. SSM into the EC2 and re-run the init script:
+4. SSM into the EC2 (lands directly as `logstash`) and re-run the deploy script:
 
 ```bash
 aws ssm start-session \
   --target $(aws ssm get-parameter \
     --name /pds/web-analytics/ec2/logstash_instance_id \
+    --query Parameter.Value --output text) \
+  --document-name $(aws ssm get-parameter \
+    --name /pds/web-analytics/ssm/logstash_runas_document \
     --query Parameter.Value --output text)
 
-# On the EC2:
-curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/main/scripts/logstash-init.sh \
-  -o /tmp/logstash-init.sh
-sudo S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
+# On the EC2 (already in /opt/web-analytics, owned by logstash):
+S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash scripts/logstash-deploy.sh
 ```
 
 > If deploying from a non-`main` branch during active development:
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/NASA-PDS/web-analytics/<your-branch>/scripts/logstash-init.sh \
->   -o /tmp/logstash-init.sh
-> sudo REPO_BRANCH=<your-branch> S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash /tmp/logstash-init.sh
+> REPO_BRANCH=<your-branch> S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash scripts/logstash-deploy.sh
 > ```
 
 Common files to edit:
