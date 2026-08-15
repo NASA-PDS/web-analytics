@@ -479,6 +479,23 @@ tail -f /var/log/logstash-bootstrap.log
 tail -f /var/log/logstash-deploy.log
 ```
 
+**Real-time throughput (is it processing right now?):** Logstash exposes a
+monitoring API on `localhost:9600`. Note each S3 input only polls every 2
+hours (`interval => 7200`) — a freshly uploaded file won't show up until
+the next poll, or restart the service to force one immediately.
+
+```bash
+# Per-pipeline in/out event counts, queue depth, worker/duration stats
+curl -s http://localhost:9600/_node/stats/pipelines?pretty | less
+
+# Just one pipeline (e.g. naif)
+curl -s http://localhost:9600/_node/stats/pipelines/naif?pretty
+```
+
+Run it twice a few seconds apart — `events.in`/`events.out` moving means
+it's actively working; `queue.events_count` climbing while `events.out`
+stays flat usually means it's stuck (e.g. blocked on the OpenSearch output).
+
 **Verify data is flowing into OpenSearch:**
 
 ```bash

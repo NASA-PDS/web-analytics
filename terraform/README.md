@@ -164,6 +164,14 @@ task logstash:plan   VENUE=dev
 task logstash:deploy VENUE=dev
 ```
 
+> EC2 creation is optional (`manage_ec2_instance`, default `true`). Prod
+> typically reuses an existing EC2 instead — set `manage_ec2_instance =
+> false` and `existing_instance_id` in `tfvars/prod.tfvars`. This step then
+> only manages the SSM Run-As session document and publishes SSM
+> parameters; it never touches the EC2. See
+> [`terraform/logstash/README.md`](logstash/README.md#using-an-existing-ec2-manage_ec2_instance--false)
+> for the manual Logstash install steps on that existing instance.
+
 ---
 
 ### Step 4: Initialize Logstash on the EC2
@@ -241,29 +249,61 @@ Log4j configuration path used is: /etc/logstash/log4j2.properties
 Pipelines running {:count=>8, :running_pipelines=>[:atm, :en, :geo, ...]}
 ```
 
-Once running, you should see S3 polling activity within a minute or two:
+> **Each S3 input polls on a 2-hour interval** (`interval => 7200` in every
+> `config/logstash/config/inputs/*.conf`), not continuously — a file
+> uploaded to S3 can sit unprocessed for up to ~2 hours until the next poll.
+> `systemctl --user restart logstash` forces an immediate poll if you don't
+> want to wait. Also double-check the object landed under the right node's
+> `prefix` (e.g. NAIF is `naif/naif-httpdlogs` and `naif/naif-xferlogs`,
+> not the bucket root) — wrong prefix means that input never sees it.
+
+Once it polls, you should see it pick up the file:
 ```
 [logstash.inputs.s3] Providing file ... {:key=>"path/to/logfile.gz"}
 ```
 
-To confirm events are landing in OpenSearch, run a quick count from the EC2:
+**Real-time throughput** — Logstash exposes a monitoring API on
+`localhost:9600` by default. This is the most direct way to see whether a
+pipeline is actively processing right now:
 ```bash
-# Get credentials and endpoint
-SSM_PARAMETER_NAME=/pds/foo/bar/endpoint
+# Per-pipeline in/out event counts, queue depth, worker/duration stats
+curl -s http://localhost:9600/_node/stats/pipelines?pretty | less
+
+# Just one pipeline (e.g. naif)
+curl -s http://localhost:9600/_node/stats/pipelines/naif?pretty
+```
+Run it twice a few seconds apart and watch `events.in` / `events.out`
+increase — if they're moving, it's actively working. `queue.events_count`
+climbing with `events.out` flat usually means it's stuck (e.g. blocked on
+the OpenSearch output).
+
+To confirm events are landing in OpenSearch, run a quick count from the EC2
+(all nodes share one monthly index, `${INDEX_PREFIX}-YYYY-MM`):
+```bash
 eval $(aws configure export-credentials --format env)
-ENDPOINT=$(aws ssm get-parameter --name $SSM_PARAMETER_NAME \
+ENDPOINT=$(aws ssm get-parameter --name /pds/observability/opensearch/opensearch_endpoint \
   --region us-west-2 --query Parameter.Value --output text)
 
-# Count documents indexed today
 curl -s -X GET "https://${ENDPOINT}/pds-*/_count" \
   --aws-sigv4 "aws:amz:us-west-2:es" \
   --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
   -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" | python3 -m json.tool
 ```
 
-**Bad logs** (failed grok parsing) are written to `/tmp/bad_logs_YYYY-MM.txt` on the EC2:
+To check a specific uploaded file, search by its S3 key instead of just counting:
 ```bash
-tail -f /tmp/bad_logs-$(date +%Y-%m).txt
+curl -s --aws-sigv4 "aws:amz:us-west-2:es" \
+  --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+  -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+  "https://${ENDPOINT}/${INDEX_PREFIX}-$(date +%Y-%m)/_search?q=object.key:*your-file-name*&pretty"
+```
+
+**Bad logs / parse failures** — anything tagged `bad_log`,
+`_grok_parse_failure`, `_datetimeparsefailure`, `_invalid_http_method`,
+`_template_variable`, or `_missing_url_original` is routed to a file
+instead of OpenSearch (see `config/logstash/config/shared/pds-output-opensearch.conf`):
+```bash
+tail -f /tmp/bad_logs_$(date +%Y-%m).txt
 ```
 
 ---
