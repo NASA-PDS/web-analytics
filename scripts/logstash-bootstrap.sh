@@ -11,7 +11,7 @@
 #   sudo bash /opt/web-analytics/scripts/logstash-bootstrap.sh
 #
 # Env overrides:
-#   LOGSTASH_VERSION — Logstash version to install if missing (default: 8.17.0)
+#   LOGSTASH_VERSION — Logstash version to install if missing (default: 8.18.0)
 #   REPO_DIR         — path to the cloned web-analytics repo (default: /opt/web-analytics)
 
 set -euo pipefail
@@ -21,7 +21,7 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-LOGSTASH_VERSION="${LOGSTASH_VERSION:-8.17.0}"
+LOGSTASH_VERSION="${LOGSTASH_VERSION:-8.18.0}"
 REPO_DIR="${REPO_DIR:-/opt/web-analytics}"
 
 echo "=== web-analytics Logstash bootstrap ==="
@@ -32,7 +32,7 @@ echo "=== web-analytics Logstash bootstrap ==="
 if [ ! -f /usr/share/logstash/bin/logstash ]; then
   echo "--- Installing Logstash ${LOGSTASH_VERSION} ---"
   dnf install -y git python3.13 python3.13-pip gettext --quiet
-  python3.13 -m pip install --quiet --break-system-packages boto3
+  python3.13 -m pip install --quiet --break-system-packages boto3 requests
 
   rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
   cat > /etc/yum.repos.d/elastic.repo <<'REPO'

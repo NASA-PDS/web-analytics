@@ -28,3 +28,9 @@ variable "common_tags" {
   description = "Common tags to apply to all resources"
   default     = {}
 }
+
+variable "smtp_config_ssm_path" {
+  type        = string
+  description = "SSM parameter path prefix holding SMTP credentials (username, password, server, sender) for the daily egress report — see scripts/egress_report.py. Defaults to data-upload-manager's existing verified SMTP relay config (/pds/dum/smtp/) rather than provisioning a new one."
+  default     = "/pds/dum/smtp/"
+}

@@ -13,12 +13,34 @@
 # to run otherwise.
 #
 # Optional env overrides (all auto-populated from SSM/metadata if not set):
-#   OPENSEARCH_ENDPOINT  — OpenSearch domain endpoint (without https://)
-#   S3_BUCKET_NAME       — S3 bucket for log ingestion
-#   AWS_REGION           — AWS region (default: us-west-2)
-#   INDEX_PREFIX         — OpenSearch index prefix (default: pds-weblogs)
-#   S3_CF_BUCKET_NAME    — CloudFront logs bucket (EN only; default: empty)
-#   REPO_BRANCH          — git branch to deploy (default: main)
+#   OPENSEARCH_ENDPOINT      — OpenSearch domain endpoint (without https://)
+#   S3_BUCKET_NAME           — S3 bucket for log ingestion
+#   AWS_REGION               — AWS region (default: us-west-2)
+#   INDEX_PREFIX             — OpenSearch index prefix (default: pds-weblogs)
+#   S3_CF_BUCKET_NAME        — CloudFront logs bucket (EN only; default: empty)
+#   REPO_BRANCH              — git branch to deploy (default: main)
+#
+# Daily egress report cron job — installed only when EGRESS_REPORT_RECIPIENTS
+# is set (REQUIRED at deploy time to enable the report; everything else has
+# a default):
+#   EGRESS_REPORT_RECIPIENTS — comma-separated report recipient addresses.
+#                              REQUIRED — the cron job is skipped without it.
+#   SMTP_ENV_FILE            — path to a local KEY=VALUE file (username,
+#                              password, server, sender) on the EC2 itself.
+#                              Default: /etc/logstash/smtp.env. This is the
+#                              recommended source — no AWS permissions needed
+#                              beyond reading a file already on disk. Create
+#                              it once by hand (mode 600, owned by logstash);
+#                              see README.md "Enable/update the daily egress
+#                              report email".
+#   SMTP_CONFIG_SSM_KEY_PATH — SSM path prefix holding SMTP creds instead of
+#                              a local file — only used as a fallback if
+#                              SMTP_ENV_FILE doesn't exist. Requires
+#                              ssm:GetParametersByPath/GetParameter on this
+#                              path (not granted by default). Unset by
+#                              default; see egress_report.py.
+#   EGRESS_REPORT_SCHEDULE   — cron schedule (default: "0 6 * * *")
+#   EGRESS_REPORT_HOURS      — trailing window, in hours (default: 24)
 
 set -euo pipefail
 
@@ -128,6 +150,30 @@ echo "--- Starting Logstash ---"
 systemctl --user daemon-reload
 systemctl --user enable --now logstash
 systemctl --user restart logstash
+
+# ----------------------------------------
+# 6. Install daily egress report cron job (optional)
+# ----------------------------------------
+SMTP_ENV_FILE="${SMTP_ENV_FILE:-/etc/logstash/smtp.env}"
+SMTP_CONFIG_SSM_KEY_PATH="${SMTP_CONFIG_SSM_KEY_PATH:-}"
+EGRESS_REPORT_RECIPIENTS="${EGRESS_REPORT_RECIPIENTS:-}"
+EGRESS_REPORT_SCHEDULE="${EGRESS_REPORT_SCHEDULE:-0 6 * * *}"
+EGRESS_REPORT_HOURS="${EGRESS_REPORT_HOURS:-24}"
+
+echo "--- Configuring daily egress report ---"
+if [ -z "$EGRESS_REPORT_RECIPIENTS" ]; then
+  echo "EGRESS_REPORT_RECIPIENTS not set — skipping egress report cron job. Set it (comma-separated addresses) to enable."
+else
+  if [ ! -f "$SMTP_ENV_FILE" ] && [ -z "$SMTP_CONFIG_SSM_KEY_PATH" ]; then
+    echo "WARNING: $SMTP_ENV_FILE does not exist and SMTP_CONFIG_SSM_KEY_PATH is not set — the cron"
+    echo "job will be installed but will fail until you create $SMTP_ENV_FILE (mode 600, owned by"
+    echo "logstash) with username/password/server/sender lines. See README.md 'Enable/update the"
+    echo "daily egress report email'."
+  fi
+  CRON_CMD="PYTHONPATH=$REPO_DIR/src AWS_REGION=$AWS_REGION python3.13 $REPO_DIR/scripts/egress_report.py --opensearch-endpoint $OPENSEARCH_ENDPOINT --index-pattern ${INDEX_PREFIX}-* --region $AWS_REGION --smtp-env-file $SMTP_ENV_FILE --smtp-config-ssm-path $SMTP_CONFIG_SSM_KEY_PATH --recipients $EGRESS_REPORT_RECIPIENTS --hours $EGRESS_REPORT_HOURS >> /var/log/egress-report.log 2>&1"
+  (crontab -l 2>/dev/null | grep -v '# egress-report'; echo "$EGRESS_REPORT_SCHEDULE $CRON_CMD # egress-report") | crontab -
+  echo "Egress report cron job installed: $EGRESS_REPORT_SCHEDULE (SMTP source: $SMTP_ENV_FILE)"
+fi
 systemctl --user status logstash --no-pager
 
 echo ""

@@ -55,7 +55,7 @@ deliberate admin actions like a Logstash version upgrade.
 | `resource_prefix` | `string` | — | Prefix for all resource names (e.g. `pds-dev`). No CI/CD identifiers. |
 | `s3_cf_bucket_name` | `string` | `""` | S3 bucket containing CloudFront logs (EN node only). Leave empty to skip. |
 | `logstash_instance_type` | `string` | `t3.large` | EC2 instance type. Only used when `manage_ec2_instance = true`. |
-| `logstash_version` | `string` | `8.17.0` | Logstash RPM version to install. |
+| `logstash_version` | `string` | `8.18.0` | Logstash RPM version to install. |
 | `aws_region` | `string` | `us-west-2` | AWS region. |
 | `partition` | `string` | `aws` | AWS partition. |
 | `venue` | `string` | — | Deployment venue (`dev`, `test`, `prod`). |
@@ -132,7 +132,7 @@ sudo git clone --branch main https://github.com/NASA-PDS/web-analytics.git /opt/
 # 3. Root, one-time: installs Logstash + plugins, and provisions the
 #    logstash account (home dir, login shell, linger, nofile limits,
 #    systemd --user unit) — see scripts/logstash-bootstrap.sh
-sudo LOGSTASH_VERSION=8.17.0 REPO_DIR=/opt/web-analytics \
+sudo LOGSTASH_VERSION=8.18.0 REPO_DIR=/opt/web-analytics \
   bash /opt/web-analytics/scripts/logstash-bootstrap.sh
 
 # 4. As the logstash user, no sudo: deploy config and start the service —
@@ -145,11 +145,23 @@ sudo runuser -u logstash -- env \
   OPENSEARCH_ENDPOINT=$(aws ssm get-parameter --name /pds/observability/opensearch/opensearch_endpoint --query Parameter.Value --output text) \
   INDEX_PREFIX=pds-weblogs \
   S3_CF_BUCKET_NAME=<cf-logs-bucket-name-or-empty> \
+  EGRESS_REPORT_RECIPIENTS=<comma-separated-report-recipients> \
   bash /opt/web-analytics/scripts/logstash-deploy.sh
 
 # 5. Verify
 sudo runuser -u logstash -- systemctl --user status logstash
 ```
+
+`EGRESS_REPORT_RECIPIENTS` in step 4 is **required to enable the daily
+egress report cron job** — `logstash-deploy.sh` skips installing it silently
+if unset. SMTP credentials are read from a local file on the EC2
+(`/etc/logstash/smtp.env` by default, override with `SMTP_ENV_FILE`) — no
+extra AWS permissions needed. Create that file once by hand before (or
+after) this step; see [`../../README.md`](../../README.md#quick-reference-from-an-ssm-session-on-the-ec2-as-the-logstash-user)
+for the exact format and the full list of egress-report env vars. (SSM is
+also supported as a fallback via `SMTP_CONFIG_SSM_KEY_PATH`, but requires an
+IAM grant this module doesn't provision by default — the local file avoids
+that entirely.)
 
 Step 4 also sets up the account for direct login as `logstash` afterward
 (real shell, home dir) — so if your SA team's locked-down access to this

@@ -297,6 +297,39 @@ bash scripts/logstash-deploy.sh
 REPO_BRANCH=<your-branch> bash scripts/logstash-deploy.sh
 ```
 
+**Enable/update the daily egress report email:**
+
+SMTP credentials are read from a local file on the EC2 — no AWS permissions
+beyond reading a file already on disk. Create it once (as root or via sudo),
+before or after the deploy step below:
+```bash
+sudo install -m 600 -o logstash -g logstash /dev/null /etc/logstash/smtp.env
+sudo tee /etc/logstash/smtp.env > /dev/null <<'EOF'
+username=<smtp-username>
+password=<smtp-password>
+server=<smtp-host>:587
+sender=<verified-sender-address>
+EOF
+```
+Then enable the cron job:
+```bash
+# EGRESS_REPORT_RECIPIENTS is REQUIRED to enable the report — logstash-deploy.sh
+# skips installing the cron job silently if it's unset.
+EGRESS_REPORT_RECIPIENTS=<comma-separated-addresses> bash scripts/logstash-deploy.sh
+
+# Optional overrides (all have defaults — see scripts/logstash-deploy.sh header):
+#   SMTP_ENV_FILE             path to the local file above (default: /etc/logstash/smtp.env)
+#   SMTP_CONFIG_SSM_KEY_PATH  SSM path for SMTP creds instead — only used as a
+#                             fallback if SMTP_ENV_FILE doesn't exist; requires an
+#                             IAM grant this repo doesn't provision by default
+#   EGRESS_REPORT_SCHEDULE    cron schedule (default: "0 6 * * *")
+#   EGRESS_REPORT_HOURS       trailing report window in hours (default: 24)
+```
+Re-running `logstash-deploy.sh` without `EGRESS_REPORT_RECIPIENTS` set leaves
+an already-installed cron job untouched (it only reinstalls when the var is
+present) — to remove the report, edit the `logstash` user's crontab directly
+and delete the `# egress-report` line.
+
 **Clear S3 read history for one node (force re-ingest):**
 ```bash
 systemctl --user stop logstash
