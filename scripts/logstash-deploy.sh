@@ -106,19 +106,27 @@ echo "--- Applying OpenSearch ECS index template ---"
 eval "$(aws configure export-credentials --format env)"
 
 TEMPLATE_FILE="$REPO_DIR/config/opensearch/ecs-8.17-custom-template.json"
-RESPONSE=$(curl -s -o /tmp/template-response.json -w "%{http_code}" \
+TEMPLATE_RESPONSE_FILE="$(mktemp)"
+CURL_EXIT=0
+RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 -o "$TEMPLATE_RESPONSE_FILE" -w "%{http_code}" \
   -X PUT "https://${OPENSEARCH_ENDPOINT}/_index_template/pds-web-analytics" \
   -H 'Content-Type: application/json' \
   -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
   --aws-sigv4 "aws:amz:${AWS_REGION}:es" \
   --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
-  -d @"$TEMPLATE_FILE")
+  -d @"$TEMPLATE_FILE") || CURL_EXIT=$?
 
-if [ "$RESPONSE" = "200" ]; then
+if [ "$CURL_EXIT" -ne 0 ]; then
+  echo "ERROR: curl failed (exit $CURL_EXIT) applying index template — connect/max-time exceeded or a transport error, not an HTTP error."
+  rm -f "$TEMPLATE_RESPONSE_FILE"
+  exit 1
+elif [ "$RESPONSE" = "200" ]; then
   echo "Index template applied successfully"
+  rm -f "$TEMPLATE_RESPONSE_FILE"
 else
   echo "ERROR: Index template apply failed (HTTP $RESPONSE)"
-  cat /tmp/template-response.json
+  cat "$TEMPLATE_RESPONSE_FILE"
+  rm -f "$TEMPLATE_RESPONSE_FILE"
   exit 1
 fi
 
