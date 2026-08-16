@@ -44,6 +44,8 @@ class EgressReporter:
         smtp_config_ssm_path (Optional[str]): SSM parameter path prefix holding the SMTP credentials. Fallback.
         recipients (List[str]): Recipient email addresses for the report.
         hours (int): Trailing window, in hours, the report covers.
+        dry_run (bool): If True, skip sending the email entirely (query + build only).
+        output_file (Optional[str]): If set, write the HTML report to this local path.
     """
 
     def __init__(
@@ -55,6 +57,8 @@ class EgressReporter:
         smtp_env_file: Optional[str] = None,
         smtp_config_ssm_path: Optional[str] = None,
         hours: int = 24,
+        dry_run: bool = False,
+        output_file: Optional[str] = None,
     ) -> None:
         """Initialize the reporter with query and delivery configuration."""
         self.opensearch_endpoint = opensearch_endpoint
@@ -64,6 +68,8 @@ class EgressReporter:
         self.smtp_config_ssm_path = smtp_config_ssm_path
         self.recipients = recipients
         self.hours = hours
+        self.dry_run = dry_run
+        self.output_file = output_file
 
     def _build_query(self) -> Dict[str, Any]:
         """Build the OpenSearch aggregation query for the configured time window.
@@ -272,12 +278,21 @@ class EgressReporter:
             endpoint.sendmail(smtp_config["sender"], self.recipients, message.as_string())
 
     def run(self) -> None:
-        """Query OpenSearch, build the report, and email it."""
+        """Query OpenSearch, build the report, and (unless dry_run) email it."""
         response = self.query_egress()
         html_body = self.build_email_html(response)
-        self.send_email(html_body)
-
         total_gb = response.get("aggregations", {}).get("total_gb", {}).get("value") or 0.0
+
+        if self.output_file:
+            with open(self.output_file, "w") as f:
+                f.write(html_body)
+            logger.info("Report written to %s", self.output_file)
+
+        if self.dry_run:
+            logger.info("Dry run: %.2f GB over %dh window — email not sent.", total_gb, self.hours)
+            return
+
+        self.send_email(html_body)
         logger.info(
             "Egress report sent: %.2f GB over %dh window, %d recipient(s)",
             total_gb,
@@ -312,12 +327,27 @@ def parse_args() -> argparse.Namespace:
         "Only used if --smtp-env-file is not set/found. Defaults to the SMTP_CONFIG_SSM_KEY_PATH env var if set. "
         "Requires ssm:GetParametersByPath/GetParameter on this path.",
     )
-    parser.add_argument("--recipients", required=True, help="Comma-separated list of report recipient addresses.")
+    parser.add_argument(
+        "--recipients", default="", help="Comma-separated list of report recipient addresses. Required unless --dry-run."
+    )
     parser.add_argument("--hours", type=int, default=24, help="Trailing window, in hours, the report covers.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Query and build the report but do not send an email. No SMTP config needed. "
+        "Combine with --output-file to inspect the generated HTML.",
+    )
+    parser.add_argument("--output-file", default=None, help="If set, write the generated HTML report to this path.")
 
     args = parser.parse_args()
-    if not args.smtp_env_file and not args.smtp_config_ssm_path:
-        parser.error("Either --smtp-env-file/SMTP_ENV_FILE or --smtp-config-ssm-path/SMTP_CONFIG_SSM_KEY_PATH is required.")
+    if not args.dry_run:
+        if not args.recipients:
+            parser.error("--recipients is required unless --dry-run is set.")
+        if not args.smtp_env_file and not args.smtp_config_ssm_path:
+            parser.error(
+                "Either --smtp-env-file/SMTP_ENV_FILE or --smtp-config-ssm-path/SMTP_CONFIG_SSM_KEY_PATH is required "
+                "unless --dry-run is set."
+            )
 
     return args
 
@@ -339,6 +369,8 @@ def main() -> None:
         smtp_env_file=args.smtp_env_file,
         smtp_config_ssm_path=args.smtp_config_ssm_path,
         hours=args.hours,
+        dry_run=args.dry_run,
+        output_file=args.output_file,
     )
     reporter.run()
 

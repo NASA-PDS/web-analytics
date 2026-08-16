@@ -201,6 +201,26 @@ class TestEgressReporter(unittest.TestCase):
         self.assertEqual(sender_arg, "noreply@example.com")
         self.assertEqual(recipients_arg, ["a@example.com", "b@example.com"])
 
+    @patch.object(EgressReporter, "send_email")
+    @patch.object(EgressReporter, "query_egress")
+    def test_run_dry_run_writes_output_file_and_skips_email(self, mock_query, mock_send_email):
+        """--dry-run should write the report to output_file (if set) and never call send_email."""
+        mock_query.return_value = SAMPLE_RESPONSE
+        with tempfile.NamedTemporaryFile("r", delete=False, suffix=".html") as f:
+            path = f.name
+        try:
+            reporter = make_reporter(
+                smtp_env_file=None, smtp_config_ssm_path=None, dry_run=True, output_file=path
+            )
+            reporter.run()
+
+            mock_send_email.assert_not_called()
+            with open(path) as f:
+                content = f.read()
+            self.assertIn("123.46 GB", content)
+        finally:
+            os.remove(path)
+
 
 if __name__ == "__main__":
     unittest.main()
