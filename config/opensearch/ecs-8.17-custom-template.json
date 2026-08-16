@@ -7548,7 +7548,8 @@
               "type": "keyword"
             },
             "query_params": {
-              "type": "flattened"
+              "type": "object",
+              "dynamic": true
             }
           }
         },
