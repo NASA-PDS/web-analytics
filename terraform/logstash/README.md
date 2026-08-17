@@ -162,19 +162,22 @@ sudo LOGSTASH_VERSION=8.18.0 REPO_DIR=/opt/web-analytics \
 #    Troubleshooting > Common Issues for that failure mode. (Redeploys after
 #    this first one preserve whatever was last configured if you omit the
 #    var, so this only bites on the very first manual deploy.)
-sudo runuser -u logstash -- env \
-  XDG_RUNTIME_DIR="/run/user/$(id -u logstash)" \
-  REPO_DIR=/opt/web-analytics \
-  AWS_REGION=us-west-2 \
-  S3_BUCKET_NAME=$(aws ssm get-parameter --name /pds/web-analytics/s3/bucket_name --query Parameter.Value --output text) \
-  OPENSEARCH_ENDPOINT=$(aws ssm get-parameter --name /pds/observability/opensearch/opensearch_endpoint --query Parameter.Value --output text) \
-  INDEX_PREFIX=pds-weblogs \
-  S3_CF_BUCKET_NAME=<cf-logs-bucket-name-or-explicit-empty-string> \
-  EGRESS_REPORT_RECIPIENTS=<comma-separated-report-recipients> \
-  bash /opt/web-analytics/scripts/logstash-deploy.sh
+sudo runuser -l logstash
+# You're now in a real login shell as logstash — everything below is a plain
+# command, no more sudo/runuser wrapping needed for the rest of this session.
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+cd /opt/web-analytics
 
-# 5. Verify
-sudo runuser -u logstash -- systemctl --user status logstash
+AWS_REGION=us-west-2 \
+S3_BUCKET_NAME=$(aws ssm get-parameter --name /pds/web-analytics/s3/bucket_name --query Parameter.Value --output text) \
+OPENSEARCH_ENDPOINT=$(aws ssm get-parameter --name /pds/observability/opensearch/opensearch_endpoint --query Parameter.Value --output text) \
+INDEX_PREFIX=pds-weblogs \
+S3_CF_BUCKET_NAME=<cf-logs-bucket-name-or-explicit-empty-string> \
+EGRESS_REPORT_RECIPIENTS=<comma-separated-report-recipients> \
+bash scripts/logstash-deploy.sh
+
+# 5. Verify (still inside the same logstash login shell)
+systemctl --user status logstash
 ```
 
 `EGRESS_REPORT_RECIPIENTS` in step 4 is **required to enable the daily
