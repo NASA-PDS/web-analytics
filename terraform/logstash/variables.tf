@@ -79,7 +79,7 @@ variable "logstash_instance_type" {
 variable "logstash_version" {
   description = "Logstash RPM version to install"
   type        = string
-  default     = "8.17.0"
+  default     = "8.18.0"
 }
 
 variable "s3_cf_bucket_name" {
