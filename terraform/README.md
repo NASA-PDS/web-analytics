@@ -181,19 +181,22 @@ On **new EC2 deployments**, the userdata script runs `scripts/logstash-bootstrap
 followed by `scripts/logstash-deploy.sh` (as the `logstash` user, no sudo:
 config + service start) automatically at first boot.
 
-For an **already-running EC2** (e.g., after recreating the OpenSearch domain, or after a manual deployment where the env file is wrong), SSM in — landing directly as `logstash`, no sudo needed — and re-run the deploy script with the required env vars:
+For an **already-running EC2** (e.g., after recreating the OpenSearch domain, or after a manual deployment where the env file is wrong), SSM in and re-run the deploy script with the required env vars — no sudo needed once you're the `logstash` user:
 
 ```bash
-# SSM into the EC2, landing as the logstash user via the Run-As document
+# SSM into the EC2 — this lands as root regardless of the Run-As document
+# unless your IAM identity has ssm:StartSession on that document's ARN, so
+# don't count on landing as logstash automatically:
 aws ssm start-session \
   --target $(aws ssm get-parameter \
     --name /pds/web-analytics/ec2/logstash_instance_id \
-    --query Parameter.Value --output text) \
-  --document-name $(aws ssm get-parameter \
-    --name /pds/web-analytics/ssm/logstash_runas_document \
     --query Parameter.Value --output text)
 
-# On the EC2 — verify what's currently in the env file
+# Switch to logstash before doing anything else:
+sudo runuser -l logstash
+cd /opt/web-analytics
+
+# Verify what's currently in the env file
 cat /etc/logstash/env
 
 # Re-run the deploy script from the already-cloned, logstash-owned repo.
@@ -239,7 +242,9 @@ The deploy script will:
 
 **Tail logs and verify startup:**
 ```bash
-journalctl --user-unit logstash -f
+# journalctl requires adm/wheel group membership the logstash user doesn't
+# have — use the log file directly instead:
+tail -f /var/log/logstash/logstash-plain.log
 ```
 
 A healthy startup looks like this (in order):
@@ -340,18 +345,18 @@ The deploy script is idempotent — re-running it pulls the latest repo, redeplo
 1. Edit files under `config/logstash/config/` locally
 2. Test locally: `docker compose run --rm test`
 3. Push to your branch
-4. SSM into the EC2 (lands directly as `logstash`) and re-run the deploy script:
+4. SSM into the EC2, switch to `logstash`, and re-run the deploy script:
 
 ```bash
 aws ssm start-session \
   --target $(aws ssm get-parameter \
     --name /pds/web-analytics/ec2/logstash_instance_id \
-    --query Parameter.Value --output text) \
-  --document-name $(aws ssm get-parameter \
-    --name /pds/web-analytics/ssm/logstash_runas_document \
     --query Parameter.Value --output text)
 
-# On the EC2 (already in /opt/web-analytics, owned by logstash):
+# Lands as root — switch first:
+sudo runuser -l logstash
+cd /opt/web-analytics
+
 S3_CF_BUCKET_NAME=<cf-logs-bucket-name> bash scripts/logstash-deploy.sh
 ```
 

@@ -63,4 +63,4 @@ EOF
 echo ""
 echo "--- Logstash service ---"
 systemctl --user is-active logstash && echo "logstash: active" || echo "logstash: INACTIVE"
-journalctl --user-unit logstash --no-pager -n 5
+tail -n 5 /var/log/logstash/logstash-plain.log

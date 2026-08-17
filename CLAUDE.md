@@ -198,6 +198,39 @@ The OpenSearch index template (`config/opensearch/ecs-8.17-custom-template.json`
 3. Test grok patterns using Logstash's `-t` flag for config validation
 4. Add test cases in `tests/` to prevent regressions
 
+### Connecting to the Logstash EC2 (SSM)
+
+Access is via AWS Systems Manager Session Manager only — no SSH keys, no
+inbound security group rules:
+
+```bash
+aws ssm start-session --target <instance-id>
+```
+
+**This lands as `root`.** Logstash runs as a `systemd --user` service under
+a shared `logstash` account, and day-2 operations (service control, logs,
+config redeploys via `scripts/logstash-deploy.sh`) are meant to run as that
+account with no sudo — but the session does not land there automatically.
+Switch in place immediately after connecting:
+
+```bash
+sudo runuser -l logstash    # or: su - logstash
+cd /opt/web-analytics
+```
+
+A custom SSM Run-As document (`aws_ssm_document.logstash_runas` in
+`terraform/logstash/main.tf`) can make `--document-name <doc>` land
+directly as `logstash`, but it requires an IAM grant
+(`ssm:StartSession` on the document ARN) that may not be provisioned —
+don't assume it works without confirming; the `runuser` switch above is
+the reliable fallback regardless of IAM state.
+
+Once you're `logstash`: `systemctl --user status logstash`,
+`tail -f /var/log/logstash/logstash-plain.log` for logs (`journalctl`
+needs adm/wheel group membership `logstash` doesn't have), `bash
+scripts/logstash-deploy.sh` to redeploy config. Full runbooks:
+`terraform/logstash/README.md` and the root `README.md` Quick Reference.
+
 ## Dependencies
 
 ### Python Dependencies (setup.cfg)
@@ -227,4 +260,3 @@ The OpenSearch index template (`config/opensearch/ecs-8.17-custom-template.json`
 - The system uses `envsubst` for variable substitution in both Python config loading and Logstash config generation
 - AWS profile is required for S3 operations - fails with helpful error if not provided
 - Gzip is enabled by default; use `--no-gzip` to disable
-- The current branch is `log-fix` (main branch is `main`)
