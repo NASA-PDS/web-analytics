@@ -23,17 +23,30 @@ below.
 ### Access model
 
 Session access is SSM Session Manager only (no SSH keys, no inbound security
-group rules). Sessions started with `--document-name` set to the
-`logstash_runas` document land directly as the shared `logstash` OS account
-— execution, logging, monitoring, and git-based config updates are all done
-by that account with **no sudo**. The only step that still requires root is
-`scripts/logstash-bootstrap.sh` (package/RPM install and initial account
-provisioning), run automatically at first boot and otherwise only for
-deliberate admin actions like a Logstash version upgrade.
+group rules). `aws_ssm_document.logstash_runas` exists so a session started
+with `--document-name` set to it *can* land directly as the shared
+`logstash` OS account — but that requires an IAM grant
+(`ssm:StartSession` on the document's ARN, separate from the grant on the
+instance ARN) that may not be provisioned for your identity. **In
+practice, expect `aws ssm start-session` to land you as `root`** regardless
+of `--document-name`, and switch explicitly:
+
+```bash
+sudo runuser -l logstash    # or: su - logstash
+```
+
+From there, execution, logging, monitoring, and git-based config updates
+are all done as that account with **no sudo**. The only step that still
+requires root is `scripts/logstash-bootstrap.sh` (package/RPM install and
+initial account provisioning), run automatically at first boot and
+otherwise only for deliberate admin actions like a Logstash version
+upgrade.
 
 > Granting operators `ssm:StartSession` on the `logstash_runas` document's
 > ARN (in addition to the instance ARN) is an IAM/SSO concern owned outside
-> this repo — this module only manages the EC2 instance role.
+> this repo — this module only manages the EC2 instance role. Until/unless
+> that's granted, `sudo runuser -l logstash` after connecting is the
+> reliable path, and works regardless of IAM state.
 
 ## SSM dependencies (read at plan time)
 
@@ -137,6 +150,18 @@ sudo LOGSTASH_VERSION=8.18.0 REPO_DIR=/opt/web-analytics \
 
 # 4. As the logstash user, no sudo: deploy config and start the service —
 #    see scripts/logstash-deploy.sh
+#
+#    ALWAYS pass S3_CF_BUCKET_NAME on a first-time manual install, even if
+#    this venue doesn't use EN's CloudFront pipeline (in which case set it to
+#    an explicit "" so that's a deliberate choice, not an accidental omission).
+#    Leaving it unset here defaults to empty, which is NOT the same as this
+#    module's own s3_cf_bucket_name tfvar and will NOT be picked up
+#    automatically -- an empty value silently breaks the EN CloudFront input
+#    at Logstash runtime with a confusing s3:ListAllMyBuckets AccessDenied
+#    error instead of a clear "not configured" message. See root README.md
+#    Troubleshooting > Common Issues for that failure mode. (Redeploys after
+#    this first one preserve whatever was last configured if you omit the
+#    var, so this only bites on the very first manual deploy.)
 sudo runuser -u logstash -- env \
   XDG_RUNTIME_DIR="/run/user/$(id -u logstash)" \
   REPO_DIR=/opt/web-analytics \
@@ -144,7 +169,7 @@ sudo runuser -u logstash -- env \
   S3_BUCKET_NAME=$(aws ssm get-parameter --name /pds/web-analytics/s3/bucket_name --query Parameter.Value --output text) \
   OPENSEARCH_ENDPOINT=$(aws ssm get-parameter --name /pds/observability/opensearch/opensearch_endpoint --query Parameter.Value --output text) \
   INDEX_PREFIX=pds-weblogs \
-  S3_CF_BUCKET_NAME=<cf-logs-bucket-name-or-empty> \
+  S3_CF_BUCKET_NAME=<cf-logs-bucket-name-or-explicit-empty-string> \
   EGRESS_REPORT_RECIPIENTS=<comma-separated-report-recipients> \
   bash /opt/web-analytics/scripts/logstash-deploy.sh
 
@@ -177,15 +202,19 @@ However you reconnect (SSH directly as `logstash`, or an SSM session using
 the `logstash_runas` document if that's available for this instance), the
 workflow is identical to a freshly-provisioned instance — `bash
 scripts/logstash-deploy.sh` to update config, `systemctl --user restart
-logstash`, `journalctl --user-unit logstash -f` — see the root
-[`README.md`](../../README.md) Quick Reference. If using the SSM Run-As
-document:
+logstash`, `tail -f /var/log/logstash/logstash-plain.log` for logs
+(`journalctl` needs adm/wheel group membership `logstash` doesn't have) —
+see the root [`README.md`](../../README.md) Quick Reference. If using the
+SSM Run-As document:
 
 ```bash
 aws ssm start-session \
   --target $(aws ssm get-parameter --name /pds/web-analytics/ec2/logstash_instance_id --query Parameter.Value --output text) \
   --document-name $(aws ssm get-parameter --name /pds/web-analytics/ssm/logstash_runas_document --query Parameter.Value --output text)
 ```
+
+If that still lands you as `root` (missing IAM grant on the document — see
+above), fall back to `sudo runuser -l logstash` after connecting.
 
 The only step that ever needs sudo/root again is re-running
 `logstash-bootstrap.sh` for a deliberate admin action like a Logstash

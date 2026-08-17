@@ -54,6 +54,17 @@ REPO_BRANCH="${REPO_BRANCH:-main}"
 REPO_DIR="${REPO_DIR:-/opt/web-analytics}"
 LOGSTASH_CONFIG_DIR="/etc/logstash"
 INDEX_PREFIX="${INDEX_PREFIX:-pds-weblogs}"
+
+# If S3_CF_BUCKET_NAME isn't explicitly passed, fall back to whatever was set
+# on the last successful deploy (persisted in the env file below) instead of
+# silently defaulting to empty -- an empty bucket name templates into the EN
+# CloudFront pipeline as `bucket => ""`, which fails at Logstash runtime with
+# a confusing "not authorized to perform: s3:ListAllMyBuckets" AccessDenied
+# error rather than a clear "bucket not set" message. See README.md
+# Troubleshooting > Common Issues.
+if [ -z "${S3_CF_BUCKET_NAME:-}" ] && [ -f "$LOGSTASH_CONFIG_DIR/env" ]; then
+  S3_CF_BUCKET_NAME="$(grep -E '^S3_CF_BUCKET_NAME=' "$LOGSTASH_CONFIG_DIR/env" | tail -1 | cut -d= -f2-)"
+fi
 S3_CF_BUCKET_NAME="${S3_CF_BUCKET_NAME:-}"
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
@@ -72,6 +83,14 @@ OPENSEARCH_ENDPOINT="${OPENSEARCH_ENDPOINT:-$(aws ssm get-parameter \
 echo "=== web-analytics Logstash deploy ==="
 echo "Repo:     $REPO_URL ($REPO_BRANCH)"
 echo "Endpoint: $OPENSEARCH_ENDPOINT"
+if [ -z "$S3_CF_BUCKET_NAME" ]; then
+  echo "WARNING: S3_CF_BUCKET_NAME is empty. If this venue runs the EN CloudFront pipeline, it will fail"
+  echo "  at runtime with 'not authorized to perform: s3:ListAllMyBuckets' rather than a clear error --"
+  echo "  set S3_CF_BUCKET_NAME to the real bucket name to fix. Safe to ignore if EN's CloudFront input"
+  echo "  isn't used in this venue."
+else
+  echo "CF Bucket: $S3_CF_BUCKET_NAME"
+fi
 echo ""
 
 # ----------------------------------------
@@ -186,4 +205,4 @@ systemctl --user status logstash --no-pager
 
 echo ""
 echo "=== Deploy complete ==="
-echo "Tail logs with: journalctl --user-unit logstash -f"
+echo "Tail logs with: tail -f /var/log/logstash/logstash-plain.log"

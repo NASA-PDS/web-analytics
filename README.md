@@ -263,29 +263,40 @@ s3-log-sync -c config/config.yaml -d /var/log/pds --no-gzip
 
 In production, Logstash runs as a `systemd --user` service under a shared `logstash`
 OS account on an Amazon Linux 2023 EC2. Access is via AWS Systems Manager
-(no SSH keys, no inbound rules) using a Run-As session document that lands
-directly as `logstash` — day-2 operations (service control, logs, config
-updates) never require sudo.
+(no SSH keys, no inbound rules) — day-2 operations (service control, logs,
+config updates) never require sudo once you're the `logstash` user.
 Full operational runbooks are in [`terraform/README.md`](terraform/README.md).
 
 #### Quick reference (from an SSM session on the EC2, as the logstash user)
 
-**SSM into the EC2 (lands as `logstash`, in `/opt/web-analytics`):**
+**SSM into the EC2, then switch to `logstash`.** In practice, `aws ssm
+start-session` lands you as `root` regardless of `--document-name`/Run-As
+(that depends on an IAM grant — `ssm:StartSession` on the Run-As document's
+ARN — that may not be in place). The reliable path is always:
+
 ```bash
 aws ssm start-session \
   --target $(aws ssm get-parameter \
     --name /pds/web-analytics/ec2/logstash_instance_id \
-    --query Parameter.Value --output text) \
-  --document-name $(aws ssm get-parameter \
-    --name /pds/web-analytics/ssm/logstash_runas_document \
     --query Parameter.Value --output text)
+
+# You land as root — switch in place before running anything below:
+sudo runuser -l logstash
+cd /opt/web-analytics
 ```
+
+(`su - logstash` works the same way.) If your IAM identity does have the
+Run-As grant, you can skip the switch by adding `--document-name $(aws ssm
+get-parameter --name /pds/web-analytics/ssm/logstash_runas_document --query
+Parameter.Value --output text)` to `start-session` — but don't rely on it
+without confirming it actually lands you as `logstash` first.
 
 **Service control (no sudo):**
 ```bash
 systemctl --user status logstash
 systemctl --user restart logstash
-journalctl --user-unit logstash -f
+# journalctl requires adm/wheel group membership — use the log file instead:
+tail -f /var/log/logstash/logstash-plain.log
 ```
 
 **Update config (pull latest from GitHub and restart, no sudo):**
@@ -501,8 +512,8 @@ If a count is wrong, inspect the JSON files in `./output/` to understand which e
 # Logstash systemd --user service status
 systemctl --user status logstash
 
-# Live logs
-journalctl --user-unit logstash -f
+# Live logs (journalctl requires adm/wheel group — use the log file instead)
+tail -f /var/log/logstash/logstash-plain.log
 
 # Bad / unparseable logs written by the Logstash pipeline
 tail -f /tmp/bad_logs_$(date +%Y-%m).txt
@@ -662,7 +673,7 @@ These hooks then will check for any future commits that might contain secrets. T
 
 1. **Logstash won't start**
    - Check service status: `systemctl --user status logstash`
-   - Check logs: `journalctl --user-unit logstash -n 50`
+   - Check logs: `tail -n 50 /var/log/logstash/logstash-plain.log`
    - Check env file: `cat /etc/logstash/env`
    - Verify pipeline configs were generated: `ls /etc/logstash/pipelines/`
    - Re-run deploy to pull latest config and restart (as the logstash user, no sudo): `bash scripts/logstash-deploy.sh`
@@ -671,20 +682,32 @@ These hooks then will check for any future commits that might contain secrets. T
 2. **No data in OpenSearch**
    - Run smoke test: `bash /opt/web-analytics/scripts/smoke-test.sh`
    - Check S3 sincedb files: `ls -la /var/lib/logstash/plugins/inputs/s3/`
-   - Check Logstash logs for S3 read errors: `journalctl --user-unit logstash -n 100`
+   - Check Logstash logs for S3 read errors: `tail -n 100 /var/log/logstash/logstash-plain.log`
 
-3. **High memory usage**
+3. **`AccessDenied ... not authorized to perform: s3:ListAllMyBuckets`** in the Logstash log
+   - This means `S3_CF_BUCKET_NAME` was empty at deploy time, **not** that IAM is missing a real permission.
+     EN's CloudFront pipeline templates it in as `bucket => ""`, and an empty bucket name makes the S3
+     input plugin fall back to enumerating every bucket in the account (which the IAM policy correctly
+     does *not* allow — it's scoped to one named bucket).
+   - Fix: redeploy with the real bucket set — `S3_CF_BUCKET_NAME=<bucket>` — see
+     [`terraform/logstash/README.md`](terraform/logstash/README.md) for the value used in each venue.
+   - As of the fix for this, `logstash-deploy.sh` also now warns loudly at deploy time if
+     `S3_CF_BUCKET_NAME` is empty, and preserves the last-configured value across redeploys instead of
+     silently resetting it to empty when the var isn't passed — but always pass it explicitly on a
+     first-time manual install (see step 4 of the one-time install below).
+
+4. **High memory usage**
    - Adjust `pipeline.batch.size` in `config/logstash/config/logstash.yml`
    - Reduce `pipeline.workers` if needed (default: 1)
 
-4. **Parse failures**
+5. **Parse failures**
    - Check log format matches expected patterns
    - Inspect bad logs: `tail -f /tmp/bad_logs_$(date +%Y-%m).txt`
    - Update grok patterns in `config/logstash/config/shared/pds-filter.conf`
 
 ### Log Locations
 
-- **Logstash service logs**: `journalctl --user-unit logstash` (as the logstash user, no sudo)
+- **Logstash service logs**: `/var/log/logstash/logstash-plain.log` (`journalctl` requires adm/wheel group membership)
 - **First-boot bootstrap log** (root phase): `/var/log/logstash-bootstrap.log`
 - **First-boot deploy log** (logstash phase): `/var/log/logstash-deploy.log`
 - **Bad / unparseable logs**: `/tmp/bad_logs_YYYY-MM.txt` (inside the EC2)
