@@ -1,9 +1,6 @@
 {
   "index_patterns": [
-    "pds-weblogs-*",
-    "pds-dev-*",
-    "pds-test-*",
-    "pds-prod-*"
+    "pds-weblogs-*"
   ],
   "priority": 500,
   "template": {
