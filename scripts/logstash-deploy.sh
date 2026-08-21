@@ -197,7 +197,11 @@ else
     echo "logstash) with username/password/server/sender lines. See README.md 'Enable/update the"
     echo "daily egress report email'."
   fi
-  CRON_CMD="PYTHONPATH=$REPO_DIR/src AWS_REGION=$AWS_REGION python3.13 $REPO_DIR/scripts/egress_report.py --opensearch-endpoint $OPENSEARCH_ENDPOINT --index-pattern ${INDEX_PREFIX}-* --region $AWS_REGION --smtp-env-file $SMTP_ENV_FILE --smtp-config-ssm-path $SMTP_CONFIG_SSM_KEY_PATH --recipients $EGRESS_REPORT_RECIPIENTS --hours $EGRESS_REPORT_HOURS >> /var/log/egress-report.log 2>&1"
+  CRON_CMD="PYTHONPATH=\"$REPO_DIR/src\" AWS_REGION=\"$AWS_REGION\" python3.13 \"$REPO_DIR/scripts/egress_report.py\" --opensearch-endpoint \"$OPENSEARCH_ENDPOINT\" --index-pattern \"${INDEX_PREFIX}-*\" --region \"$AWS_REGION\" --smtp-env-file \"$SMTP_ENV_FILE\""
+  if [ -n "$SMTP_CONFIG_SSM_KEY_PATH" ]; then
+    CRON_CMD="$CRON_CMD --smtp-config-ssm-path \"$SMTP_CONFIG_SSM_KEY_PATH\""
+  fi
+  CRON_CMD="$CRON_CMD --recipients \"$EGRESS_REPORT_RECIPIENTS\" --hours \"$EGRESS_REPORT_HOURS\" >> /var/log/egress-report.log 2>&1"
   (crontab -l 2>/dev/null | grep -v '# egress-report'; echo "$EGRESS_REPORT_SCHEDULE $CRON_CMD # egress-report") | crontab -
   echo "Egress report cron job installed: $EGRESS_REPORT_SCHEDULE (SMTP source: $SMTP_ENV_FILE)"
 fi
