@@ -158,7 +158,7 @@ Environment Variable Issues
    .. code-block:: bash
 
        echo $S3_BUCKET_NAME
-       echo $AOSS_URL
+       echo $OPENSEARCH_URL
 
 3. Source your ``.env`` file:
 
@@ -230,7 +230,7 @@ Check Network Connectivity
     aws s3 ls --profile your-profile
 
     # Test OpenSearch connectivity
-    curl -X GET $AOSS_URL/_cluster/health
+    curl -X GET $OPENSEARCH_URL/_cluster/health
 
 Performance Monitoring
 ----------------------

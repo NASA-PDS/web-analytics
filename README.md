@@ -45,98 +45,51 @@ This system ingests web access logs from various PDS nodes (ATM, EN, GEO, IMG, N
 
 ## Architecture
 
-```
-PDS Nodes → S3 Bucket → Logstash Pipeline → OpenSearch → Dashboards
-                ↓
-            Error Logs → Bad Logs File
+```mermaid
+flowchart LR
+    subgraph pds["PDS Nodes"]
+        N["ATM · EN · GEO · IMG\nNAIF · PPI · RINGS · SBN"]
+    end
+
+    S3["pds-logs\nS3 bucket"]
+
+    subgraph wa["web-analytics"]
+        LS["Logstash EC2\n(parse + enrich)"]
+    end
+
+    subgraph obs["pdc-observability"]
+        OS["OpenSearch"]
+    end
+
+    DASH["OpenSearch UI\nDashboards"]
+
+    N -->|"Data Upload Manager"| S3
+    S3 --> LS
+    LS -->|"ECS v8 events"| OS
+    OS --> DASH
 ```
 
-See internal wiki for more detailed architecture.
-
-**NOTE:** The current practice is for PDS EN to gather the various PDS nodes' logs onto PDS reporting servers then sync those to S3. This will shift in FY2026 to each PDS node pushing their logs - logs in one of the acceptable formats and gzipped - to S3. This does not affect the architecture diagram just above but will affect much of the instructions in this README.
+PDS nodes upload access logs to a shared `pds-logs` S3 bucket using Data Upload Manager. Logstash polls S3, parses logs into ECS v8 format, and writes to OpenSearch. OpenSearch is a shared platform managed in [pdc-observability](https://github.com/NASA-PDS/pdc-observability) — both this pipeline and [cloudfront-realtime-monitor](https://github.com/NASA-PDS/cloudfront-realtime-monitor) write to it. Analysts query via OpenSearch Dashboards.
 
 ## Prerequisites
 
-### System Requirements
-- **Operating System**: Linux/Unix (tested on CentOS 7.9, macOS)
-- **Python**: 3.12.x or higher (Crurrently we have 3.13 installed on MCP Dev and Prod EC2 instances)
-- **PDS User**: Ensure `pds4` user profile is installed on the EC2 instance. If not please work with SA team to get this deployed.
-- **Java**: OpenJDK 11 or higher (required for Logstash)
-- **Memory**: Minimum 4GB RAM (8GB+ recommended for production)
-- **Storage**: 10GB+ available disk space
+### Production deployment on AWS
 
-### AWS Infrastructure Setup
+See [`terraform/README.md`](terraform/README.md) for the full step-by-step deployment guide. Infrastructure runs on an MCP Amazon Linux 2023 EC2 with Logstash installed via RPM and managed by systemd. Access is via AWS Systems Manager (SSM) — no SSH keys or special EC2 users required.
 
-See [internal wiki](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform)  for more details.
+### Local development and testing
 
-### SSH into EC2 instance using PDS4 user
+- **Python 3.13+** — for the s3-sync tool and unit tests
+- **Docker** — for running integration tests without a local Logstash install
+- **AWS credentials** — via `~/.aws/credentials`, environment variables, or IAM role
+- **envsubst** — for generating Logstash pipeline configs locally (part of `gettext`)
 
-See [internal wiki](https://wiki.jpl.nasa.gov/display/PDSEN/Web+Analytics+Platform) for more details.
-
-#### 1. Python Virtual Environment
-``` bash
-# Check Python is set to right python. Must be either Python 3.12 or 3.13
-$ which python3
-/usr/local/python/3.13.7/bin/python3
-
-# If not, export right Python to PATH in startup
-$ echo "export PATH=/usr/local/python/3.13.7/bin:${PATH}" >> ~/.bash_profile
-$ source ~/.bash_profile
-$ which python3
-/usr/local/python/3.13.7/bin/python3
-
-# Create a virtual environment
-python3 -m venv venv
-
-# Activate the virtual environment
-# On Linux/macOS:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
-```
-
-#### 2. AWS Credentials (boto3)
-- You do **not** need the AWS CLI for S3 uploads, but you must have valid AWS credentials (via `~/.aws/credentials`, environment variables, or IAM role).
-- The `--aws-profile` argument or `AWS_PROFILE` environment variable can be used to select a profile.
-
-#### 3. Logstash
 ```bash
-# Download Logstash 8.x
-wget https://artifacts.elastic.co/downloads/logstash/logstash-8.17.0-linux-x86_64.tar.gz
-tar -xzf logstash-8.17.0-linux-x86_64.tar.gz
-ln -s $(pwd)/logstash-8.17.0 $(pwd)/logstash
-
-# Add to PATH
-echo 'export PATH="$(pwd)/logstash/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-
-# Verify installation
-logstash --version
-```
-
-We also need to install additional logstash plugins:
-```bash
-# Install tld opensearch plugins:
-
-logstash-plugin install logstash-filter-tld
-logstash-plugin install logstash-output-opensearch
-```
-
-#### 4. envsubst (for environment variable substitution)
-```bash
-# Verify if this is already installed
-envsubst --help
-
-# If note, install
-
-# On Ubuntu/Debian:
-sudo apt-get install gettext-base
-
-# On CentOS/RHEL:
-sudo yum install gettext
-
-# On macOS:
+# macOS
 brew install gettext
+
+# Amazon Linux / RHEL / CentOS
+sudo dnf install gettext
 ```
 
 ## Installation
@@ -164,50 +117,46 @@ pip install -e .
 **Note**: A legacy `environment.yml` file is provided for users who prefer conda, but the recommended approach is to use Python virtual environments with the package's setup.cfg configuration.
 
 ### 3. Configure Environment Variables
-Create a `.env` file in the repository root:
+
+Copy `.env.example` to `.env` and fill in values:
+
 ```bash
-# AWS Configuration
-export AWS_REGION=us-west-2
-export S3_BUCKET_NAME=your-pds-logs-bucket
-export AOSS_URL=https://your-opensearch-domain.us-west-2.es.amazonaws.com
-export INDEX_PREFIX=pds-web-analytics
-
-# Logstash Configuration
-export LS_SETTINGS_DIR=$(pwd)/config/logstash/config
-```
-*See internal wiki for details of how to populate this file*
-
-### 4. Set Up Logstash Configuration
-```bash
-cd $WEB_ANALYTICS_HOME
-
-# Source your config
-source .env
-
-# Run the configuration build script
-./scripts/logstash_build_config.sh
+cp .env.example .env
 ```
 
-This script will:
-- Copy the pipelines template and replace the env variables to `pipelines.yml`
-- Create individual pipeline configuration files for each PDS node
-- Combine input, filter, and output configurations automatically
+```ini
+S3_BUCKET_NAME=your-pds-logs-bucket
+S3_CF_BUCKET_NAME=               # CloudFront logs bucket (EN only); leave empty to skip
+OPENSEARCH_URL=https://your-opensearch-domain.us-west-2.es.amazonaws.com
+INDEX_PREFIX=pds-web-analytics
+AWS_REGION=us-west-2
+```
 
-#### 5. Set Up OpenSearch
+Then source it before running scripts locally:
 
-1. Log into AWS and navigate to the OpenSearch Dashboard → Dev Tools
-2. Check if template already exists (ecs-web-template):
+```bash
+set -a; source .env; set +a
+```
+
+### 4. Build Logstash Pipeline Configs (local only)
+
+On the EC2, `logstash-deploy.sh` does this automatically. For local dev:
+
+```bash
+set -a; source .env; set +a
+LS_SETTINGS_DIR=$(pwd)/config/logstash/config ./scripts/logstash_build_config.sh
+```
+
+This generates `config/logstash/config/pipelines.yml` and one `.conf` file per PDS node under `config/logstash/config/pipelines/`.
+
+#### 5. Apply the OpenSearch Index Template (manual/one-time)
+
+On the EC2, `logstash-deploy.sh` applies this automatically via the AWS CLI. To apply manually from the OpenSearch Dev Console:
+
 ```
 GET _cat/templates
-```
-3. If not, create the template:
-```
-PUT _index_template/ecs-web-template
-
-# copy-paste from https://github.com/NASA-PDS/web-analytics/tree/main/config/opensearch/ecs-8.17-custom-template.json
-```
-4. Verify success
-```
+PUT _index_template/pds-web-analytics
+# paste config/opensearch/ecs-8.17-custom-template.json
 GET _cat/templates
 ```
 
@@ -257,7 +206,7 @@ config/logstash/config/
 │   ├── pds-filter.conf       # Main processing pipeline
 │   └── pds-output-opensearch.conf
 ├── plugins/                   # Custom plugins and patterns
-│   └── regexes.yaml
+│   └── regexes.yaml           # User-agent regex patterns from https://github.com/ua-parser/uap-core — update periodically
 ├── logstash.yml              # Logstash main configuration
 └── pipelines.yml.template    # Pipeline definitions
 ```
@@ -283,6 +232,8 @@ The configuration supports environment variable substitution using `${VARIABLE_N
 ### S3 Log Synchronization (deprecated)
 
 **NOTE:** This script has been deprecated from use. See Data Upload Manager for pushing logs.
+
+**NOTE:** This step below is NOT required to be performed if you already have files in S3.
 
 Sync logs from PDS reporting servers to S3:
 
@@ -310,26 +261,109 @@ s3-log-sync -c config/config.yaml -d /var/log/pds --no-gzip
 
 ### Logstash Processing
 
-Start Logstash with the PDS configuration:
+In production, Logstash runs as a `systemd --user` service under a shared `logstash`
+OS account on an Amazon Linux 2023 EC2. Access is via AWS Systems Manager
+(no SSH keys, no inbound rules) — day-2 operations (service control, logs,
+config updates) never require sudo once you're the `logstash` user.
+Full operational runbooks are in [`terraform/README.md`](terraform/README.md).
+
+#### Quick reference (from an SSM session on the EC2, as the logstash user)
+
+**SSM into the EC2, then switch to `logstash`.** In practice, `aws ssm
+start-session` lands you as `root` regardless of `--document-name`/Run-As
+(that depends on an IAM grant — `ssm:StartSession` on the Run-As document's
+ARN — that may not be in place). The reliable path is always:
 
 ```bash
-cd $WEB_ANALYTICS_HOME
+aws ssm start-session \
+  --target $(aws ssm get-parameter \
+    --name /pds/web-analytics/ec2/logstash_instance_id \
+    --query Parameter.Value --output text)
 
-# Source the environment variables
-source .env
-
-# Pull the latest changes on the repo
-git pull
-
-# If anything changed, re-generate the pipeline configs
-./scripts/logstash_build_config.sh
-
-# Start Logstash
-logstash -f ${WEB_ANALYTICS_HOME}/config/logstash/config/pipelines.yml
-
-# To run in background
-nohup $HOME/logstash/bin/logstash > $OUTPUT_LOG 2>&1&
+# You land as root — switch in place before running anything below:
+sudo runuser -l logstash
+cd /opt/web-analytics
 ```
+
+(`su - logstash` works the same way.) If your IAM identity does have the
+Run-As grant, you can skip the switch by adding `--document-name $(aws ssm
+get-parameter --name /pds/web-analytics/ssm/logstash_runas_document --query
+Parameter.Value --output text)` to `start-session` — but don't rely on it
+without confirming it actually lands you as `logstash` first.
+
+**Service control (no sudo):**
+```bash
+systemctl --user status logstash
+systemctl --user restart logstash
+# journalctl requires adm/wheel group membership — use the log file instead:
+tail -f /var/log/logstash/logstash-plain.log
+```
+
+**Update config (pull latest from GitHub and restart, no sudo):**
+```bash
+# On the EC2 — repo is already cloned and owned by logstash; re-runs the idempotent deploy script
+bash scripts/logstash-deploy.sh
+
+# To deploy from a non-main branch:
+REPO_BRANCH=<your-branch> bash scripts/logstash-deploy.sh
+```
+
+**Enable/update the daily egress report email:**
+
+SMTP credentials are read from a local file on the EC2 — no AWS permissions
+beyond reading a file already on disk. Create it once (as root or via sudo),
+before or after the deploy step below:
+```bash
+sudo install -m 600 -o logstash -g logstash /dev/null /etc/logstash/smtp.env
+sudo tee /etc/logstash/smtp.env > /dev/null <<'EOF'
+username=<smtp-username>
+password=<smtp-password>
+server=<smtp-host>:587
+sender=<verified-sender-address>
+EOF
+```
+Then enable the cron job:
+```bash
+# EGRESS_REPORT_RECIPIENTS is REQUIRED to enable the report — logstash-deploy.sh
+# skips installing the cron job silently if it's unset.
+EGRESS_REPORT_RECIPIENTS=<comma-separated-addresses> bash scripts/logstash-deploy.sh
+
+# Optional overrides (all have defaults — see scripts/logstash-deploy.sh header):
+#   SMTP_ENV_FILE             path to the local file above (default: /etc/logstash/smtp.env)
+#   SMTP_CONFIG_SSM_KEY_PATH  SSM path for SMTP creds instead — only used as a
+#                             fallback if SMTP_ENV_FILE doesn't exist; requires an
+#                             IAM grant this repo doesn't provision by default
+#   EGRESS_REPORT_SCHEDULE    cron schedule (default: "0 6 * * *")
+#   EGRESS_REPORT_HOURS       trailing report window in hours (default: 24)
+```
+Re-running `logstash-deploy.sh` without `EGRESS_REPORT_RECIPIENTS` set leaves
+an already-installed cron job untouched (it only reinstalls when the var is
+present) — to remove the report, edit the `logstash` user's crontab directly
+and delete the `# egress-report` line.
+
+**Clear S3 read history for one node (force re-ingest):**
+```bash
+systemctl --user stop logstash
+# Replace 'naif' with the node name (atm, en, geo, img, naif, ppi, rings, sbn)
+rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_file_input_naif*
+systemctl --user start logstash
+```
+
+**Clear history for all nodes:**
+```bash
+systemctl --user stop logstash
+rm -f /var/lib/logstash/plugins/inputs/s3/sincedb_*
+systemctl --user start logstash
+```
+
+**Smoke test:**
+```bash
+bash /opt/web-analytics/scripts/smoke-test.sh
+```
+
+> An admin occasionally needs `sudo bash scripts/logstash-bootstrap.sh` — but
+> only for installing/upgrading Logstash itself or re-provisioning the
+> `logstash` account, not for routine operations.
 
 ### Testing
 
@@ -472,21 +506,45 @@ If a count is wrong, inspect the JSON files in `./output/` to understand which e
 
 ### Monitoring
 
-Check Logstash status and logs:
+**On the EC2 (via SSM, as the logstash user — no sudo):**
 
 ```bash
-# Check Logstash process
-ps aux | grep logstash
+# Logstash systemd --user service status
+systemctl --user status logstash
 
-# Monitor nohup logs
-source $WEB_ANALYTICS_HOME/.env
-tail -f $OUTPUT_LOG
+# Live logs (journalctl requires adm/wheel group — use the log file instead)
+tail -f /var/log/logstash/logstash-plain.log
 
-# Monitor logstash logs
-tail -f $LOGSTASH_HOME/logs/logstash-plain.log
-
-# Monitor bad logs
+# Bad / unparseable logs written by the Logstash pipeline
 tail -f /tmp/bad_logs_$(date +%Y-%m).txt
+
+# First-boot setup logs (root bootstrap phase, then logstash deploy phase)
+tail -f /var/log/logstash-bootstrap.log
+tail -f /var/log/logstash-deploy.log
+```
+
+**Real-time throughput (is it processing right now?):** Logstash exposes a
+monitoring API on `localhost:9600`. Note each S3 input only polls every 2
+hours (`interval => 7200`) — a freshly uploaded file won't show up until
+the next poll, or restart the service to force one immediately.
+
+```bash
+# Per-pipeline in/out event counts, queue depth, worker/duration stats
+curl -s http://localhost:9600/_node/stats/pipelines?pretty | less
+
+# Just one pipeline (e.g. naif)
+curl -s http://localhost:9600/_node/stats/pipelines/naif?pretty
+```
+
+Run it twice a few seconds apart — `events.in`/`events.out` moving means
+it's actively working; `queue.events_count` climbing while `events.out`
+stays flat usually means it's stuck (e.g. blocked on the OpenSearch output).
+
+**Verify data is flowing into OpenSearch:**
+
+```bash
+# From the EC2 — uses instance role credentials automatically
+bash /opt/web-analytics/scripts/smoke-test.sh
 ```
 
 ## Data Processing Overview
@@ -614,30 +672,46 @@ These hooks then will check for any future commits that might contain secrets. T
 ### Common Issues
 
 1. **Logstash won't start**
-   - Check Java installation: `java -version`
-   - Verify configuration syntax: `logstash -t -f config_file.conf`
-   - Check file permissions
+   - Check service status: `systemctl --user status logstash`
+   - Check logs: `tail -n 50 /var/log/logstash/logstash-plain.log`
+   - Check env file: `cat /etc/logstash/env`
+   - Verify pipeline configs were generated: `ls /etc/logstash/pipelines/`
+   - Re-run deploy to pull latest config and restart (as the logstash user, no sudo): `bash scripts/logstash-deploy.sh`
+   - If Logstash itself isn't installed yet, an admin needs to run `sudo bash scripts/logstash-bootstrap.sh` first
 
 2. **No data in OpenSearch**
-   - Verify AWS credentials and permissions
-   - Check S3 bucket access
-   - Review Logstash logs for errors
+   - Run smoke test: `bash /opt/web-analytics/scripts/smoke-test.sh`
+   - Check S3 sincedb files: `ls -la /var/lib/logstash/plugins/inputs/s3/`
+   - Check Logstash logs for S3 read errors: `tail -n 100 /var/log/logstash/logstash-plain.log`
 
-3. **High memory usage**
-   - Adjust `pipeline.batch.size` in `logstash.yml`
-   - Reduce `pipeline.workers` if needed
-   - Monitor system resources
+3. **`AccessDenied ... not authorized to perform: s3:ListAllMyBuckets`** in the Logstash log
+   - This means `S3_CF_BUCKET_NAME` was empty at deploy time, **not** that IAM is missing a real permission.
+     EN's CloudFront pipeline templates it in as `bucket => ""`, and an empty bucket name makes the S3
+     input plugin fall back to enumerating every bucket in the account (which the IAM policy correctly
+     does *not* allow — it's scoped to one named bucket).
+   - Fix: redeploy with the real bucket set — `S3_CF_BUCKET_NAME=<bucket>` — see
+     [`terraform/logstash/README.md`](terraform/logstash/README.md) for the value used in each venue.
+   - As of the fix for this, `logstash-deploy.sh` also now warns loudly at deploy time if
+     `S3_CF_BUCKET_NAME` is empty, and preserves the last-configured value across redeploys instead of
+     silently resetting it to empty when the var isn't passed — but always pass it explicitly on a
+     first-time manual install (see step 4 of the one-time install below).
 
-4. **Parse failures**
+4. **High memory usage**
+   - Adjust `pipeline.batch.size` in `config/logstash/config/logstash.yml`
+   - Reduce `pipeline.workers` if needed (default: 1)
+
+5. **Parse failures**
    - Check log format matches expected patterns
-   - Review bad logs file for specific issues
-   - Update grok patterns if needed
+   - Inspect bad logs: `tail -f /tmp/bad_logs_$(date +%Y-%m).txt`
+   - Update grok patterns in `config/logstash/config/shared/pds-filter.conf`
 
 ### Log Locations
 
-- **Logstash logs**: `/var/log/logstash/`
-- **Bad logs**: `/tmp/bad_logs_YYYY-MM.txt`
-- **Test output**: `target/test/`
+- **Logstash service logs**: `/var/log/logstash/logstash-plain.log` (`journalctl` requires adm/wheel group membership)
+- **First-boot bootstrap log** (root phase): `/var/log/logstash-bootstrap.log`
+- **First-boot deploy log** (logstash phase): `/var/log/logstash-deploy.log`
+- **Bad / unparseable logs**: `/tmp/bad_logs_YYYY-MM.txt` (inside the EC2)
+- **Test output**: `./output/` (Docker integration tests)
 
 ### Performance Tuning
 

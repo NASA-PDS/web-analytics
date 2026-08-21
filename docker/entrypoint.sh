@@ -11,7 +11,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Validate required environment variables
 # ---------------------------------------------------------------------------
-REQUIRED_VARS=(S3_BUCKET_NAME AOSS_URL INDEX_PREFIX AWS_REGION)
+REQUIRED_VARS=(S3_BUCKET_NAME OPENSEARCH_URL INDEX_PREFIX AWS_REGION)
 
 missing=()
 for var in "${REQUIRED_VARS[@]}"; do

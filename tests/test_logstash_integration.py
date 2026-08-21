@@ -25,19 +25,24 @@ class TestLogstashIntegration(unittest.TestCase):
     # ============================================================================
     # CONFIGURATION: Set which configurations to test here
     # ============================================================================
-    ENABLED_CONFIGS = ["https", "ftp", "cloudfront"]  # Options: "https", "ftp", "cloudfront"
+    ENABLED_CONFIGS = [
+        "https",
+        "ftp",
+        "cloudfront",
+        "cloudfront-json",
+    ]  # Options: "https", "ftp", "cloudfront", "cloudfront-json"
 
     # Configuration-specific test expectations
     EXPECTED_COUNTS = {
         "https": {
             "parse_failures": 0,
             "bad_logs": 0,
-            "invalid_methods": 1,
+            "invalid_methods": 0,  # filter drops _invalid_http_method events before output
             "template_errors": 0,
             "empty_user_agents": 1,
             "duplicate_sources": 0,
-            "processed_logs": 23,
-            "corrupt_logs": 4,
+            "processed_logs": 25,  # +2 for url-field-parsing test lines (10.99.1.1, 10.99.1.2)
+            "corrupt_logs": 3,
         },
         "ftp": {
             "parse_failures": 0,
@@ -59,6 +64,16 @@ class TestLogstashIntegration(unittest.TestCase):
             "processed_logs": 2,  # 200 OK + 404 (failure outcome, no special tag)
             "corrupt_logs": 0,
         },
+        "cloudfront-json": {
+            "parse_failures": 0,
+            "bad_logs": 0,
+            "invalid_methods": 0,
+            "template_errors": 0,
+            "empty_user_agents": 1,  # 403 record with cs(User-Agent) = "-"
+            "duplicate_sources": 0,
+            "processed_logs": 2,  # 200 GET /portal/ + 302 GET with query string
+            "corrupt_logs": 0,
+        },
     }
 
     # Logstash configuration components
@@ -66,6 +81,7 @@ class TestLogstashIntegration(unittest.TestCase):
         "https": "test-input-https.conf",
         "ftp": "test-input-ftp.conf",
         "cloudfront": "test-input-cloudfront.conf",
+        "cloudfront-json": "test-input-cloudfront-json.conf",
     }
 
     FILTER_CONFIGS = ["shared/pds-filter.conf"]
@@ -168,6 +184,7 @@ class TestLogstashIntegration(unittest.TestCase):
             "https": "HTTPS Log Processing",
             "ftp": "FTP Log Processing",
             "cloudfront": "CloudFront Legacy W3C Log Processing",
+            "cloudfront-json": "CloudFront JSON Standard Logging v2 Processing",
         }
         return [(config, descriptions.get(config, f"{config} Processing")) for config in self.ENABLED_CONFIGS]
 
@@ -261,6 +278,9 @@ class TestLogstashIntegration(unittest.TestCase):
             env = os.environ.copy()
             env["LS_SETTINGS_DIR"] = str(self.ls_settings_dir)
             env["OUTPUT_DIR"] = str(unique_output_dir)
+            env.setdefault("S3_BUCKET_NAME", "test-bucket")
+            env.setdefault("OPENSEARCH_URL", "https://localhost:9200")
+            env.setdefault("INDEX_PREFIX", "pds-test")
 
             # Run Logstash with unique data directory
             cmd = ["logstash", "-f", tmp_conf_path, "--log.level=debug", "--path.data", str(unique_data_dir)]
@@ -426,6 +446,67 @@ class TestLogstashIntegration(unittest.TestCase):
         if len(contents) > 3:
             print(f"  ... and {len(contents) - 3} more files")
 
+    def load_processed_events(self, output_dir: Path) -> List[Dict]:
+        """Load all events written to the processed-logs output directory."""
+        events = []
+        processed_dir = output_dir / "processed-logs"
+        if not processed_dir.exists():
+            return events
+        for json_file in processed_dir.rglob("*.json"):
+            try:
+                with open(json_file) as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            events.append(json.loads(line))
+            except (json.JSONDecodeError, OSError) as e:
+                self.fail(f"Failed to parse processed event in {json_file}: {e}")
+        return events
+
+    def validate_url_field_parsing(self, output_dir: Path):
+        """Verify url.path_parts, url.query_params, and url.query_parts are populated.
+
+        Uses the dedicated test log lines added to test-input-https.conf:
+          10.99.1.1 — Apache GET with query string (?target=lucy&version=2)
+          10.99.1.2 — Apache GET with no query string (path only)
+        """
+        events = self.load_processed_events(output_dir)
+        by_source: Dict[str, List[Dict]] = {}
+        for event in events:
+            addr = event.get("source", {}).get("address", "")
+            by_source.setdefault(addr, []).append(event)
+
+        # ── Test 1: path + query string ──────────────────────────────────────
+        query_events = by_source.get("10.99.1.1", [])
+        self.assertEqual(len(query_events), 1, "Expected 1 processed event for 10.99.1.1")
+        url = query_events[0].get("url", {})
+
+        self.assertEqual(
+            url.get("path"),
+            "/pds/data/LUCY/kernels",
+            "url.path must not include the query string",
+        )
+        self.assertEqual(
+            sorted(url.get("path_parts", [])),
+            sorted(["pds", "data", "LUCY", "kernels"]),
+            "url.path_parts must contain each path segment",
+        )
+        query_params = url.get("query_params", {})
+        self.assertEqual(query_params.get("target"), "lucy", "url.query_params.target must be 'lucy'")
+        self.assertEqual(query_params.get("version"), "2", "url.query_params.version must be '2'")
+        query_parts = url.get("query_parts", [])
+        self.assertIn("target=lucy", query_parts, "url.query_parts must contain 'target=lucy'")
+        self.assertIn("version=2", query_parts, "url.query_parts must contain 'version=2'")
+
+        # ── Test 2: path only, no query string ───────────────────────────────
+        no_query_events = by_source.get("10.99.1.2", [])
+        self.assertEqual(len(no_query_events), 1, "Expected 1 processed event for 10.99.1.2")
+        url2 = no_query_events[0].get("url", {})
+
+        self.assertIn("LUCY", url2.get("path_parts", []), "url.path_parts must contain 'LUCY'")
+        self.assertNotIn("query_params", url2, "url.query_params must not be set when there is no query string")
+        self.assertNotIn("query_parts", url2, "url.query_parts must not be set when there is no query string")
+
     def test_https_log_processing(self):
         """Test processing of HTTPS logs."""
         if "https" not in self.ENABLED_CONFIGS:
@@ -437,6 +518,9 @@ class TestLogstashIntegration(unittest.TestCase):
 
         # Validate output counts
         self.validate_output_counts(output_dir, "https")
+
+        # Validate URL field parsing (path_parts, query_params, query_parts)
+        self.validate_url_field_parsing(output_dir)
 
     def test_ftp_log_processing(self):
         """Test processing of FTP logs."""
@@ -461,6 +545,18 @@ class TestLogstashIntegration(unittest.TestCase):
 
         # Validate output counts
         self.validate_output_counts(output_dir, "cloudfront")
+
+    def test_cloudfront_json_log_processing(self):
+        """Test processing of CloudFront JSON Standard Logging v2 logs."""
+        if "cloudfront-json" not in self.ENABLED_CONFIGS:
+            self.skipTest("CloudFront JSON configuration not enabled")
+
+        success, output_dir = self.run_logstash_pipeline(
+            "cloudfront-json", "CloudFront JSON Standard Logging v2 Processing"
+        )
+        self.assertTrue(success, "Logstash pipeline failed for CloudFront JSON logs")
+
+        self.validate_output_counts(output_dir, "cloudfront-json")
 
     @unittest.skip("Skipping configuration file existence test")
     def test_configuration_files_exist(self):

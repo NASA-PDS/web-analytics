@@ -13,7 +13,7 @@ Create a ``.env`` file in the repository root:
     # AWS Configuration
     export AWS_REGION=us-west-2
     export S3_BUCKET_NAME=your-pds-logs-bucket
-    export AOSS_URL=https://your-opensearch-domain.us-west-2.es.amazonaws.com
+    export OPENSEARCH_URL=https://your-opensearch-domain.us-west-2.es.amazonaws.com
     export INDEX_PREFIX=pds-web-analytics
 
     # Logstash Configuration

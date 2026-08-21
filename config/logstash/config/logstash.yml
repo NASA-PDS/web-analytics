@@ -1,6 +1,6 @@
 # ----------- Core Paths -----------
-#path.data: /var/lib/logstash       # Where LS stores its internal state - use default for now
-#path.logs: /var/log/logstash       # Log output - use default for now
+path.data: /var/lib/logstash
+path.logs: /var/log/logstash
 
 # ----------- Pipeline Configuration -----------
 pipeline.batch.size: 100           # Tune based on your instance size (t3.xlarge is good here)

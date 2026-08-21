@@ -4,12 +4,6 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "vpc_id" {
-  description = "VPC ID"
-  type        = string
-  sensitive   = true
-}
-
 variable "tenant" {
   description = "Tag value for Tenant"
   type        = string
@@ -26,11 +20,11 @@ variable "venue" {
 }
 
 variable "component" {
-  description = "Tag value for applicaiton component"
+  description = "Tag value for application component"
   type        = string
 }
 
-variable "createdBy" {
+variable "managedby" {
   description = "Tag value for owner managing the resource (E.g. for PDS Team we have PDS Team Email Distro)"
   type        = string
 }
@@ -41,21 +35,12 @@ variable "partition" {
   default     = "aws"
 }
 
-variable "pds_resource_prefix" {
-  description = "PDS Resource prefix for Terrafrom Resources"
+variable "s3_bucket_prefix" {
+  description = "Prefix for the S3 bucket name only (e.g. pds-dev-gh01dc). May include CI/CD pipeline identifiers for existing buckets."
   type        = string
 }
 
 variable "ec2_role_name" {
-  description = "Existing PDS EC2 IAM role name"
+  description = "Existing PDS EC2 IAM role name — used in the S3 bucket policy AllowEC2Role statement"
   type        = string
-}
-
-variable "aoss_collection_name" {
-  description = "Exiting PDS OpenSearch Serverless collection name"
-  type        = string
-}
-
-locals {
-  s3_bucket_name = "${var.pds_resource_prefix}-web-analytics"
 }

@@ -1,8 +1,3 @@
-# AWS
-# ===
-#
-# Amazon Web Services: the basics.
-
 provider "aws" {
   region = var.aws_region
 
@@ -11,13 +6,8 @@ provider "aws" {
       tenant    = var.tenant
       venue     = var.venue
       component = var.component
-      createdBy = var.createdBy
+      managedby = var.managedby
       cicd      = var.cicd
     }
   }
-}
-
-# Fetch the default VPC and subnet to keep things simple
-data "aws_vpc" "default" {
-  id = var.vpc_id
 }

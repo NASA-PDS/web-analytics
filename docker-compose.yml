@@ -38,6 +38,9 @@ services:
       - ./output:/app/output
     environment:
       OUTPUT_DIR: /app/output
+      S3_BUCKET_NAME: test-bucket
+      OPENSEARCH_URL: https://localhost:9200
+      INDEX_PREFIX: pds-test
 
   # ---------------------------------------------------------------------------
   # prod — Production Logstash pipeline (local simulation of ECS deployment)

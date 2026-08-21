@@ -1,0 +1,5 @@
+# Taskfile.dev configuration
+# See: https://taskfile.dev/docs/reference/config
+
+# Set interactive mode to true
+interactive: true
